@@ -1,0 +1,6 @@
+Main/
+Datasets/
+.mypy_cache/
+main_backup/
+raspberrypi/
+sbb/
