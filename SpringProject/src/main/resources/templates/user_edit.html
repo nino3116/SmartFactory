@@ -1,0 +1,29 @@
+<html layout:decorate="~{layout}">
+  <div layout:fragment="content" class="container">
+    <h5 class="my-3 border-bottom pb-2">회원수정</h5>
+    <form
+      th:action="@{/users/list/${usersForm.id}}"
+      th:object="${usersForm}"
+      method="put">
+      <input type="hidden" name="_method" value="put" />
+      <div th:replace="~{form_errors :: formErrorsFragment}"></div>
+      <div class="mb-3">
+        <label for="userId" class="form-label">유저 아이디</label>
+        <input type="text" th:field="*{userId}" class="form-control" />
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">비밀번호</label>
+        <input type="password" th:field="*{password}" class="form-control" />
+      </div>
+      <div class="mb-3">
+        <label for="username" class="form-label">유저 이름</label>
+        <input type="text" th:field="*{username}" class="form-control" />
+      </div>
+      <div class="mb-3">
+        <label for="email" class="form-label">이메일</label>
+        <input type="email" th:field="*{email}" class="form-control" />
+      </div>
+      <input type="submit" value="회원 수정" class="btn btn-primary my-2" />
+    </form>
+  </div>
+</html>
