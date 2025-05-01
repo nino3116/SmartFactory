@@ -6,6 +6,7 @@ import os
 # from anomalib.data import FolderDataModule # 직접 임포트 필요 없음
 from anomalib.data import get_datamodule  # <-- get_datamodule 함수 임포트
 from anomalib.pre_processing import PreProcessor
+from anomalib.post_processing import PostProcessor
 
 from anomalib.models import Patchcore
 from anomalib.engine import Engine
@@ -106,6 +107,7 @@ transform = T.Compose(
     ]
 )
 pre_processor = PreProcessor(transform=transform)
+post_processor = PostProcessor()
 
 visualizer = ImageVisualizer()
 
@@ -121,6 +123,7 @@ try:
         pre_processor=pre_processor,
         visualizer=visualizer,
         evaluator=evaluator,
+        post_processor=post_processor,
     )
 except TypeError as e:
     print(f"\nPatchcore 모델 생성 중 오류 발생: {e}")
@@ -262,14 +265,24 @@ try:
         print(
             f"  이미지 이상 점수 (Inferencer): {results_normal.pred_score.item():.4f}"
         )
+        save_path_normal = os.path.join(model_config["inference"]["save_path"], "good")
+        os.makedirs(save_path_normal, exist_ok=True)
+        results_normal.save(os.path.join(save_path_normal, "60_100_result Good.jpg"))
         print(
             f"  추론 결과 이미지가 '{model_config['inference']['save_path']}' 폴더에 저장되었습니다."
         )
 
         print(f"\n'{NEW_IMAGE_PATH_DEFECT}' 추론 실행 중...")
         results_defect = inferencer.predict(image=NEW_IMAGE_PATH_DEFECT)
+        save_path_defect = os.path.join(
+            model_config["inference"]["save_path"], "abnormal"
+        )
+        os.makedirs(save_path_defect, exist_ok=True)
         print(
             f"  이미지 이상 점수 (Inferencer): {results_defect.pred_score.item():.4f}"
+        )
+        results_defect.save(
+            os.path.join(save_path_defect, "r0_11_100_result Defect.jpg")
         )
         print(
             f"  추론 결과 이미지가 '{model_config['inference']['save_path']}' 폴더에 저장되었습니다."
