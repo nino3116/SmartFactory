@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/output.css}">
+</head>
+<body class="bg-gray-100 h-screen flex">
+
+    <aside class="bg-green-600 text-white w-64 flex flex-col justify-between p-6">
+        <div>
+            <div class="flex items-center mb-8">
+                <div class="w-8 h-8 bg-white rounded-full mr-2"></div>
+                <span class="text-xl font-bold">Detecte</span>
+            </div>
+            <nav>
+                <a href="#" class="flex items-center py-2 px-4 rounded-md bg-green-700 font-semibold mb-2">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0l2-2m-2 2v9a1 1 0 01-1 1h-3m12-12l-2-2m2 2v-9a1 1 0 01-1-1h-3m-6 0l-2 2m2-2v-10a1 1 0 01-1-1h-3"></path></svg>
+                    Dashboard
+                </a>
+                <a href="#" class="flex items-center py-2 px-4 rounded-md hover:bg-green-700 mb-2">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    nabvar1
+                </a>
+                <a href="#" class="flex items-center py-2 px-4 rounded-md hover:bg-green-700 mb-2">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    nabvar2
+                </a>
+                <a href="#" class="flex items-center py-2 px-4 rounded-md hover:bg-green-700 mb-2">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    nabvar3
+                </a>
+                <a href="#" class="flex items-center py-2 px-4 rounded-md hover:bg-green-700 mb-2">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    nabvar3
+                </a>
+
+            </nav>
+        </div>
+        <a href="#" class="flex items-center py-2 px-4 rounded-md hover:bg-green-700">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h13a3 3 0 013 3v1"></path></svg>
+            Login
+        </a>
+    </aside>
+
+    <div class="flex-1 flex flex-col overflow-hidden">
+        <header class="bg-white shadow-md p-4 flex justify-between items-center">
+            <h1 class="text-xl font-semibold">Dashboard</h1>
+            <div class="flex items-center">
+                <div class="w-8 h-8 bg-yellow-300 rounded-full mr-4"></div>
+                <div class="w-8 h-8 bg-lime-300 rounded-full"></div>
+            </div>
+        </header>
+
+        <main class="p-6 grid grid-cols-2 gap-6 overflow-y-auto">
+            <div class="bg-white rounded-md shadow-md p-4">
+                <h2 class="text-lg font-semibold mb-2">Week status</h2>
+                <div class="h-48 bg-gray-200 rounded">
+                    </div>
+            </div>
+
+            <div class="bg-white rounded-md shadow-md p-4">
+                <h2 class="text-lg font-semibold mb-2">Detection status</h2>
+                <div class="h-48 bg-gray-200 rounded flex justify-center items-center">
+                    <div class="w-32 h-32 rounded-full bg-blue-300"></div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-md shadow-md p-4">
+                <h2 class="text-lg font-semibold mb-2">Year status</h2>
+                <div class="h-48 bg-gray-200 rounded">
+                    </div>
+            </div>
+
+            <div class="bg-white rounded-md shadow-md p-4 overflow-x-auto">
+                <h2 class="text-lg font-semibold mb-2">Data Table</h2>
+                <table class="min-w-full border border-gray-300">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b">Column Ti...</th>
+                            <th class="py-2 px-4 border-b">Column Ti...</th>
+                            <th class="py-2 px-4 border-b">Column Ti...</th>
+                            <th class="py-2 px-4 border-b">Column Ti...</th>
+                            <th class="py-2 px-4 border-b">Column Ti...</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="i : ${#numbers.sequence(1, 5)}">
+                            <td class="py-2 px-4 border-b">Cell text</td>
+                            <td class="py-2 px-4 border-b">Cell text</td>
+                            <td class="py-2 px-4 border-b">Cell text</td>
+                            <td class="py-2 px-4 border-b">Cell text</td>
+                            <td class="py-2 px-4 border-b">Cell text</td>
+                        </tr>
+                        <tr th:each="i : ${#numbers.sequence(1, 5)}">
+                            <td class="py-2 px-4 border-b">Cell text</td>
+                            <td class="py-2 px-4 border-b">Cell text</td>
+                            <td class="py-2 px-4 border-b">Cell text</td>
+                            <td class="py-2 px-4 border-b">Cell text</td>
+                            <td class="py-2 px-4 border-b">Cell text</td>
+                        </tr>
+                        </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+</body>
+</html>
