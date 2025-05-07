@@ -1,4 +1,4 @@
-package com.project2.smartfactory.testforder;
+package com.project2.smartfactory.DashBoard;
 
 import org.springframework.stereotype.Controller;
 // import org.springframework.ui.Model;
@@ -15,7 +15,5 @@ public class DashboardController {
     @GetMapping("/dashboard")
     public String dashboard() {
         return "dashboard";
-    }
-    
-    
+    }  
 }
