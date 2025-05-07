@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html
+  lang="ko"
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="~{layout}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title layout:title="불량 감지 결과"></title>
+
+    <th:block layout:fragment="css">
+      <style>
+        /* defects.html 고유의 CSS 스타일을 여기에 작성합니다. */
+        .defect-item {
+          background-color: #ffebee; /* Light red background */
+          border: 1px solid #e57373; /* Red border */
+          margin-bottom: 15px;
+          padding: 15px;
+          border-radius: 5px;
+        }
+        .defect-item strong {
+          color: #c62828; /* Darker red for emphasis */
+        }
+        .no-defects {
+          color: #4caf50; /* Green text */
+          font-weight: bold;
+        }
+        /* Add any additional styles needed specifically for the defects page */
+      </style>
+    </th:block>
+  </head>
+  <body>
+    <div layout:fragment="content">
+      <h2 class="text-2xl font-semibold text-gray-700 mb-4">
+        최신 불량 감지 결과
+      </h2>
+      <div id="defect-list">
+        <p class="no-defects">불량 정보 로딩 중...</p>
+      </div>
+    </div>
+
+    <th:block layout:fragment="script">
+      <script>
+        // API 엔드포인트 URL (Spring Boot 서버의 IP와 포트, 컨트롤러 경로에 맞게 수정)
+        // DefectController는 /api 로 매핑되어 있으므로 /api/latest-defects 입니다.
+        // Assuming this HTML is served from the same Spring Boot app,
+        // a relative path is usually fine.
+        const API_URL = "/api/latest-defects";
+
+        // 불량 정보를 가져와서 화면에 표시하는 함수
+        async function fetchAndDisplayDefects() {
+          const defectListDiv = document.getElementById("defect-list");
+          if (!defectListDiv) {
+            console.error("Error: Element with id 'defect-list' not found.");
+            return; // Exit if the element is not found
+          }
+          defectListDiv.innerHTML = "<p>불량 정보 가져오는 중...</p>"; // Loading message
+
+          try {
+            const response = await fetch(API_URL);
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const defects = await response.json(); // Parse JSON response
+
+            defectListDiv.innerHTML = ""; // Clear previous content
+
+            if (defects && defects.length > 0) {
+              // 불량 정보가 있으면 각 항목을 표시
+              defects.forEach((defect) => {
+                const defectItem = document.createElement("div");
+                defectItem.classList.add("defect-item");
+
+                let content = `
+                        <p><strong>클래스:</strong> ${defect.clazz}</p>
+                        <p><strong>사유:</strong> ${defect.reason}</p>
+                        <p><strong>신뢰도:</strong> ${defect.confidence.toFixed(
+                          2
+                        )}</p>
+                    `;
+
+                if (defect.box) {
+                  content += `<p><strong>위치 (Box):</strong> [${defect.box
+                    .map((coord) => coord.toFixed(2))
+                    .join(", ")}]</p>`;
+                }
+
+                if (
+                  defect.areaPercentOnApple !== undefined &&
+                  defect.areaPercentOnApple !== null
+                ) {
+                  content += `<p><strong>사과 면적 대비 비율:</strong> ${defect.areaPercentOnApple.toFixed(
+                    2
+                  )}%</p>`;
+                }
+
+                defectItem.innerHTML = content;
+                defectListDiv.appendChild(defectItem);
+              });
+            } else {
+              // 불량 정보가 없으면 메시지 표시
+              defectListDiv.innerHTML =
+                '<p class="no-defects">감지된 불량이 없습니다.</p>';
+            }
+          } catch (error) {
+            console.error("불량 정보를 가져오는 중 오류 발생:", error);
+            defectListDiv.innerHTML = `<p style="color: red;">오류 발생: ${error.message}</p>`;
+          }
+        }
+
+        // 페이지 로드 시 및 주기적으로 불량 정보 가져오기
+        document.addEventListener("DOMContentLoaded", () => {
+          fetchAndDisplayDefects(); // 페이지 로드 시 즉시 가져오기
+
+          // 5초마다 불량 정보 업데이트 (주기는 필요에 따라 조정)
+          setInterval(fetchAndDisplayDefects, 5000);
+        });
+      </script>
+    </th:block>
+  </body>
+</html>

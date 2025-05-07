@@ -10,7 +10,7 @@ MODEL_PATH = "wsl_seg_best.pt"
 VIDEO_STREAM_URL = "http://192.168.0.124:8000/stream.mjpg"
 
 # 3. 탐지 임계값 (Confidence Threshold)
-CONF_THRESHOLD = 0.4  # 필요에 따라 조정하세요 (예: 0.3, 0.7 등)
+CONF_THRESHOLD = 0.5  # 필요에 따라 조정하세요 (예: 0.3, 0.7 등)
 
 # 4. IOU 임계값 (NMS IoU Threshold)
 
@@ -66,8 +66,8 @@ while True:
         break
 
     # Optional: 읽은 프레임 크기 확인 (디버깅용)
-    if frame is not None:
-        print(f"읽은 프레임 크기: {frame.shape}")
+    # if frame is not None:
+    #     print(f"읽은 프레임 크기: {frame.shape}")
 
     # 현재 프레임에 대해 객체 감지 수행
     # model.predict() 메소드는 이미지 파일 경로, OpenCV 프레임(NumPy 배열), PIL Image 등 다양한 소스를 입력받습니다.
@@ -94,11 +94,11 @@ while True:
 
     # Optional: FPS 계산 및 출력
     # frame_count += 1
-    # if (time.time() - start_time) > 1: # 1초마다 FPS 계산
-    #    fps = frame_count / (time.time() - start_time)
-    #    print(f"처리 FPS: {fps:.2f}")
-    #    frame_count = 0
-    #    start_time = time.time()
+    # if (time.time() - start_time) > 1:  # 1초마다 FPS 계산
+    #     fps = frame_count / (time.time() - start_time)
+    #     print(f"처리 FPS: {fps:.2f}")
+    #     frame_count = 0
+    #     start_time = time.time()
 
     # 키 입력을 대기하고 'q' 키가 눌리면 루프 종료
     # cv2.waitKey(1)은 1ms 동안 키 입력을 대기합니다.

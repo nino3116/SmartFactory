@@ -5,8 +5,6 @@
         <tr>
           <th>번호</th>
           <th>아이디</th>
-          <th>이름</th>
-          <th>이메일</th>
           <th>가입날짜</th>
           <th>삭제</th>
         </tr>
@@ -19,8 +17,6 @@
               th:href="@{|/users/list/${users.id}|}"></a>
           </td>
           <td th:text="${users.userId}"></td>
-          <td th:text="${users.username}"></td>
-          <td th:text="${users.email}"></td>
           <td
             th:text="${#temporals.format(users.createDate, 'yyyy-MM-dd HH:mm')}"></td>
           <td>
@@ -33,7 +29,7 @@
         </tr>
       </tbody>
     </table>
-    <a th:href="@{/hello}" class="btn btn-primary">메인으로</a>
+    <a th:href="@{/}" class="btn btn-primary">메인으로</a>
     <script th:inline="javascript">
       /* 인라인 스크립트 사용을 위한 th:inline="javascript" */
 

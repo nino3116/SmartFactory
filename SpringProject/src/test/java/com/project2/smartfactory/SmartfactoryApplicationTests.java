@@ -29,8 +29,6 @@ class SmartfactoryApplicationTests {
 		Users user = new Users();
 		user.setUserId("test");
 		user.setPassword("test");
-		user.setUsername("testuser");
-		user.setEmail("test@test.com");
 		user.setCreateDate(LocalDateTime.now());
 		this.usersRepository.save(user);
 	}

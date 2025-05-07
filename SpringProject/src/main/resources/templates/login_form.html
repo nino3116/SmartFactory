@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <title>Login - Smart Factory</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <style>
+      /* 이미지 배경색과 유사한 색상 */
+      .bg-green-sidebar {
+        background-color: #4caf50; /* 이미지의 녹색 계열 색상 */
+      }
+      /* 로그인 폼 배경색과 유사한 색상 */
+      .bg-light-gray-form {
+        background-color: #f8f9fa; /* 이미지의 밝은 회색 계열 색상 */
+      }
+      /* 로그인 버튼 색상과 유사한 색상 */
+      .bg-green-button {
+        background-color: #8bc34a; /* 이미지의 녹색 버튼 색상 */
+      }
+      .bg-green-button:hover {
+        background-color: #7cb342; /* 호버 시 색상 변경 */
+      }
+    </style>
+  </head>
+  <body class="flex h-screen">
+    <div
+      class="w-1/2 bg-green-sidebar text-white flex flex-col justify-center items-center p-12">
+      <div class="max-w-md text-left">
+        <h1 class="text-5xl font-bold mb-4">Welcome to Smart Factory</h1>
+        <p class="text-lg mb-8">
+          Clarity gives you the blocks & components you need to create a truly
+          professional website.
+        </p>
+        <div class="mt-8">
+          <img
+            th:src="@{/images/apple.png}"
+            alt="Apple"
+            class="mx-auto mb-6 w-32 h-auto" />
+          <div class="flex items-center mb-4">
+            <span class="text-yellow-400 text-2xl mr-1">★</span>
+            <span class="text-yellow-400 text-2xl mr-1">★</span>
+            <span class="text-yellow-400 text-2xl mr-1">★</span>
+            <span class="text-yellow-400 text-2xl mr-1">★</span>
+            <span class="text-yellow-400 text-2xl mr-1">★</span>
+          </div>
+          <p class="italic">
+            "We love Landingfolio! Our designers were using it for their
+            projects, so we already knew what kind of design they want."
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="w-1/2 flex flex-col justify-center items-center p-12 bg-light-gray-form">
+      <div class="max-w-md w-full">
+        <h2 class="text-3xl font-bold mb-6 text-gray-800">Log In</h2>
+        <p class="text-gray-600 mb-8">
+          Clarity gives you the blocks and components you need to create a truly
+          professional website.
+        </p>
+
+        <form th:action="@{/users/login}" method="post">
+          <div th:if="${param.error}">
+            <div class="alert alert-danger">
+              사용자 ID 또는 비밀번호를 확인해 주세요.
+            </div>
+          </div>
+          <div class="mb-4">
+            <label
+              for="userId"
+              class="block text-gray-700 text-sm font-bold mb-2"
+              >ID</label
+            >
+            <input
+              type="text"
+              id="userId"
+              name="User ID"
+              class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required />
+          </div>
+          <div class="mb-6">
+            <label
+              for="password"
+              class="block text-gray-700 text-sm font-bold mb-2"
+              >Password</label
+            >
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+              required />
+          </div>
+
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center">
+              <input
+                type="checkbox"
+                id="remember"
+                name="remember"
+                class="mr-2 leading-tight" />
+              <label for="remember" class="text-sm text-gray-700"
+                >Remember me</label
+              >
+            </div>
+            <a
+              class="inline-block align-baseline text-sm text-blue-500 hover:text-blue-800">
+              Forgot password?
+            </a>
+          </div>
+
+          <div class="flex items-center justify-center">
+            <button
+              type="submit"
+              class="bg-green-button hover:bg-green-button text-white font-bold py-3 px-6 rounded focus:outline-none focus:shadow-outline w-full">
+              Login
+            </button>
+          </div>
+        </form>
+
+        <p class="text-center text-gray-600 text-sm mt-6">
+          Don't have an account?
+          <a class="text-blue-500 hover:text-blue-800">Create free account</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

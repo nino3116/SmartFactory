@@ -2,6 +2,7 @@ import torchvision
 import torch
 import cv2 as cv
 import matplotlib.pyplot as plt
+from anomalib.models import Patchcore
 
 model = torch.load("patchcore_trained_model.pt", weights_only=False)
 results = model.predict(
