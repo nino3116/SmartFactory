@@ -1,12 +1,14 @@
 <html xmlns:th="http://www.thymeleaf.org" layout:decorate="~{layout}">
+  <head>
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+  </head>
   <div layout:fragment="content" class="container my-3">
     <table class="table">
       <thead class="table-dark">
         <tr>
           <th>번호</th>
           <th>아이디</th>
-          <th>이름</th>
-          <th>이메일</th>
           <th>가입날짜</th>
           <th>삭제</th>
         </tr>
@@ -19,8 +21,6 @@
               th:href="@{|/users/list/${users.id}|}"></a>
           </td>
           <td th:text="${users.userId}"></td>
-          <td th:text="${users.username}"></td>
-          <td th:text="${users.email}"></td>
           <td
             th:text="${#temporals.format(users.createDate, 'yyyy-MM-dd HH:mm')}"></td>
           <td>
@@ -33,14 +33,25 @@
         </tr>
       </tbody>
     </table>
-    <a th:href="@{/hello}" class="btn btn-primary">메인으로</a>
+    <a th:href="@{/}" class="btn btn-primary">메인으로</a>
     <script th:inline="javascript">
       /* 인라인 스크립트 사용을 위한 th:inline="javascript" */
+
+      // CSRF 토큰과 헤더 이름 읽기
+      const token = document
+        .querySelector('meta[name="_csrf"]')
+        .getAttribute("content");
+      const header = document
+        .querySelector('meta[name="_csrf_header"]')
+        .getAttribute("content");
 
       function deleteUser(deleteUrl) {
         if (confirm("정말로 삭제하시겠습니까?")) {
           fetch(deleteUrl, {
             method: "DELETE", // DELETE 메소드 지정
+            headers: {
+              [header]: token, // CSRF 헤더와 토큰 추가
+            },
           })
             .then((response) => {
               if (response.ok) {
@@ -48,7 +59,12 @@
                 window.location.reload(); // 간단하게 페이지 새로고침
                 // 또는 window.location.href = /*[[ @{/users/list} ]]*/ '/users/list'; // 목록 페이지로 이동
               } else {
-                alert("삭제 실패: " + response.statusText);
+                // 403 Forbidden 에러 시 메시지 변경 (선택 사항)
+                if (response.status === 403) {
+                  alert("삭제 실패: 권한이 없습니다.");
+                } else {
+                  alert("삭제 실패: " + response.statusText);
+                }
               }
             })
             .catch((error) => {

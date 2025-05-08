@@ -1,0 +1,59 @@
+<div layout:decorate="~{layout}">
+  <div layout:fragment="content" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-lg font-semibold mb-4">Week status</h2>
+      <canvas id="weekStatusChart"></canvas>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-lg font-semibold mb-4">Detection status</h2>
+      <canvas id="detectionStatusChart"></canvas>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6 col-span-1 md:col-span-2">
+      <h2 class="text-lg font-semibold mb-4">Year status</h2>
+      <canvas id="yearStatusChart"></canvas>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6 col-span-1 md:col-span-2">
+      <h2 class="text-lg font-semibold mb-4">Data Table</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-white">
+          <thead>
+            <tr>
+              <th class="py-2 px-4 border-b text-left">Column Tl...</th>
+              <th class="py-2 px-4 border-b text-left">Column Tl...</th>
+              <th class="py-2 px-4 border-b text-left">Column Tl...</th>
+              <th class="py-2 px-4 border-b text-left">Column Tl...</th>
+              <th class="py-2 px-4 border-b text-left">Column Tl...</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="item : ${dataList}" class="hover:bg-gray-50">
+              <td th:text="${item.col1}" class="py-2 px-4 border-b">
+                Cell text
+              </td>
+              <td th:text="${item.col2}" class="py-2 px-4 border-b">
+                Cell text
+              </td>
+              <td th:text="${item.col3}" class="py-2 px-4 border-b">
+                Cell text
+              </td>
+              <td th:text="${item.col4}" class="py-2 px-4 border-b">
+                Cell text
+              </td>
+              <td th:text="${item.col5}" class="py-2 px-4 border-b">
+                Cell text
+              </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(dataList)}">
+              <td colspan="5" class="py-4 px-4 text-center text-gray-500">
+                데이터가 없습니다.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
