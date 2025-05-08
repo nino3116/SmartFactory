@@ -97,52 +97,53 @@
     </ul>
   </nav>
   <div class="mt-auto">
-    <li>
-      <a
-        sec:authorize="isAnonymous()"
-        th:href="@{/users/login}"
-        class="flex items-center py-2 px-4 rounded hover:bg-green-600">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="mr-3">
-          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-          <polyline points="10 17 15 12 10 7" />
-          <line x1="15" x2="3" y1="12" y2="12" />
-        </svg>
-        Login
-      </a>
-      <a
-        sec:authorize="isAuthenticated()"
-        th:href="@{/users/logout}"
-        class="flex items-center py-2 px-4 rounded hover:bg-green-600">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="mr-3">
-          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-          <polyline points="10 17 15 12 10 7" />
-          <line x1="15" x2="3" y1="12" y2="12" />
-        </svg>
-        Logout
-      </a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" th:href="@{/users/signup}">회원가입</a>
-    </li>
+    <a
+      sec:authorize="isAnonymous()"
+      th:href="@{/users/login}"
+      class="nav-link flex items-center py-2 px-4 rounded hover:bg-green-600">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="mr-3">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+        <polyline points="10 17 15 12 10 7" />
+        <line x1="15" x2="3" y1="12" y2="12" />
+      </svg>
+      Login
+    </a>
+    <a
+      sec:authorize="isAuthenticated()"
+      th:href="@{/users/logout}"
+      class="nav-link flex items-center py-2 px-4 rounded hover:bg-green-600">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="mr-3">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+        <polyline points="10 17 15 12 10 7" />
+        <line x1="15" x2="3" y1="12" y2="12" />
+      </svg>
+      Logout
+    </a>
+    <a
+      sec:authorize="isAnonymous()"
+      class="nav-link flex items-center py-2 px-4 rounded hover:bg-green-600"
+      th:href="@{/users/signup}"
+      >회원가입</a
+    >
   </div>
 </aside>
