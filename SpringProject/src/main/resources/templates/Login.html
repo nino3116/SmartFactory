@@ -1,67 +1,69 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" layout:decorate="~{layout/base}">
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org" layout:decorate="~{layout/base}">
 <head>
-    <title layout:title="Login"></title>
-    </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-    <div class="bg-white rounded-2xl shadow-xl flex w-3/4 max-w-4xl">
-        <div class="w-1/2 bg-green-600 text-white p-12 rounded-l-2xl flex flex-col justify-between">
-            <div>
-                <h2 class="text-3xl font-bold mb-4">Welcome to <span class="font-extrabold">Smart Factory</span></h2>
-                <p class="text-lg opacity-80 mb-8">Clarity gives you the blocks and components you need to create a truly professional website.</p>
-            </div>
-            <div class="relative">
-                <div class="absolute -bottom-16 -left-16 opacity-60">
-                    <svg viewBox="0 0 200 200" width="200" height="200" fill="currentColor" class="text-green-700">
-                        <path d="M58.2 126.3c-14.5 13.6-23.4 32.3-23.4 52.7 0 40.7 33.1 73.8 73.8 73.8 20.4 0 39.1-8.9 52.7-23.4l-15.9-15.9c-10.8 8.1-24.1 12.7-38.4 12.7-31.2 0-56.5-25.3-56.5-56.5 0-14.3 4.6-27.6 12.7-38.4L58.2 126.3zM185.4 31.6c-13.6-14.5-32.3-23.4-52.7-23.4-40.7 0-73.8 33.1-73.8 73.8 0 20.4 8.9 39.1 23.4 52.7l15.9-15.9c10.8 8.1 24.1 12.7 38.4 12.7 31.2 0 56.5-25.3 56.5-56.5 0-14.3-4.6-27.6-12.7-38.4L185.4 31.6z"/>
-                    </svg>
+    <title layout:title="로그인 페이지">Login</title>
+</head>
+
+<body layout:fragment="content" class="bg-gray-100 h-screen flex items-center">
+
+        <div class="bg-white rounded-2xl shadow-xl flex w-3/4 max-w-4xl mx-auto mt-12">
+            <div class="w-1/2 bg-green-600 text-white p-12 rounded-l-2xl flex flex-col justify-between">
+                <div>
+                    <h2 class="text-3xl font-bold mb-4">Welcome to <span class="font-extrabold">Smart Factory</span></h2>
+                    <p class="text-lg opacity-80 mb-8">Clarity gives you the blocks and components you need to create a truly professional website.</p>
                 </div>
-                <div class="relative z-10">
-                    <div class="flex items-center mb-2">
-                        <svg class="w-5 h-5 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.943L10 0l2.868 6.702 6.545.943L13.65 11.545l1.176 6.545z"/></svg>
-                        <svg class="w-5 h-5 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.943L10 0l2.868 6.702 6.545.943L13.65 11.545l1.176 6.545z"/></svg>
-                        <svg class="w-5 h-5 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.943L10 0l2.868 6.702 6.545.943L13.65 11.545l1.176 6.545z"/></svg>
-                        <svg class="w-5 h-5 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.943L10 0l2.868 6.702 6.545.943L13.65 11.545l1.176 6.545z"/></svg>
-                        <svg class="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.943L10 0l2.868 6.702 6.545.943L13.65 11.545l1.176 6.545z"/></svg>
+                <div class="relative">
+                    <div class="absolute -bottom-16 -left-16 opacity-60">
+                        <!-- SVG 생략 가능 -->
                     </div>
-                    <blockquote class="text-md italic">
-                        "We love Landingfolio! Our designers were using it for their projects, so we already knew what kind of design they want."
-                    </blockquote>
+                    <div class="relative z-10">
+                        <div class="flex items-center mb-2">
+                        <svg  class="w-5 h-5 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.943L10 0l2.868 6.702 6.545.943L13.65 11.545l1.176 6.545z"/></svg>
+                        <svg  class="w-5 h-5 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.943L10 0l2.868 6.702 6.545.943L13.65 11.545l1.176 6.545z"/></svg>
+                        <svg  class="w-5 h-5 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.943L10 0l2.868 6.702 6.545.943L13.65 11.545l1.176 6.545z"/></svg>
+                        <svg  class="w-5 h-5 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.943L10 0l2.868 6.702 6.545.943L13.65 11.545l1.176 6.545z"/></svg>
+                        <svg  class="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.943L10 0l2.868 6.702 6.545.943L13.65 11.545l1.176 6.545z"/></svg>
+                        </div>
+                        <blockquote class="text-md italic">
+                            "We love Landingfolio! Our designers were using it for their projects, so we already knew what kind of design they want."
+                        </blockquote>
+                    </div>
                 </div>
+            </div>
+
+            <div class="w-1/2 p-12">
+                <h2 class="text-2xl font-bold mb-6">Log In</h2>
+                <p class="text-gray-600 mb-8">Clarity gives you the blocks and components you need to create a truly professional website.</p>
+
+                <form class="space-y-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
+                        <input type="email" id="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label for="full-name" class="block text-sm font-medium text-gray-700">Full name</label>
+                        <input type="text" id="full-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="remember" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                            <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
+                        </div>
+                        <a href="#" class="text-sm text-green-600 hover:underline focus:outline-none focus:ring-2 focus:ring-green-500">Forgot password?</a>
+                    </div>
+                    <div>
+                        <button type="submit" class="w-full bg-green-500 text-white py-3 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 font-semibold">Log In</button>
+                    </div>
+                </form>
+
+                <p class="mt-8 text-sm text-center text-gray-600">Don't have an account? <a href="#" class="text-green-600 hover:underline focus:outline-none focus:ring-2 focus:ring-green-500 font-semibold">Create free account</a></p>
             </div>
         </div>
 
-        <div class="w-1/2 p-12">
-            <h2 class="text-2xl font-bold mb-6">Log In</h2>
-            <p class="text-gray-600 mb-8">Clarity gives you the blocks and components you need to create a truly professional website.</p>
-
-            <form class="space-y-4">
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
-                    <input type="email" id="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                </div>
-                <div>
-                    <label for="full-name" class="block text-sm font-medium text-gray-700">Full name</label>
-                    <input type="text" id="full-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                </div>
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <input type="checkbox" id="remember" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
-                        <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
-                    </div>
-                    <a href="#" class="text-sm text-green-600 hover:underline focus:outline-none focus:ring-2 focus:ring-green-500">Forgot password?</a>
-                </div>
-                <div>
-                    <button type="submit" class="w-full bg-green-500 text-white py-3 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 font-semibold">Log In</button>
-                </div>
-            </form>
-
-            <p class="mt-8 text-sm text-center text-gray-600">Don't have an account? <a href="#" class="text-green-600 hover:underline focus:outline-none focus:ring-2 focus:ring-green-500 font-semibold">Create free account</a></p>
-        </div>
-    </div>
 </body>
 </html>
