@@ -22,6 +22,9 @@ public class DashBoardController {
             Map<String, String> row = new HashMap<>();
             row.put("col1", "Cell text " + (i+1));
             row.put("col2", "Cell text " + (i+1));
+            row.put("col3", "Cell text " + (i+1));
+            row.put("col4", "Cell text " + (i+1));
+            row.put("col5", "Cell text " + (i+1));
             dataList.add(row);
         }
         model.addAttribute("dataList", dataList);

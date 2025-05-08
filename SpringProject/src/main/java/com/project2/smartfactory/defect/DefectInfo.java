@@ -3,6 +3,7 @@ package com.project2.smartfactory.defect;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,7 +16,7 @@ public class DefectInfo {
 
     // Json 키 이름과 Java 필드 이름이 다를경우 @JsonProperty로 맵핑
     // class는 Java키워드이므로 'clazz'로 변경후 맵핑
-    @JsonProperty("class")
+    @JsonProperty(value = "class", access = Access.READ_WRITE)
     private String clazz;
 
     private double confidence;  // 감지 신뢰도
@@ -23,6 +24,8 @@ public class DefectInfo {
     private String reason;  // 불량 판정 사유
 
     private List<Double> box;   // box 좌표 리스트
+
+    // private String snapshotPath; // 스냅샷 이미지 파일 경로 (Python 스크립트 실행 머신의 경로)
 
     // 'unriped' 불량의 경우 사과 면적대비 비율
     @JsonProperty("area_percent_on_apple")
