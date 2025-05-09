@@ -44,8 +44,8 @@ OPENCV_FONT_THICKNESS = 2  # 폰트 두께
 # 10% 미만: 정상 (이 목록에서는 보고하지 않음)
 # 10% ~ 15%: 비상품
 # 15% 초과: 불량
-AREA_THRESHOLD_SUBSTANDARD_PERCENT = 10.0  # 비상품 판정 시작 임계값
-AREA_THRESHOLD_DEFECTIVE_PERCENT = 15.0  # 불량 판정 시작 임계값
+AREA_THRESHOLD_SUBSTANDARD_PERCENT = 30.0  # 비상품 판정 시작 임계값
+AREA_THRESHOLD_DEFECTIVE_PERCENT = 60.0  # 불량 판정 시작 임계값
 
 # 8. 감지(Inference)를 수행할 시간 간격 (초 단위)
 # 이 시간 간격마다 새로운 프레임에 대해 객체 감지를 수행합니다.
@@ -429,7 +429,7 @@ def visualize_results(
             # defect['box']는 [x1, y1, x2, y2] 리스트 형태입니다.
             x1, y1, x2, y2 = map(int, defect["box"])
             # 불량 사유와 신뢰도를 함께 표시 (영문)
-            label_text = f"Defect: {defect['reason']} ({defect['confidence']:.2f})"
+            label_text = f"{defect['reason']}: {defect['detailed_reason']} ({defect['confidence']:.2f})"
             # 면적 비율이 있는 경우 추가
             if defect.get("areaPercentOnApple") is not None:
                 label_text += f" ({defect['areaPercentOnApple']:.2f}%)"
