@@ -10,7 +10,7 @@ public class MainController {
     @GetMapping("/")
     public String index() {
 
-        return "pages/dashboard";
+        return "redirect:/dashboard";
     }
 
 
