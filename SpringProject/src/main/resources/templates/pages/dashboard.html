@@ -1,59 +1,438 @@
-<div layout:decorate="~{layout}">
-  <div layout:fragment="content" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div class="bg-white rounded-lg shadow p-6">
-      <h2 class="text-lg font-semibold mb-4">Week status</h2>
-      <canvas id="weekStatusChart"></canvas>
-    </div>
+<!DOCTYPE html>
+<html
+  lang="ko"
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="~{layout}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title layout:title="대시보드"></title>
+    <th:block layout:fragment="css">
+      <style>
+        /* dashboard.html 고유의 CSS 스타일을 여기에 작성합니다. */
+        /* defects.html에서 가져온 테이블 및 이미지 스타일 */
+        .defect-image {
+          max-width: 100px; /* 테이블 내 이미지 크기 조정 */
+          height: auto; /* 비율 유지 */
+          display: block; /* 이미지 아래 공백 제거 */
+          margin: 0 auto; /* 가운데 정렬 */
+        }
 
-    <div class="bg-white rounded-lg shadow p-6">
-      <h2 class="text-lg font-semibold mb-4">Detection status</h2>
-      <canvas id="detectionStatusChart"></canvas>
-    </div>
+        /* 데이터 테이블 스타일 */
+        #defect-table,
+        #detection-log-table {
+          /* 로그 테이블 스타일 추가 */
+          width: 100%; /* 테이블 전체 너비 사용 */
+          border-collapse: collapse; /* 테이블 셀 경계선 병합 */
+          margin-top: 20px;
+        }
 
-    <div class="bg-white rounded-lg shadow p-6 col-span-1 md:col-span-2">
-      <h2 class="text-lg font-semibold mb-4">Year status</h2>
-      <canvas id="yearStatusChart"></canvas>
-    </div>
+        #defect-table th,
+        #defect-table td,
+        #detection-log-table th, /* 로그 테이블 스타일 추가 */
+        #detection-log-table td {
+          /* 로그 테이블 스타일 추가 */
+          border: 1px solid #ddd; /* 셀 경계선 */
+          padding: 8px; /* 셀 패딩 */
+          text-align: left; /* 텍스트 왼쪽 정렬 */
+        }
 
-    <div class="bg-white rounded-lg shadow p-6 col-span-1 md:col-span-2">
-      <h2 class="text-lg font-semibold mb-4">Data Table</h2>
-      <div class="overflow-x-auto">
-        <table class="min-w-full bg-white">
+        #defect-table th,
+        #detection-log-table th {
+          /* 로그 테이블 스타일 추가 */
+          background-color: #f2f2f2; /* 헤더 배경색 */
+          font-weight: bold;
+        }
+
+        #defect-table tbody tr:nth-child(even),
+        #detection-log-table tbody tr:nth-child(even) {
+          /* 로그 테이블 스타일 추가 */
+          background-color: #f9f9f9; /* 짝수 행 배경색 */
+        }
+
+        #defect-table tbody tr:hover,
+        #detection-log-table tbody tr:hover {
+          /* 로그 테이블 스타일 추가 */
+          background-color: #e9e9e9; /* 마우스 오버 시 배경색 */
+        }
+
+        /* 불량 정보 로딩/없음/오류 메시지 스타일 */
+        #defect-list-container .text-center,
+        #detection-log-container .text-center {
+          /* 로그 테이블 컨테이너 스타일 추가 */
+          text-align: center;
+        }
+        #defect-list-container .text-gray-500,
+        #detection-log-container .text-gray-500 {
+          /* 로그 테이블 컨테이너 스타일 추가 */
+          color: #6b7280; /* Tailwind gray-500 */
+        }
+        #defect-list-container .text-red-500,
+        #detection-log-container .text-red-500 {
+          /* 로그 테이블 컨테이너 스타일 추가 */
+          color: #ef4444; /* Tailwind red-500 */
+        }
+      </style>
+    </th:block>
+  </head>
+  <body>
+    <div layout:fragment="content">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-lg font-semibold mb-4">Week status</h2>
+          <canvas id="weekStatusChart"></canvas>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-lg font-semibold mb-4">Detection status</h2>
+          <canvas id="detectionStatusChart"></canvas>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 col-span-1 md:col-span-2">
+          <h2 class="text-lg font-semibold mb-4">Year status</h2>
+          <canvas id="yearStatusChart"></canvas>
+        </div>
+      </div>
+
+      <h2 class="text-2xl font-semibold text-gray-700 mb-4 mt-6">
+        감지 결과 로그
+      </h2>
+      <div id="detection-log-container" class="overflow-x-auto">
+        <table id="detection-log-table" class="min-w-full bg-white">
           <thead>
             <tr>
-              <th class="py-2 px-4 border-b text-left">Column Tl...</th>
-              <th class="py-2 px-4 border-b text-left">Column Tl...</th>
-              <th class="py-2 px-4 border-b text-left">Column Tl...</th>
-              <th class="py-2 px-4 border-b text-left">Column Tl...</th>
-              <th class="py-2 px-4 border-b text-left">Column Tl...</th>
+              <th>시간</th>
+              <th>상태</th>
+              <th>불량 유형 요약</th>
+              <th>불량 개수</th>
+              <th>이미지</th>
             </tr>
           </thead>
           <tbody>
-            <tr th:each="item : ${dataList}" class="hover:bg-gray-50">
-              <td th:text="${item.col1}" class="py-2 px-4 border-b">
-                Cell text
-              </td>
-              <td th:text="${item.col2}" class="py-2 px-4 border-b">
-                Cell text
-              </td>
-              <td th:text="${item.col3}" class="py-2 px-4 border-b">
-                Cell text
-              </td>
-              <td th:text="${item.col4}" class="py-2 px-4 border-b">
-                Cell text
-              </td>
-              <td th:text="${item.col5}" class="py-2 px-4 border-b">
-                Cell text
+            <tr>
+              <td colspan="5" class="py-4 px-4 text-center text-gray-500">
+                감지 로그 로딩 중...
               </td>
             </tr>
-            <tr th:if="${#lists.isEmpty(dataList)}">
-              <td colspan="5" class="py-4 px-4 text-center text-gray-500">
-                데이터가 없습니다.
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="text-2xl font-semibold text-gray-700 mb-4 mt-6">
+        최신 불량 감지 결과
+      </h2>
+      <div id="defect-list-container" class="overflow-x-auto">
+        <table id="defect-table" class="min-w-full bg-white">
+          <thead>
+            <tr>
+              <th>클래스</th>
+              <th>사유</th>
+              <th>신뢰도</th>
+              <th>위치 (Box)</th>
+              <th>면적 비율 (%)</th>
+              <th>감지 사진</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="6" class="py-4 px-4 text-center text-gray-500">
+                불량 정보 로딩 중...
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-  </div>
-</div>
+
+    <th:block layout:fragment="script">
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script>
+        // API 엔드포인트 URL (Spring Boot 서버의 IP와 포트, 컨트롤러 경로에 맞게 수정)
+        // 이 엔드포인트는 서버 측 DefectController에서 제공하며,
+        // DefectService를 통해 데이터베이스에 저장된 최신 불량 정보를 가져옵니다.
+        const LATEST_DEFECTS_API_URL = "/api/latest-defects"; // 최신 불량 정보 API 엔드포인트
+
+        // 감지 로그 API 엔드포인트 URL
+        // 이 엔드포인트는 Spring Boot DefectController에서 구현되었습니다.
+        // 이 엔드포인트는 불량 감지 이벤트의 로그 데이터를 반환합니다.
+        const DETECTION_LOGS_API_URL = "/api/detection-logs"; // 감지 로그 API 엔드포인트
+
+        // 불량 정보를 가져와서 화면에 표시하는 함수 (최신 불량 결과 테이블)
+        async function fetchAndDisplayLatestDefects() {
+          const defectTableBody = document.querySelector("#defect-table tbody");
+          if (!defectTableBody) {
+            console.error(
+              "Error: Element with id 'defect-table tbody' not found."
+            );
+            return; // Exit if the element is not found
+          }
+          defectTableBody.innerHTML = `
+             <tr>
+                <td colspan="6" class="py-4 px-4 text-center text-gray-500">
+                    불량 정보 가져오는 중...
+                </td>
+            </tr>
+          `; // 로딩 메시지
+
+          try {
+            const response = await fetch(LATEST_DEFECTS_API_URL);
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const defects = await response.json(); // JSON 응답 파싱 (List<DefectInfo>)
+
+            defectTableBody.innerHTML = ""; // 이전 내용 지우기
+
+            if (defects && defects.length > 0) {
+              // 불량 정보가 있으면 각 항목을 테이블 행으로 표시
+              defects.forEach((defect) => {
+                const row = document.createElement("tr");
+                row.classList.add("hover:bg-gray-50"); // Tailwind hover 효과
+
+                // 클래스 (clazz)
+                let clazzCell = document.createElement("td");
+                clazzCell.classList.add("py-2", "px-4", "border-b");
+                clazzCell.textContent = defect.clazz || "-"; // 데이터가 없을 경우 '-' 표시
+                row.appendChild(clazzCell);
+
+                // 사유 (reason)
+                let reasonCell = document.createElement("td");
+                reasonCell.classList.add("py-2", "px-4", "border-b");
+                reasonCell.textContent = defect.reason || "-";
+                row.appendChild(reasonCell);
+
+                // 신뢰도 (confidence)
+                let confidenceCell = document.createElement("td");
+                confidenceCell.classList.add("py-2", "px-4", "border-b");
+                confidenceCell.textContent =
+                  defect.confidence !== undefined && defect.confidence !== null
+                    ? defect.confidence.toFixed(2)
+                    : "-";
+                row.appendChild(confidenceCell);
+
+                // 위치 (box)
+                let boxCell = document.createElement("td");
+                boxCell.classList.add("py-2", "px-4", "border-b");
+                if (defect.box && defect.box.length === 4) {
+                  boxCell.textContent = `[${defect.box
+                    .map((coord) => coord.toFixed(2))
+                    .join(", ")}]`;
+                } else {
+                  boxCell.textContent = "-";
+                }
+                row.appendChild(boxCell);
+
+                // 면적 비율 (areaPercentOnApple)
+                let areaPercentCell = document.createElement("td");
+                areaPercentCell.classList.add("py-2", "px-4", "border-b");
+                areaPercentCell.textContent =
+                  defect.areaPercentOnApple !== undefined &&
+                  defect.areaPercentOnApple !== null
+                    ? defect.areaPercentOnApple.toFixed(2) + "%"
+                    : "-";
+                row.appendChild(areaPercentCell);
+
+                // 감지 사진 (imageUrl)
+                let imageCell = document.createElement("td");
+                imageCell.classList.add(
+                  "py-2",
+                  "px-4",
+                  "border-b",
+                  "text-center"
+                ); // 이미지 가운데 정렬
+                if (defect.imageUrl) {
+                  const img = document.createElement("img");
+                  img.src = defect.imageUrl;
+                  img.alt = "Defect Snapshot";
+                  img.classList.add("defect-image"); // CSS 클래스 적용
+                  imageCell.appendChild(img);
+                } else {
+                  imageCell.textContent = "이미지 없음";
+                }
+                row.appendChild(imageCell);
+
+                defectTableBody.appendChild(row); // 테이블 본문에 행 추가
+              });
+            } else {
+              // 불량 정보가 없으면 메시지 표시
+              defectTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="py-4 px-4 text-center text-gray-500">
+                        감지된 불량이 없습니다.
+                    </td>
+                </tr>
+              `;
+            }
+          } catch (error) {
+            console.error("불량 정보를 가져오는 중 오류 발생:", error);
+            defectTableBody.innerHTML = `
+              <tr>
+                <td colspan="6" class="py-4 px-4 text-center text-red-500">
+                  오류 발생: ${error.message}
+                </td>
+              </tr>
+            `;
+          }
+          // TODO: 수신된 데이터를 사용하여 차트 업데이트 로직 구현
+          // updateCharts(defects);
+        }
+
+        // 감지 로그를 가져와서 화면에 표시하는 함수 (감지 로그 테이블)
+        // 이 함수는 Spring Boot에서 구현된 /api/detection-logs 엔드포인트에서 데이터를 가져옵니다.
+        async function fetchAndDisplayDetectionLogs() {
+          const logTableBody = document.querySelector(
+            "#detection-log-table tbody"
+          );
+          if (!logTableBody) {
+            console.error(
+              "Error: Element with id 'detection-log-table tbody' not found."
+            );
+            return; // Exit if the element is not found
+          }
+          logTableBody.innerHTML = `
+                <tr>
+                   <td colspan="5" class="py-4 px-4 text-center text-gray-500">
+                       감지 로그 가져오는 중...
+                   </td>
+               </tr>
+             `; // 로딩 메시지
+
+          try {
+            const response = await fetch(DETECTION_LOGS_API_URL);
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // 감지 로그 데이터의 JSON 구조에 맞게 파싱 및 처리
+            // 예상 구조: List<DetectionLog> 객체
+            const logs = await response.json(); // JSON 응답 파싱
+
+            logTableBody.innerHTML = ""; // 이전 내용 지우기
+
+            if (logs && logs.length > 0) {
+              logs.forEach((log) => {
+                const row = document.createElement("tr");
+                row.classList.add("hover:bg-gray-50");
+
+                // 시간 (detectionTime)
+                let timeCell = document.createElement("td");
+                timeCell.classList.add("py-2", "px-4", "border-b");
+                // LocalDateTime 객체는 ISO 8601 형식 문자열로 넘어올 수 있습니다.
+                // JavaScript Date 객체로 파싱하여 로컬 시간 문자열로 변환합니다.
+                try {
+                  timeCell.textContent = log.detectionTime
+                    ? new Date(log.detectionTime).toLocaleString()
+                    : "-";
+                } catch (e) {
+                  console.error(
+                    "Error parsing detection time:",
+                    log.detectionTime,
+                    e
+                  );
+                  timeCell.textContent = log.detectionTime || "-"; // 파싱 실패 시 원본 문자열 표시
+                }
+                row.appendChild(timeCell);
+
+                // 상태 (status) - 예: "Normal", "Defect Detected"
+                let statusCell = document.createElement("td");
+                statusCell.classList.add("py-2", "px-4", "border-b");
+                statusCell.textContent = log.status || "-";
+                row.appendChild(statusCell);
+
+                // 불량 유형 요약 (defectSummary) - 불량 감지 시에만 해당
+                let summaryCell = document.createElement("td");
+                summaryCell.classList.add("py-2", "px-4", "border-b");
+                summaryCell.textContent = log.defectSummary || "-"; // defectSummary 필드 사용
+                row.appendChild(summaryCell);
+
+                // 불량 개수 (defectCount) - 불량 감지 시에만 해당
+                let countCell = document.createElement("td");
+                countCell.classList.add("py-2", "px-4", "border-b");
+                countCell.textContent =
+                  log.defectCount !== undefined && log.defectCount !== null
+                    ? log.defectCount
+                    : "-";
+                row.appendChild(countCell);
+
+                // 이미지 (imageUrl) - 불량 감지 시 스냅샷 이미지
+                let imageCell = document.createElement("td");
+                imageCell.classList.add(
+                  "py-2",
+                  "px-4",
+                  "border-b",
+                  "text-center"
+                );
+                if (log.imageUrl) {
+                  const img = document.createElement("img");
+                  img.src = log.imageUrl;
+                  img.alt = "Log Snapshot";
+                  img.classList.add("defect-image");
+                  imageCell.appendChild(img);
+                } else {
+                  imageCell.textContent = "이미지 없음";
+                }
+                row.appendChild(imageCell);
+
+                // TODO: 필요에 따라 다른 컬럼 추가
+
+                logTableBody.appendChild(row);
+              });
+            } else {
+              logTableBody.innerHTML = `
+                       <tr>
+                           <td colspan="5" class="py-4 px-4 text-center text-gray-500">
+                               감지 로그가 없습니다.
+                           </td>
+                       </tr>
+                     `;
+            }
+          } catch (error) {
+            console.error("감지 로그를 가져오는 중 오류 발생:", error);
+            logTableBody.innerHTML = `
+                   <tr>
+                     <td colspan="5" class="py-4 px-4 text-center text-red-500">
+                       오류 발생: ${error.message}
+                     </td>
+                   </tr>
+                 `;
+          }
+        }
+
+        // 페이지 로드 시 및 주기적으로 불량 정보 및 감지 로그 가져오기
+        document.addEventListener("DOMContentLoaded", () => {
+          fetchAndDisplayLatestDefects(); // 페이지 로드 시 최신 불량 정보 즉시 가져오기
+          fetchAndDisplayDetectionLogs(); // 페이지 로드 시 감지 로그 즉시 가져오기
+
+          // 5초마다 불량 정보 업데이트 (주기는 필요에 따라 조정)
+          setInterval(fetchAndDisplayLatestDefects, 5000);
+          // 10초마다 감지 로그 업데이트 (주기는 필요에 따라 조정)
+          setInterval(fetchAndDisplayDetectionLogs, 10000); // 불량 정보보다 덜 자주 업데이트해도 됨
+
+          // TODO: 초기 차트 로딩 및 업데이트 함수 호출
+          // loadInitialCharts();
+        });
+
+        // TODO: 차트 업데이트 함수 구현 (Chart.js 사용)
+        // function updateCharts(defects) {
+        //    // defects 리스트를 기반으로 차트 데이터 가공 및 업데이트 로직 구현
+        //    // 예: 불량 유형별 개수, 시간대별 발생 빈도 등
+        // }
+
+        // TODO: 초기 차트 로딩 함수 구현 (Chart.js 사용)
+        // function loadInitialCharts() {
+        //     // 페이지 로드 시 초기 차트 데이터 로딩 및 차트 생성 로직 구현
+        //     // 예: Chart.js 인스턴스 생성 및 초기 데이터 설정
+        // }
+      </script>
+      <script>
+        // Placeholder for Chart.js initialization and data loading
+        // Replace with your actual chart implementation
+        console.log("Chart.js placeholder scripts loaded.");
+      </script>
+    </th:block>
+  </body>
+</html>
