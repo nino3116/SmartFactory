@@ -35,7 +35,7 @@
 
             </nav>
         </div>
-        <a href="#" class="flex items-center py-2 px-4 rounded-md tracking-widest hover:bg-yellow-500 gap-2 transition font-bold">
+        <a th:href="@{login}" class="flex items-center py-2 px-4 rounded-md tracking-widest hover:bg-yellow-500 gap-2 transition font-bold">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" stroke-width="1.5"> <path d="M15.618 20.243l-2.193 -5.602a3 3 0 1 0 -2.849 0l-2.193 5.603"></path> <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path> </svg> 
             Login
         </a>
@@ -45,7 +45,15 @@
         <header class="bg-white shadow-md p-4 flex justify-between items-center">
             <h1 class="text-xl font-semibold">Dashboard</h1>
             <div class="flex items-center">
-                <div class="w-8 h-8 bg-yellow-300 rounded-full mr-4"></div>
+                <div>
+                    <button class="w-8 h-8 bg-yellow-300 hover:bg-yellow-500 rounded-full mr-4 p-1" >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+                             stroke-linecap="round" stroke-linejoin="round" width="24" height="24" stroke-width="2">
+                            <path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"></path>
+                            <path d="M9 17v1a3 3 0 0 0 6 0v-1"></path> 
+                        </svg>
+                    </button> 
+                </div>
                 <div class="w-8 h-8 bg-lime-300 rounded-full"></div>
             </div>
         </header>
