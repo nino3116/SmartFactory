@@ -73,6 +73,21 @@
           /* 로그 테이블 컨테이너 스타일 추가 */
           color: #ef4444; /* Tailwind red-500 */
         }
+
+        /* Chart.js 캔버스 컨테이너에 반응형 스타일 적용 */
+        /* 캔버스 자체는 부모에 맞게 조절되도록 유지 */
+        .chart-container canvas {
+             max-width: 100%;
+             height: 100%; /* 부모 높이에 꽉 차도록 설정 */
+        }
+
+        /* 차트 컨테이너 div에 고정 높이 설정 */
+        /* Tailwind 클래스에 직접 스타일 추가 */
+        .bg-white.rounded-lg.shadow.p-6 {
+            height: 500px; /* 원하는 고정 높이 값으로 조정하세요 */
+            /* overflow: hidden; /* 내용이 넘칠 경우 숨김 (필요시) */
+        }
+
       </style>
     </th:block>
   </head>
@@ -80,17 +95,17 @@
     <div layout:fragment="content">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-white rounded-lg shadow p-6">
-          <h2 class="text-lg font-semibold mb-4">Week status</h2>
+          <h2 class="text-lg font-semibold mb-4">주간 감지 상태 (최근 7일)</h2>
           <canvas id="weekStatusChart"></canvas>
         </div>
 
         <div class="bg-white rounded-lg shadow p-6">
-          <h2 class="text-lg font-semibold mb-4">Detection status</h2>
+          <h2 class="text-lg font-semibold mb-4">전체 감지 상태 비율</h2>
           <canvas id="detectionStatusChart"></canvas>
         </div>
 
         <div class="bg-white rounded-lg shadow p-6 col-span-1 md:col-span-2">
-          <h2 class="text-lg font-semibold mb-4">Year status</h2>
+          <h2 class="text-lg font-semibold mb-4">연간 불량 감지 추이 (최근 12개월)</h2>
           <canvas id="yearStatusChart"></canvas>
         </div>
       </div>
@@ -134,6 +149,7 @@
               <th>감지 사진</th>
             </tr>
           </thead>
+          </thead>
           <tbody>
             <tr>
               <td colspan="6" class="py-4 px-4 text-center text-gray-500">
@@ -158,7 +174,13 @@
         // 이 엔드포인트는 불량 감지 이벤트의 로그 데이터를 반환합니다.
         const DETECTION_LOGS_API_URL = "/api/detection-logs"; // 감지 로그 API 엔드포인트
 
+        // Chart.js 인스턴스를 저장할 전역 변수
+        let weekStatusChart;
+        let detectionStatusChart;
+        let yearStatusChart;
+
         // 불량 정보를 가져와서 화면에 표시하는 함수 (최신 불량 결과 테이블)
+        // 이 함수는 차트 데이터에 직접 사용되지 않습니다. 차트는 감지 로그 데이터를 사용합니다.
         async function fetchAndDisplayLatestDefects() {
           const defectTableBody = document.querySelector("#defect-table tbody");
           if (!defectTableBody) {
@@ -168,9 +190,9 @@
             return; // Exit if the element is not found
           }
           defectTableBody.innerHTML = `
-             <tr>
+              <tr>
                 <td colspan="6" class="py-4 px-4 text-center text-gray-500">
-                    불량 정보 가져오는 중...
+                  불량 정보 가져오는 중...
                 </td>
             </tr>
           `; // 로딩 메시지
@@ -260,9 +282,9 @@
               // 불량 정보가 없으면 메시지 표시
               defectTableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="py-4 px-4 text-center text-gray-500">
-                        감지된 불량이 없습니다.
-                    </td>
+                  <td colspan="6" class="py-4 px-4 text-center text-gray-500">
+                    감지된 불량이 없습니다.
+                  </td>
                 </tr>
               `;
             }
@@ -277,7 +299,7 @@
             `;
           }
           // TODO: 수신된 데이터를 사용하여 차트 업데이트 로직 구현
-          // updateCharts(defects);
+          // updateCharts(defects); // <-- 이 부분은 감지 로그 데이터로 차트 업데이트하므로 제거
         }
 
         // 감지 로그를 가져와서 화면에 표시하는 함수 (감지 로그 테이블)
@@ -293,12 +315,12 @@
             return; // Exit if the element is not found
           }
           logTableBody.innerHTML = `
-                <tr>
+                  <tr>
                    <td colspan="5" class="py-4 px-4 text-center text-gray-500">
-                       감지 로그 가져오는 중...
+                        감지 로그 가져오는 중...
                    </td>
-               </tr>
-             `; // 로딩 메시지
+                 </tr>
+               `; // 로딩 메시지
 
           try {
             const response = await fetch(DETECTION_LOGS_API_URL);
@@ -383,56 +405,294 @@
               });
             } else {
               logTableBody.innerHTML = `
-                       <tr>
-                           <td colspan="5" class="py-4 px-4 text-center text-gray-500">
-                               감지 로그가 없습니다.
-                           </td>
-                       </tr>
-                     `;
+                        <tr>
+                          <td colspan="5" class="py-4 px-4 text-center text-gray-500">
+                                감지 로그가 없습니다.
+                          </td>
+                        </tr>
+                      `;
             }
+
+            // 감지 로그 데이터를 사용하여 차트 업데이트
+            updateCharts(logs);
+
           } catch (error) {
             console.error("감지 로그를 가져오는 중 오류 발생:", error);
             logTableBody.innerHTML = `
-                   <tr>
+                    <tr>
                      <td colspan="5" class="py-4 px-4 text-center text-red-500">
-                       오류 발생: ${error.message}
+                        오류 발생: ${error.message}
                      </td>
-                   </tr>
-                 `;
+                    </tr>
+                  `;
           }
         }
+
+        // 차트 업데이트 함수 (Chart.js 사용)
+        function updateCharts(logs) {
+            if (!logs || logs.length === 0) {
+                // 데이터가 없으면 차트 초기화 또는 메시지 표시
+                console.warn("No log data to update charts.");
+                // 기존 차트가 있다면 지우거나 빈 데이터로 업데이트
+                if (weekStatusChart) weekStatusChart.destroy();
+                if (detectionStatusChart) detectionStatusChart.destroy();
+                if (yearStatusChart) yearStatusChart.destroy();
+                // 필요에 따라 "데이터 없음" 메시지 등을 캔버스 영역에 표시하는 로직 추가
+                return;
+            }
+
+            // 1. 전체 감지 상태 비율 차트 데이터 가공 (파이 차트)
+            const statusCounts = logs.reduce((acc, log) => {
+                acc[log.status] = (acc[log.status] || 0) + 1;
+                return acc;
+            }, {});
+
+            const detectionStatusData = {
+                labels: Object.keys(statusCounts),
+                datasets: [{
+                    label: '감지 상태',
+                    data: Object.values(statusCounts),
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.5)', // Normal (Greenish)
+                        'rgba(255, 99, 132, 0.5)', // Defect Detected (Reddish)
+                        // 다른 상태가 있다면 추가 색상 정의
+                    ],
+                    borderColor: [
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(255, 99, 132, 1)',
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            // 2. 주간 감지 상태 차트 데이터 가공 (막대 차트 - 최근 7일)
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7); // 7일 전 날짜 계산
+
+            const dailyDefectCounts = logs.reduce((acc, log) => {
+                const logDate = new Date(log.detectionTime);
+                // 최근 7일 이내의 로그만 포함 (오늘 포함)
+                if (logDate >= sevenDaysAgo) {
+                    // 날짜를 'YYYY-MM-DD' 형식의 문자열로 변환하여 키로 사용
+                    const dateString = logDate.toISOString().split('T')[0];
+                    if (log.status === 'Defect Detected' && log.defectCount > 0) {
+                         acc[dateString] = (acc[dateString] || 0) + log.defectCount;
+                    } else if (log.status === 'Normal' && (acc[dateString] === undefined || acc[dateString] === null)) {
+                         // 정상 감지일 경우, 해당 날짜에 불량 감지 기록이 없으면 0으로 초기화
+                         acc[dateString] = acc[dateString] || 0;
+                    }
+                }
+                return acc;
+            }, {});
+
+             // 최근 7일간의 모든 날짜를 포함하도록 데이터 보강
+             const dateLabels = [];
+             const defectCountsData = [];
+             for (let i = 6; i >= 0; i--) { // 오늘부터 7일 전까지 역순으로
+                 const date = new Date();
+                 date.setDate(date.getDate() - i);
+                 const dateString = date.toISOString().split('T')[0];
+                 // 라벨은 'MM-DD' 형식으로 표시
+                 dateLabels.push(`${date.getMonth() + 1}-${date.getDate()}`);
+                 // 해당 날짜의 불량 개수, 없으면 0
+                 defectCountsData.push(dailyDefectCounts[dateString] || 0);
+             }
+
+
+            const weekStatusData = {
+                labels: dateLabels, // 'MM-DD' 형식의 날짜 라벨
+                datasets: [{
+                    label: '불량 개수',
+                    data: defectCountsData, // 일별 불량 개수
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)', // 파랑
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            };
+
+            // 3. 연간 불량 감지 추이 차트 데이터 가공 (선형 차트 - 최근 12개월)
+            const twelveMonthsAgo = new Date();
+            twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11); // 12개월 전 (현재 월 포함)
+
+            const monthlyDefectCounts = logs.reduce((acc, log) => {
+                const logDate = new Date(log.detectionTime);
+                 // 최근 12개월 이내의 로그만 포함
+                if (logDate >= twelveMonthsAgo) {
+                    // 월을 'YYYY-MM' 형식의 문자열로 변환하여 키로 사용
+                    const yearMonthString = `${logDate.getFullYear()}-${(logDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                     if (log.status === 'Defect Detected' && log.defectCount > 0) {
+                        acc[yearMonthString] = (acc[yearMonthString] || 0) + log.defectCount;
+                    } else if (log.status === 'Normal' && (acc[yearMonthString] === undefined || acc[yearMonthString] === null)) {
+                         // 정상 감지일 경우, 해당 월에 불량 감지 기록이 없으면 0으로 초기화
+                         acc[yearMonthString] = acc[yearMonthString] || 0;
+                    }
+                }
+                return acc;
+            }, {});
+
+             // 최근 12개월의 모든 월을 포함하도록 데이터 보강
+             const monthLabels = [];
+             const monthlyData = [];
+             for (let i = 11; i >= 0; i--) { // 현재 월부터 12개월 전까지 역순으로
+                 const date = new Date();
+                 date.setMonth(date.getMonth() - i);
+                 const yearMonthString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                 // 라벨은 'YYYY-MM' 형식으로 표시
+                 monthLabels.push(yearMonthString);
+                 // 해당 월의 불량 개수, 없으면 0
+                 monthlyData.push(monthlyDefectCounts[yearMonthString] || 0);
+             }
+
+
+            const yearStatusData = {
+                labels: monthLabels, // 'YYYY-MM' 형식의 월 라벨
+                datasets: [{
+                    label: '불량 개수',
+                    data: monthlyData, // 월별 불량 개수
+                    fill: false, // 선 아래 영역 채우지 않음
+                    borderColor: 'rgba(255, 159, 64, 1)', // 주황색
+                    tension: 0.1 // 선의 곡률
+                }]
+            };
+
+
+            // 차트 업데이트 또는 새로 생성
+            // Detection Status Chart (Pie Chart)
+            if (detectionStatusChart) {
+                detectionStatusChart.data = detectionStatusData;
+                detectionStatusChart.update();
+            } else {
+                const ctx1 = document.getElementById('detectionStatusChart').getContext('2d');
+                detectionStatusChart = new Chart(ctx1, {
+                    type: 'pie', // 파이 차트
+                    data: detectionStatusData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: { // <-- 레이아웃 설정 추가
+                          padding: 40 // <-- 내부 패딩 추가 (픽셀 단위)
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: '전체 감지 상태 비율'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Week Status Chart (Bar Chart)
+            if (weekStatusChart) {
+                weekStatusChart.data = weekStatusData;
+                weekStatusChart.update();
+            } else {
+                const ctx2 = document.getElementById('weekStatusChart').getContext('2d');
+                weekStatusChart = new Chart(ctx2, {
+                    type: 'bar', // 막대 차트
+                    data: weekStatusData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                     display: true,
+                                     text: '불량 개수'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: '날짜'
+                                }
+                            }
+                        },
+                        layout: { // <-- 레이아웃 설정 추가
+                          padding: 40 // <-- 내부 패딩 추가 (픽셀 단위)
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            },
+                             title: {
+                                display: true,
+                                text: '주간 불량 감지 추이'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Year Status Chart (Line Chart)
+             if (yearStatusChart) {
+                 yearStatusChart.data = yearStatusData;
+                 yearStatusChart.update();
+             } else {
+                 const ctx3 = document.getElementById('yearStatusChart').getContext('2d');
+                 yearStatusChart = new Chart(ctx3, {
+                     type: 'line', // 선형 차트
+                     data: yearStatusData,
+                     options: {
+                         responsive: true,
+                         maintainAspectRatio: false,
+                         scales: {
+                             y: {
+                                 beginAtZero: true,
+                                 title: {
+                                     display: true,
+                                     text: '불량 개수'
+                                 }
+                             },
+                             x: {
+                                 title: {
+                                     display: true,
+                                     text: '월'
+                                 }
+                             }
+                         },
+                         layout: { // <-- 레이아웃 설정 추가
+                          padding: 40 // <-- 내부 패딩 추가 (픽셀 단위)
+                        },
+                         plugins: {
+                             legend: {
+                                 display: true,
+                                 position: 'top',
+                             },
+                             title: {
+                                 display: true,
+                                 text: '연간 불량 감지 추이'
+                             }
+                         }
+                     }
+                 });
+             }
+        }
+
 
         // 페이지 로드 시 및 주기적으로 불량 정보 및 감지 로그 가져오기
         document.addEventListener("DOMContentLoaded", () => {
           fetchAndDisplayLatestDefects(); // 페이지 로드 시 최신 불량 정보 즉시 가져오기
-          fetchAndDisplayDetectionLogs(); // 페이지 로드 시 감지 로그 즉시 가져오기
+          fetchAndDisplayDetectionLogs(); // 페이지 로드 시 감지 로그 즉시 가져오기 (차트 업데이트 포함)
 
           // 5초마다 불량 정보 업데이트 (주기는 필요에 따라 조정)
           setInterval(fetchAndDisplayLatestDefects, 5000);
           // 10초마다 감지 로그 업데이트 (주기는 필요에 따라 조정)
-          setInterval(fetchAndDisplayDetectionLogs, 10000); // 불량 정보보다 덜 자주 업데이트해도 됨
+          // 감지 로그 업데이트 시 차트도 함께 업데이트됩니다.
+          setInterval(fetchAndDisplayDetectionLogs, 10000);
 
-          // TODO: 초기 차트 로딩 및 업데이트 함수 호출
-          // loadInitialCharts();
         });
 
-        // TODO: 차트 업데이트 함수 구현 (Chart.js 사용)
-        // function updateCharts(defects) {
-        //    // defects 리스트를 기반으로 차트 데이터 가공 및 업데이트 로직 구현
-        //    // 예: 불량 유형별 개수, 시간대별 발생 빈도 등
-        // }
+        // TODO: 초기 차트 로딩 함수는 updateCharts 함수 내에서 차트 인스턴스를
+        // 전역 변수에 할당하고 없으면 새로 생성하는 방식으로 대체되었습니다.
+        // function loadInitialCharts() { }
 
-        // TODO: 초기 차트 로딩 함수 구현 (Chart.js 사용)
-        // function loadInitialCharts() {
-        //     // 페이지 로드 시 초기 차트 데이터 로딩 및 차트 생성 로직 구현
-        //     // 예: Chart.js 인스턴스 생성 및 초기 데이터 설정
-        // }
       </script>
-      <script>
-        // Placeholder for Chart.js initialization and data loading
-        // Replace with your actual chart implementation
-        console.log("Chart.js placeholder scripts loaded.");
-      </script>
-    </th:block>
+       </th:block>
   </body>
 </html>
