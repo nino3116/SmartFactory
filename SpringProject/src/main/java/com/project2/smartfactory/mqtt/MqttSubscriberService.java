@@ -24,7 +24,7 @@ public class MqttSubscriberService implements MqttCallback {
     @Value("${mqtt.broker.url}")
     private String brokerUrl;
 
-    @Value("${mqtt.client.id}")
+    @Value("${mqtt.client.id.subscriber}")
     private String clientId;
 
     @Value("${mqtt.topic.status}")
