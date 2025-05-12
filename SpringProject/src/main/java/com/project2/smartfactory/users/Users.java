@@ -10,7 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
 
 
 
@@ -29,11 +29,6 @@ public class Users {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
-    private String username;
-
-    @Column(nullable = false, unique = true)
-    private String email;
 
     @Column(updatable = false)
     private LocalDateTime createDate;

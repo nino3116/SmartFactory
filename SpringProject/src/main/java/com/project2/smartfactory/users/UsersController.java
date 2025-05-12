@@ -35,7 +35,7 @@ public class UsersController {
             return "users_form";
         }
 
-        this.usersService.create(usersForm.getUserId(), usersForm.getPassword(), usersForm.getUsername(), usersForm.getEmail());
+        this.usersService.create(usersForm.getUserId(), usersForm.getPassword());
         return "index";
     }
     
@@ -53,8 +53,7 @@ public class UsersController {
         // Users 엔티티 정보를 가지고 UsersForm 객체를 생성후 채우기
         UsersForm usersForm = new UsersForm();
         usersForm.setUserId(user.getUserId());
-        usersForm.setUsername(user.getUsername());
-        usersForm.setEmail(user.getEmail());
+        
         
         // 수정 대상 사용자의 데이터베이스 ID를 Model에 별도로 담습니다.
         // 템플릿의 th:action URL 생성에 사용됩니다
@@ -83,6 +82,11 @@ public class UsersController {
 
         return "redirect:/users/list";
         
+    }
+
+    @GetMapping("/login")
+    public String loginPage() {
+        return "login_form";
     }
 
 
