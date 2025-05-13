@@ -1,8 +1,5 @@
 package com.project2.smartfactory.users;
 
-import java.util.List;
-import java.util.Optional;
-
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -12,83 +9,72 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.security.core.Authentication; // Correct Authentication import
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@RequestMapping("/users")
+
+
+@RequestMapping("/admin")
 @RequiredArgsConstructor
 @Controller
 public class UsersController {
 
     private final UsersService usersService;
 
+    // ✅ 로그인된 관리자 ID 감지 → 리다이렉트
+    @GetMapping("/settings")
+    public String redirectToEditPassword() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName(); // 현재 로그인한 사용자 이름 (admin)
+        Users user = usersService.getUserByUsername(username); // UsersService에서 구현 필요
 
-    @GetMapping("/signup")
-    public String singUpUser(UsersForm usersForm) {
-        return "users_form";
+        return "redirect:/admin/password/edit/" + user.getId();
     }
 
-    @PostMapping("/signup")
-    public String signUpUser(@Valid UsersForm usersForm, BindingResult bindingResult) {
+    @GetMapping("/password/edit/{id}")
+    public String showEditPasswordForm(Model model, @PathVariable("id") Integer id, AdminPasswordForm adminPasswordForm) {
+        // 관리자 정보 조회 (현재는 ID만 사용하므로 간단하게 처리)
+        // 실제 프로젝트에서는 인증/인가를 통해 접근 권한을 확인해야 합니다.
+        model.addAttribute("adminId", id); // 템플릿에서 ID를 사용할 수 있도록 Model에 추가
+        return "admin_password_edit"; 
+    }
+
+    @PutMapping("/password/edit/{id}")
+    public String updateAdminPassword(@PathVariable("id") Integer id, @Valid AdminPasswordForm adminPasswordForm, BindingResult bindingResult, Model model) {
+        System.err.println("값을 받는지");
+       
+        // ID로 관리자 조회
+        Users admin = usersService.getAdminUser(id);
+
+        // 현재 비밀번호 검증
+        if (!usersService.checkAdminPassword(
+                adminPasswordForm.getCurrentPassword(),
+                admin.getAdminPasswordHash())) {
+            bindingResult.rejectValue("currentPassword", "invalid", "현재 비밀번호가 일치하지 않습니다.");
+        }
+
         if (bindingResult.hasErrors()) {
-            return "users_form";
+            model.addAttribute("adminId", id);
+            return "admin_password_edit";
         }
 
-        this.usersService.create(usersForm.getUserId(), usersForm.getPassword());
-        return "index";
-    }
-    
-    @GetMapping("/list")
-    public String usersList(Model model) { 
-        List<Users> usersList = this.usersService.getList();
-        model.addAttribute("usersList", usersList);
-        return "users_list";
-    }
-
-    @GetMapping(value = "/list/{id}")
-    public String showEditForm(Model model, @PathVariable("id") Integer id) {
-        Users user = this.usersService.getUser(id);     // id로 Users 엔티티 조회
-
-        // Users 엔티티 정보를 가지고 UsersForm 객체를 생성후 채우기
-        UsersForm usersForm = new UsersForm();
-        usersForm.setUserId(user.getUserId());
-        
-        
-        // 수정 대상 사용자의 데이터베이스 ID를 Model에 별도로 담습니다.
-        // 템플릿의 th:action URL 생성에 사용됩니다
-        model.addAttribute("userIdForUrl", id); // Model에 "userIdForUrl" 이라는 이름으로 데이터베이스 ID를 담습니다.
-
-        // UsersForm 객체를 "usersForm" 이라는 이름으로 Model에 담습니다.
-        // 템플릿의 th:object="${usersForm}"과 매핑됩니다.
-        model.addAttribute("usersForm", usersForm); // <-- Model에 담는 객체 이름을 통일
-        return "user_edit";
-
-    }
-
-    @PutMapping("/list/{id}")
-    public String updateUser(@PathVariable("id") Integer id, @Valid UsersForm usersForm, BindingResult bindingResult) {
-        if(bindingResult.hasErrors()) {
-            return "user_edit";
-        }
-        this.usersService.updateUser(id,usersForm);
-        return "redirect:/users/list";
+        usersService.updateAdminPassword(id, adminPasswordForm.getNewPassword());
+        return "redirect:/login";
     }
 
     @DeleteMapping("/delete/{id}")
-    public String deleteUser(@PathVariable("id") Integer id) {
-
+    public String deleteAdmin(@PathVariable("id") Integer id) {
+        // 관리자 삭제 기능 (주의: 신중하게 구현해야 함)
         this.usersService.deleteUser(id);
-
-        return "redirect:/users/list";
-        
+        return "redirect:/login";
     }
 
-    @GetMapping("/login")
+    @GetMapping("/login") // 기존 로그인 페이지 매핑 유지
     public String loginPage() {
-        return "login_form";
+        return "login";
     }
-
-
-
+    
 }
