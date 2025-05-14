@@ -110,7 +110,7 @@
       <h2 class="text-2xl font-semibold text-gray-700 mb-4">감지 화면</h2>
       <div class="card">
         <img
-          src="http://192.168.0.122:8080"
+          src="http://localhost:8080"
           alt="MJPEG Stream"
           style="width: 640px; height: 480px; display: block; margin: 0 auto" />
       </div>
@@ -178,7 +178,7 @@
       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
       <script>
         // API 엔드포인트 URL (Spring Boot 서버의 IP와 포트, 컨트롤러 경로에 맞게 수정)
-        const SPRING_BOOT_BASE_URL = "http://192.168.0.122:80"; // Spring Boot 기본 URL (예: "http://localhost:8080") - 필요에 따라 설정
+        const SPRING_BOOT_BASE_URL = "http://localhost:80"; // Spring Boot 기본 URL (예: "http://localhost:8080") - 필요에 따라 설정
 
         const LATEST_DEFECTS_API_URL = `${SPRING_BOOT_BASE_URL}/api/latest-defects`; // 최신 불량 정보 API 엔드포인트
         const DETECTION_LOGS_API_URL = `${SPRING_BOOT_BASE_URL}/api/detection-logs`; // 감지 로그 API 엔드포인트
