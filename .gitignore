@@ -1,3 +1,5 @@
 .venv/
 apple/
+node_modules/
+
 *.png

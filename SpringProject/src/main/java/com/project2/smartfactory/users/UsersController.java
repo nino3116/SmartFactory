@@ -1,22 +1,16 @@
 package com.project2.smartfactory.users;
 
-import java.util.List;
-import java.util.Optional;
-
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@RequestMapping("/users")
+@RequestMapping("/admin")
 @RequiredArgsConstructor
 @Controller
 public class UsersController {
@@ -24,71 +18,40 @@ public class UsersController {
     private final UsersService usersService;
 
 
-    @GetMapping("/signup")
-    public String singUpUser(UsersForm usersForm) {
-        return "users_form";
-    }
-
-    @PostMapping("/signup")
-    public String signUpUser(@Valid UsersForm usersForm, BindingResult bindingResult) {
-        if (bindingResult.hasErrors()) {
-            return "users_form";
-        }
-
-        this.usersService.create(usersForm.getUserId(), usersForm.getPassword());
-        return "index";
-    }
-    
-    @GetMapping("/list")
-    public String usersList(Model model) { 
-        List<Users> usersList = this.usersService.getList();
-        model.addAttribute("usersList", usersList);
-        return "users_list";
-    }
-
-    @GetMapping(value = "/list/{id}")
-    public String showEditForm(Model model, @PathVariable("id") Integer id) {
-        Users user = this.usersService.getUser(id);     // id로 Users 엔티티 조회
-
-        // Users 엔티티 정보를 가지고 UsersForm 객체를 생성후 채우기
-        UsersForm usersForm = new UsersForm();
-        usersForm.setUserId(user.getUserId());
-        
-        
-        // 수정 대상 사용자의 데이터베이스 ID를 Model에 별도로 담습니다.
-        // 템플릿의 th:action URL 생성에 사용됩니다
-        model.addAttribute("userIdForUrl", id); // Model에 "userIdForUrl" 이라는 이름으로 데이터베이스 ID를 담습니다.
-
-        // UsersForm 객체를 "usersForm" 이라는 이름으로 Model에 담습니다.
-        // 템플릿의 th:object="${usersForm}"과 매핑됩니다.
-        model.addAttribute("usersForm", usersForm); // <-- Model에 담는 객체 이름을 통일
-        return "user_edit";
-
-    }
-
-    @PutMapping("/list/{id}")
-    public String updateUser(@PathVariable("id") Integer id, @Valid UsersForm usersForm, BindingResult bindingResult) {
-        if(bindingResult.hasErrors()) {
-            return "user_edit";
-        }
-        this.usersService.updateUser(id,usersForm);
-        return "redirect:/users/list";
-    }
-
-    @DeleteMapping("/delete/{id}")
-    public String deleteUser(@PathVariable("id") Integer id) {
-
-        this.usersService.deleteUser(id);
-
-        return "redirect:/users/list";
-        
-    }
-
-    @GetMapping("/login")
+    @GetMapping("/login") // 기존 로그인 페이지 매핑 유지
     public String loginPage() {
-        return "login_form";
+        return "login";
     }
 
 
+    // GET: 비밀번호 변경 페이지
+    @GetMapping("/password/edit")
+    public String showEditPasswordForm(Model model, AdminPasswordForm adminPasswordForm) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Users user = usersService.getUserByUsername(auth.getName());
 
+        model.addAttribute("adminId", user.getId());
+        return "admin_password_edit";
+    }
+
+    // POST: 비밀번호 변경 처리
+    @PostMapping("/password/edit")
+    public String updateAdminPassword(@Valid AdminPasswordForm adminPasswordForm,
+                                      BindingResult bindingResult,
+                                      Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Users user = usersService.getUserByUsername(auth.getName());
+
+        if (!usersService.checkAdminPassword(adminPasswordForm.getCurrentPassword(), user.getAdminPasswordHash())) {
+            bindingResult.rejectValue("currentPassword", "invalid", "현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("adminId", user.getId());
+            return "admin_password_edit";
+        }
+
+        usersService.updateAdminPassword(user.getId(), adminPasswordForm.getNewPassword());
+        return "redirect:/admin/login";
+    }
 }

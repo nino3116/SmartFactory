@@ -6,6 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UsersRepository extends JpaRepository<Users, Integer>{
 
-    Optional<Users> findByUserId(String userId);
-
+    // 사용자 이름으로 관리자 계정 조회
+    Optional<Users> findByUsername(String username);
 }

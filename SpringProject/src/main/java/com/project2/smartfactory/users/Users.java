@@ -1,39 +1,44 @@
 package com.project2.smartfactory.users;
 
-
 import java.time.LocalDateTime;
-
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.Data;
-
-
-
-
 
 @Entity
 @Data
+@Table(name = "users")
 public class Users {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
-    
-    @Column(unique = true, nullable = false, length = 15) 
-    private String userId;
-    
-    @Column(nullable = false)
-    private String password;
 
+    @Column(nullable = false, unique = true, name = "username")
+    private String username;
 
-    @Column(updatable = false)
+    @Column(nullable = false, length = 255, name = "admin_password_hash")
+    private String adminPasswordHash;
+
+    @Column(updatable = false, name = "created_date")
     private LocalDateTime createDate;
 
-    @Column
+    @Column(name = "updated_date")
     private LocalDateTime updateDate;
+    @PrePersist
+    public void onCreate() {
+        this.createDate = LocalDateTime.now();
+    }
 
+    @PreUpdate
+    public void onUpdate() {
+        this.updateDate = LocalDateTime.now();
+    }
 }

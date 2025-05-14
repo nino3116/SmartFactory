@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html
+  lang="ko"
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  xmlns:sec="https://www.thymeleaf.org/extras/spring-security"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title layout:title-pattern="$LAYOUT_TITLE - $CONTENT_TITLE">
+      Smart Factory
+    </title>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <th:block layout:head></th:block>
+  </head>
+  <body class="flex h-screen bg-gray-100">
+    <div
+      th:replace="~{fragments/sidebar :: sidebar}"
+      class="w-64 bg-green-700 text-white flex flex-col"
+    ></div>
+
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <header th:replace="~{fragments/header :: header}"></header>
+
+      <div th:replace="~{fragments/notification :: notifications}"></div>
+
+      <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+        <div layout:fragment="content"></div>
+      </main>
+    </div>
+
+    <script th:inline="javascript">
+      document.addEventListener("DOMContentLoaded", function () {
+        const notificationButton = document.getElementById(
+          "notification-button"
+        );
+        const notificationContainer = document.getElementById(
+          "notification-container"
+        );
+
+        if (notificationButton && notificationContainer) {
+          notificationButton.addEventListener("click", function () {
+            notificationContainer.classList.toggle("hidden");
+          });
+        }
+      });
+    </script>
+  </body>
+  <script th:src="@{/js/flowbite.min.js}"></script>
+  <script th:src="@{/js/theme.js}"></script>
+</html>

@@ -9,6 +9,16 @@
       "projectName": "SpringProject",
       "args": "",
       "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-SmartfactoryApplication<smartfactory-SpringProject>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.project2.smartfactory.SmartfactoryApplication",
+      "projectName": "smartfactory-SpringProject",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
     }
   ]
 }
