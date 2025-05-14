@@ -1,12 +1,8 @@
 package com.project2.smartfactory.users;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
