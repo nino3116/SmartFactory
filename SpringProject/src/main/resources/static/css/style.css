@@ -7,5 +7,82 @@ body {
   font-family: "PretendardVariable", sans-serif; /* 기본 폰트 설정 */
 }
 
+/* defects.html에서 가져온 테이블 및 이미지 스타일 */
+.defect-image {
+  max-width: 100px; /* 테이블 내 이미지 크기 조정 */
+  height: auto; /* 비율 유지 */
+  display: block; /* 이미지 아래 공백 제거 */
+  margin: 0 auto; /* 가운데 정렬 */
+}
+
+/* 데이터 테이블 스타일 */
+#defect-table,
+#detection-log-table {
+  /* 로그 테이블 스타일 추가 */
+  width: 100%; /* 테이블 전체 너비 사용 */
+  border-collapse: collapse; /* 테이블 셀 경계선 병합 */
+  margin-top: 20px;
+}
+
+#defect-table th,
+#defect-table td,
+#detection-log-table th, /* 로그 테이블 스타일 추가 */
+#detection-log-table td {
+  /* 로그 테이블 스타일 추가 */
+  border: 1px solid #ddd; /* 셀 경계선 */
+  padding: 8px; /* 셀 패딩 */
+  text-align: left; /* 텍스트 왼쪽 정렬 */
+}
+
+#defect-table th,
+#detection-log-table th {
+  /* 로그 테이블 스타일 추가 */
+  background-color: #f2f2f2; /* 헤더 배경색 */
+  font-weight: bold;
+}
+
+#defect-table tbody tr:nth-child(even),
+#detection-log-table tbody tr:nth-child(even) {
+  /* 로그 테이블 스타일 추가 */
+  background-color: #f9f9f9; /* 짝수 행 배경색 */
+}
+
+#defect-table tbody tr:hover,
+#detection-log-table tbody tr:hover {
+  /* 로그 테이블 스타일 추가 */
+  background-color: #e9e9e9; /* 마우스 오버 시 배경색 */
+}
+
+/* 불량 정보 로딩/없음/오류 메시지 스타일 */
+#defect-list-container .text-center,
+#detection-log-container .text-center {
+  /* 로그 테이블 컨테이너 스타일 추가 */
+  text-align: center;
+}
+#defect-list-container .text-gray-500,
+#detection-log-container .text-gray-500 {
+  /* 로그 테이블 컨테이너 스타일 추가 */
+  color: #6b7280; /* Tailwind gray-500 */
+}
+#defect-list-container .text-red-500,
+#detection-log-container .text-red-500 {
+  /* 로그 테이블 컨테이너 스타일 추가 */
+  color: #ef4444; /* Tailwind red-500 */
+}
+
+/* Chart.js 캔버스 컨테이너에 반응형 스타일 적용 */
+/* 캔버스 자체는 부모에 맞게 조절되도록 유지 */
+.chart-container canvas {
+  max-width: 100%;
+  height: 100%; /* 부모 높이에 꽉 차도록 설정 */
+}
+
+/* 차트 컨테이너 div에 고정 높이 설정 */
+/* Tailwind 클래스에 직접 스타일 추가 */
+.bg-white.rounded-lg.shadow.p-6 {
+  height: 500px; /* 원하는 고정 높이 값으로 조정하세요 */
+  /* overflow: hidden; /* 내용이 넘칠 경우 숨김 (필요시) */
+}
+
 /* 필요한 경우 여기에 추가적인 CSS 규칙을 작성하세요 */
 /* 예: .widget { margin-bottom: 1.5rem; } */
