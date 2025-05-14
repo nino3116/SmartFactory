@@ -184,16 +184,9 @@
         </svg>
         Logout
       </a>
-
-      <a
-        sec:authorize="isAnonymous()"
-        class="flex items-center py-2 px-4 rounded-md tracking-widest hover:bg-yellow-500 gap-2 transition font-bold"
-        th:href="@{/users/signup}"
-        >회원가입
-      </a>
       <a
         sec:authorize="isAuthenticated()"
-        th:href="@{/admin/settings}"
+        th:href="@{/admin/password/edit}"
         class="flex items-center py-2 px-4 rounded-md tracking-widest hover:bg-yellow-500 gap-2 transition font-bold"
       >
         <svg

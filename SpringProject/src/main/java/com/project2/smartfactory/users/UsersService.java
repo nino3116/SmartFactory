@@ -38,12 +38,12 @@ public class UsersService implements UserDetailsService {
             Users adminUser = new Users();
             adminUser.setUsername("admin");
             adminUser.setAdminPasswordHash(passwordEncoder.encode(defaultAdminPassword));
-            adminUser.setCreateDate(LocalDateTime.now()); // 이 줄은 주석 처리되어 있습니다.
+            adminUser.setCreateDate(LocalDateTime.now());
             usersRepository.save(adminUser);
             System.out.println("설정 파일로부터 초기 관리자 계정이 생성되었습니다.");
         }
     }
-
+    // 비밀번호 변경 시 내부적으로 관리자 조회에 계속 사용
     public Users getAdminUser(Integer id) {
         Optional<Users> adminUser = this.usersRepository.findById(id);
         if (adminUser.isPresent()) {
@@ -55,34 +55,21 @@ public class UsersService implements UserDetailsService {
 
     @Transactional
     public void updateAdminPassword(Integer id, String newPassword) {
-        Optional<Users> optionalAdminUser = this.usersRepository.findById(id);
+        Users adminUser = this.getAdminUser(id); 
 
-        if (optionalAdminUser.isPresent()) {
-            Users adminUser = optionalAdminUser.get();
-            adminUser.setAdminPasswordHash(passwordEncoder.encode(newPassword));
-            adminUser.setUpdateDate(LocalDateTime.now());
-            this.usersRepository.save(adminUser);
-        } else {
-            throw new DataNotFoundException(String.format("관리자 계정을 찾을 수 없습니다. ID: %s", id));
-        }
+        // ✅ 새 비밀번호로 덮어쓰기
+        adminUser.setAdminPasswordHash(passwordEncoder.encode(newPassword));
+        adminUser.setUpdateDate(LocalDateTime.now());
+
+        this.usersRepository.save(adminUser); // 덮어쓰기 + 수정일 갱신
     }
 
-    public void deleteUser(Integer id) {
-        Optional<Users> optionalAdminUser = this.usersRepository.findById(id);
-
-        if (optionalAdminUser.isPresent()) {
-            Users adminUser = optionalAdminUser.get();
-            this.usersRepository.delete(adminUser);
-        } else {
-            throw new DataNotFoundException(String.format("관리자 계정을 찾을 수 없습니다. ID: %s", id));
-        }
-    }
-
+    
     public Users getUserByUsername(String username) {
     return usersRepository.findByUsername(username)
         .orElseThrow(() -> new UsernameNotFoundException("관리자를 찾을 수 없습니다: " + username));
     }
-
+    // 비밀번호 변경시 입력된 현재 비밀번호와 비교
     public boolean checkAdminPassword(String rawPassword, String hashedPassword) {
         return passwordEncoder.matches(rawPassword, hashedPassword);
     }
