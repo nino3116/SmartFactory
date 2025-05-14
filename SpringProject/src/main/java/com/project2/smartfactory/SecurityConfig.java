@@ -20,10 +20,11 @@ public class SecurityConfig {
                 .requestMatchers(new AntPathRequestMatcher("/api/defect", "POST")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/latest-defects", "GET")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/ui/**")).permitAll()
-                .requestMatchers(new AntPathRequestMatcher("/js/**")).permitAll()
-                .requestMatchers(new AntPathRequestMatcher("/css/**")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/admin/login")).permitAll() // 로그인 페이지 허용
                 .requestMatchers(new AntPathRequestMatcher("/admin/logout")).permitAll() // 로그아웃 허용
+                .requestMatchers("/api/control/**").permitAll()
+                // /api/status/script 경로에 대한 모든 요청 허용
+                .requestMatchers("/api/status/script").permitAll()
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
@@ -42,6 +43,7 @@ public class SecurityConfig {
             )
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers(new AntPathRequestMatcher("/api/defect", "POST"))
+                .ignoringRequestMatchers(new AntPathRequestMatcher("/api/control/**"))
             );
 
         return http.build();

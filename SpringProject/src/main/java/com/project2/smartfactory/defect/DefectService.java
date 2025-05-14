@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,38 +26,53 @@ public class DefectService {
 
 
     /**
-     * MQTT로부터 수신된 불량 정보를 처리하고 데이터베이스에 저장합니다.
-     * 불량 감지 이벤트 로그도 함께 기록합니다.
-     * @param defects MQTT 메시지로부터 파싱된 불량 정보 리스트
+     * 파이썬 스크립트로부터 수신된 감지 결과를 처리하고 데이터베이스에 저장합니다.
+     * 감지 이벤트 로그 및 불량 상세 정보를 기록합니다.
+     * @param detectionResultDto 수신된 감지 결과 데이터 (로그 정보 및 불량 목록 포함)
      */
-    @Transactional
-    public void processAndSaveDefects(List<DefectInfo> defects) {
-        List<DefectInfo> safeDefects = Optional.ofNullable(defects).orElse(Collections.emptyList());
-        
-        boolean defectDetected = !safeDefects.isEmpty();
-        String status = defectDetected ? "Defect Detected" : "Normal";
-        Integer defectCount = safeDefects.size();
-        String imageUrl = defectDetected && safeDefects.get(0).getImageUrl() != null ? 
-            safeDefects.get(0).getImageUrl() : null;
+    @Transactional // 트랜잭션 관리
+    public void processAndSaveDetectionResult(DetectionResultDto detectionResultDto) { // 인자 타입 변경
+        System.out.println("감지 결과 수신 및 데이터베이스 저장 처리 중...");
 
-        String defectSummary = defectDetected
-            ? safeDefects.stream()
-                         .map(DefectInfo::getDetailedReason) // 상세 사유 (영문) 사용
-                         .distinct() // 중복 제거
-                         .collect(Collectors.joining(", ")) // 쉼표로 연결
-            : "Normal"; // 정상이면 "Normal"
-
-        System.out.println("불량 정보 수신 및 데이터베이스 저장 처리 중...");
+        if (detectionResultDto == null) {
+            System.err.println("처리할 감지 결과 데이터가 null입니다.");
+            return; // null 데이터는 처리하지 않음
+        }
 
         try {
-            // 1. 불량 감지 이벤트 로그 저장
-            DetectionLog logEntry = new DetectionLog(status, defectCount, imageUrl, defectSummary);
-            detectionLogRepository.save(logEntry);
-            System.out.println("감지 로그 데이터베이스 저장 완료: " + status);
+            // 1. 감지 이벤트 로그 저장 (DetectionResultDto의 정보 사용)
+            // DetectionLog 엔티티 생성
+            DetectionLog logEntry = new DetectionLog(
+                detectionResultDto.getStatus(),
+                detectionResultDto.getDefectCount(),
+                detectionResultDto.getImageUrl(),
+                detectionResultDto.getDefectSummary()
+            );
+            // 감지 시간은 DTO에서 받아오거나, 여기서 새로 설정할 수 있습니다.
+            // 파이썬에서 시간을 보내준다면 DTO에서 받아오는 것이 좋습니다.
+            if (detectionResultDto.getDetectionTime() != null) {
+                 logEntry.setDetectionTime(detectionResultDto.getDetectionTime());
+            } else {
+                 // DTO에 시간이 없다면 현재 시간 설정
+                 logEntry.setDetectionTime(LocalDateTime.now());
+            }
 
-            // 2. 불량 상세 정보 저장 (불량이 감지된 경우에만)
+            detectionLogRepository.save(logEntry);
+            System.out.println("감지 로그 데이터베이스 저장 완료: " + logEntry.getStatus());
+
+            // 2. 불량 상세 정보 저장 (DetectionResultDto의 불량 목록 사용)
+            List<DefectInfo> defects = detectionResultDto.getDefects();
+            boolean defectDetected = defects != null && !defects.isEmpty();
+
             if (defectDetected) {
-                List<DefectInfo> savedDefects = defectRepository.saveAll(safeDefects);
+                // 불량 정보에 로그 엔티티 연결 (필요시) 또는 DefectInfo 자체에 로그 ID 추가
+                // 현재 DefectInfo 엔티티는 DetectionLog와의 직접적인 연관 관계가 없습니다.
+                // 만약 불량 상세 정보와 로그를 연결하고 싶다면 DefectInfo 엔티티에
+                // DetectionLog에 대한 참조 필드를 추가하고 매핑해야 합니다.
+                // 여기서는 간단하게 불량 정보만 별도로 저장합니다.
+
+                // DefectInfo 엔티티 저장
+                List<DefectInfo> savedDefects = defectRepository.saveAll(defects);
                 System.out.println(savedDefects.size() + " 건의 불량 정보 데이터베이스 저장 완료.");
 
                 // API 엔드포인트에서 최신 정보를 제공하기 위해 메모리 내 리스트 업데이트
@@ -66,8 +82,11 @@ public class DefectService {
                 // 저장된 불량 정보 확인 (디버깅용)
                 // latestDefects.forEach(defect -> System.out.println(defect.toString()));
             } else {
-                 // 불량 감지되지 않았을 경우 최신 불량 정보 리스트 비우기 (선택 사항)
-                 // latestDefects.clear();
+                 // 불량 감지되지 않았을 경우 (Normal 상태)
+                 // 불량 상세 정보는 저장하지 않습니다.
+                 // 최신 불량 정보 리스트는 이전 불량 정보를 유지하거나 비울 수 있습니다.
+                 // 여기서는 Normal 상태가 감지되면 최신 불량 정보 리스트를 비우도록 합니다.
+                 latestDefects.clear();
                  System.out.println("불량 감지되지 않음. 불량 상세 정보 저장 스킵.");
             }
 
@@ -76,7 +95,7 @@ public class DefectService {
             System.err.println("데이터베이스 저장 중 오류 발생: " + e.getMessage());
             e.printStackTrace();
             // 데이터베이스 저장 실패 시 예외를 다시 던져 트랜잭션 롤백을 유도할 수 있습니다.
-            // throw new RuntimeException("Failed to save data to database", e);
+            throw new RuntimeException("Failed to save detection result to database", e);
         }
     }
 
