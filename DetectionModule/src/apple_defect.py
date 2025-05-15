@@ -93,17 +93,17 @@ MQTT_TOPIC_DETAILS = "defect_detection/details"  # 불량 상세 정보를 보�
 
 # --- API 서버 설정 변수 ---
 # API 서버의 주소와 포트, 엔드포인트
-API_DETECTION_RESULT_URL = "http://192.168.0.122:80/api/defect"  # Spring Boot DefectController의 /api/defect 엔드포인트
-# API_SERVER_URL = "http://192.168.0.122:80/api/defect"
-# SPRING_BOOT_API_BASE_URL = "http://192.168.0.122:80"  # Spring Boot 서버 주소 및 포트
+API_DETECTION_RESULT_URL = "http://localhost:80/api/defect"  # Spring Boot DefectController의 /api/defect 엔드포인트
+# API_SERVER_URL = "http://localhost:80/api/defect"
+# SPRING_BOOT_API_BASE_URL = "http://localhost:80"  # Spring Boot 서버 주소 및 포트
 # # 불량 정보 수신 엔드포인트 (Spring Boot DefectController의 @PostMapping("/api/defect"))
 # API_DEFECT_ENDPOINT = f"{SPRING_BOOT_API_BASE_URL}/api/defect"
 # # 스냅샷 이미지 제공 엔드포인트 (Spring Boot SnapshotController의 @GetMapping("/api/snapshots/{filename}"))
 # API_SNAPSHOT_BASE_URL = f"{SPRING_BOOT_API_BASE_URL}/api/snapshots"
 
 # --- MJPEG 스트리밍 서버 설정 변수 ---
-STREAM_HOST = "192.168.0.122"  # 스트리밍 서버 호스트 (모든 인터페이스에서 접근 허용)
-STREAM_PORT = 8000  # 스트리밍 서버 포트
+STREAM_HOST = "0.0.0.0"  # 스트리밍 서버 호스트 (모든 인터페이스에서 접근 허용)
+STREAM_PORT = 8080  # 스트리밍 서버 포트
 
 # --- 전역 변수 및 스레드 동기화 ---
 # 처리된 최신 프레임을 저장할 전역 변수
@@ -1169,13 +1169,13 @@ if __name__ == "__main__":
 
     # Spring Boot API 기본 URL 설정
     # 이 URL은 Spring Boot 애플리케이션의 호스트와 포트, 감지 결과를 수신할 엔드포인트입니다.
-    YOUR_API_DETECTION_RESULT_URL = "http://192.168.0.122:80/api/defect"  # Spring Boot 서버 주소 및 포트 + API 엔드포인트
+    YOUR_API_DETECTION_RESULT_URL = "http://localhost:80/api/defect"  # Spring Boot 서버 주소 및 포트 + API 엔드포인트
     # # Spring Boot API 기본 URL 설정
     # # 이 URL은 Spring Boot 애플리케이션의 호스트와 포트입니다.
     # # 스냅샷 이미지를 제공하는 컨트롤러의 기본 경로(/api/snapshots)는
     # # 이 기본 URL 뒤에 붙습니다.
     # YOUR_SPRING_BOOT_API_BASE_URL = (
-    #     "http://192.168.0.122:80"  # Spring Boot 서버 주소 및 포트
+    #     "http://localhost:80"  # Spring Boot 서버 주소 및 포트
     # )
 
     # # 스냅샷 저장 기본 디렉토리 설정

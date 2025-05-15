@@ -1,14 +1,10 @@
-
 <html
   xmlns:th="http://www.thymeleaf.org"
-  xmlns:sec="https://www.thymeleaf.org/extras/spring-security"
->
+  xmlns:sec="https://www.thymeleaf.org/extras/spring-security">
   <aside
     th:fragment="sidebar"
-    class="w-64 bg-green-700 text-white flex flex-col p-4"
-  >
+    class="w-64 bg-green-700 text-white flex flex-col p-4">
     <div class="flex items-center text-2xl font-bold mb-8 gap-2">
-
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
@@ -18,11 +14,9 @@
         stroke-linejoin="round"
         width="24"
         height="24"
-        stroke-width="1.5"
-      >
+        stroke-width="1.5">
         <path
-          d="M4 11.319c0 3.102 .444 5.319 2.222 7.978c1.351 1.797 3.156 2.247 5.08 .988c.426 -.268 .97 -.268 1.397 0c1.923 1.26 3.728 .809 5.079 -.988c1.778 -2.66 2.222 -4.876 2.222 -7.977c0 -2.661 -1.99 -5.32 -4.444 -5.32c-1.267 0 -2.41 .693 -3.22 1.44a.5 .5 0 0 1 -.672 0c-.809 -.746 -1.953 -1.44 -3.22 -1.44c-2.454 0 -4.444 2.66 -4.444 5.319"
-        ></path>
+          d="M4 11.319c0 3.102 .444 5.319 2.222 7.978c1.351 1.797 3.156 2.247 5.08 .988c.426 -.268 .97 -.268 1.397 0c1.923 1.26 3.728 .809 5.079 -.988c1.778 -2.66 2.222 -4.876 2.222 -7.977c0 -2.661 -1.99 -5.32 -4.444 -5.32c-1.267 0 -2.41 .693 -3.22 1.44a.5 .5 0 0 1 -.672 0c-.809 -.746 -1.953 -1.44 -3.22 -1.44c-2.454 0 -4.444 2.66 -4.444 5.319"></path>
         <path d="M7 12c0 -1.47 .454 -2.34 1.5 -3"></path>
         <path d="M12 7c0 -1.2 .867 -4 3 -4"></path>
       </svg>
@@ -33,8 +27,7 @@
         <li class="mb-2">
           <a
             th:href="@{/}"
-            class="navhover flex items-center py-2 px-4 rounded-md hover:bg-yellow-500 mb-2 gap-2 transition"
-          >
+            class="navhover flex items-center py-2 px-4 rounded-md hover:bg-yellow-500 mb-2 gap-2 transition">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -45,8 +38,7 @@
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="mr-3"
-            >
+              class="mr-3">
               <rect width="7" height="9" x="3" y="3" rx="1" />
               <rect width="7" height="5" x="14" y="3" rx="1" />
               <rect width="7" height="9" x="14" y="12" rx="1" />
@@ -58,8 +50,7 @@
         <li class="mb-2">
           <a
             th:href="@{/ui/defects}"
-            class="navhover flex items-center py-2 px-4 rounded-md hover:bg-yellow-500 mb-2 gap-2 transition"
-          >
+            class="navhover flex items-center py-2 px-4 rounded-md hover:bg-yellow-500 mb-2 gap-2 transition">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -70,15 +61,12 @@
               width="24"
               height="24"
               stroke-width="1.5"
-              class="mr-2"
-            >
+              class="mr-2">
               <path d="M12 5m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path>
               <path
-                d="M20 12.5v4.75a.734 .734 0 0 1 -.055 .325a.704 .704 0 0 1 -.348 .366l-5.462 2.58a5 5 0 0 1 -4.27 0l-5.462 -2.58a.705 .705 0 0 1 -.401 -.691l0 -4.75"
-              ></path>
+                d="M20 12.5v4.75a.734 .734 0 0 1 -.055 .325a.704 .704 0 0 1 -.348 .366l-5.462 2.58a5 5 0 0 1 -4.27 0l-5.462 -2.58a.705 .705 0 0 1 -.401 -.691l0 -4.75"></path>
               <path
-                d="M4.431 12.216l5.634 -2.332a5.065 5.065 0 0 1 3.87 0l5.634 2.332a.692 .692 0 0 1 .028 1.269l-5.462 2.543a5.064 5.064 0 0 1 -4.27 0l-5.462 -2.543a.691 .691 0 0 1 .028 -1.27z"
-              ></path>
+                d="M4.431 12.216l5.634 -2.332a5.065 5.065 0 0 1 3.87 0l5.634 2.332a.692 .692 0 0 1 .028 1.269l-5.462 2.543a5.064 5.064 0 0 1 -4.27 0l-5.462 -2.543a.691 .691 0 0 1 .028 -1.27z"></path>
               <path d="M12 7l0 6"></path>
             </svg>
             Defects
@@ -87,8 +75,7 @@
         <li class="mb-2">
           <a
             th:href="@{/navber2}"
-            class="navhover flex items-center py-2 px-4 rounded-md hover:bg-yellow-500 mb-2 gap-2 transition"
-          >
+            class="navhover flex items-center py-2 px-4 rounded-md hover:bg-yellow-500 mb-2 gap-2 transition">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -99,11 +86,9 @@
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="mr-3"
-            >
+              class="mr-3">
               <path
-                d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"
-              />
+                d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
             </svg>
             navber2
           </a>
@@ -111,8 +96,7 @@
         <li class="mb-2">
           <a
             th:href="@{/navber3}"
-            class="navhover flex items-center py-2 px-4 rounded-md hover:bg-yellow-500 mb-2 gap-2 transition"
-          >
+            class="navhover flex items-center py-2 px-4 rounded-md hover:bg-yellow-500 mb-2 gap-2 transition">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -123,11 +107,9 @@
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="mr-3"
-            >
+              class="mr-3">
               <path
-                d="M21.2 8.4V5.8a2 2 0 0 0-2.1-2.1H5.8a2 2 0 0 0-2.1 2.1v12.4a2 2 0 0 0 2.1 2.1h12.4a2 2 0 0 0 2.1-2.1V15.6"
-              />
+                d="M21.2 8.4V5.8a2 2 0 0 0-2.1-2.1H5.8a2 2 0 0 0-2.1 2.1v12.4a2 2 0 0 0 2.1 2.1h12.4a2 2 0 0 0 2.1-2.1V15.6" />
               <path d="M8 10h.01" />
               <path d="M12 15h.01" />
               <path d="M16 10h.01" />
@@ -142,8 +124,7 @@
       <a
         sec:authorize="isAnonymous()"
         th:href="@{/admin/login}"
-        class="flex items-center py-2 px-4 rounded-md tracking-widest hover:bg-yellow-500 gap-2 transition font-bold"
-      >
+        class="flex items-center py-2 px-4 rounded-md tracking-widest hover:bg-yellow-500 gap-2 transition font-bold">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -154,11 +135,9 @@
           width="24"
           height="24"
           stroke-width="1.5"
-          class="mr-2"
-        >
+          class="mr-2">
           <path
-            d="M15.618 20.243l-2.193 -5.602a3 3 0 1 0 -2.849 0l-2.193 5.603"
-          ></path>
+            d="M15.618 20.243l-2.193 -5.602a3 3 0 1 0 -2.849 0l-2.193 5.603"></path>
           <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
         </svg>
         Login
@@ -166,8 +145,7 @@
       <a
         sec:authorize="isAuthenticated()"
         th:href="@{/admin/logout}"
-        class="flex items-center py-2 px-4 rounded-md tracking-widest hover:bg-yellow-500 gap-2 transition font-bold"
-      >
+        class="flex items-center py-2 px-4 rounded-md tracking-widest hover:bg-yellow-500 gap-2 transition font-bold">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="20"
@@ -178,8 +156,7 @@
           stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
-          class="mr-3"
-        >
+          class="mr-3">
           <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
           <polyline points="10 17 15 12 10 7" />
           <line x1="15" x2="3" y1="12" y2="12" />
@@ -189,8 +166,7 @@
       <a
         sec:authorize="isAuthenticated()"
         th:href="@{/admin/password/edit}"
-        class="flex items-center py-2 px-4 rounded-md tracking-widest hover:bg-yellow-500 gap-2 transition font-bold"
-      >
+        class="flex items-center py-2 px-4 rounded-md tracking-widest hover:bg-yellow-500 gap-2 transition font-bold">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="20"
@@ -201,11 +177,9 @@
           stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
-          class="mr-3"
-        >
+          class="mr-3">
           <path
-            d="M12.22 2h-0.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
-          ></path>
+            d="M12.22 2h-0.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
           <circle cx="12" cy="12" r="3"></circle>
         </svg>
         관리자 설정
