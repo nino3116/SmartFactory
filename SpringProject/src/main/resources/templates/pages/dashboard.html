@@ -6,7 +6,10 @@
   layout:decorate="~{layout/base}"
 >
   <head>
-    <title layout:title="대시보드">Dashboard</title>
+    <title layout:title="대시보드"></title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
   </head>
   <body>
     <div layout:fragment="content">
@@ -34,30 +37,6 @@
       </div>
 
       <h2 class="text-2xl font-semibold text-gray-700 mb-4 mt-6">
-        감지 결과 로그
-      </h2>
-      <div id="detection-log-container" class="overflow-x-auto">
-        <table id="detection-log-table" class="min-w-full bg-white">
-          <thead>
-            <tr>
-              <th>시간</th>
-              <th>상태</th>
-              <th>불량 유형 요약</th>
-              <th>불량 개수</th>
-              <th>이미지</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="5" class="py-4 px-4 text-center text-gray-500">
-                감지 로그 로딩 중...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h2 class="text-2xl font-semibold text-gray-700 mb-4 mt-6">
         최신 불량 감지 결과
       </h2>
       <div id="defect-list-container" class="overflow-x-auto">
@@ -82,5 +61,12 @@
         </table>
       </div>
     </div>
+
+    <th:block layout:fragment="script">
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+      <script src="/js/dashboard.js"></script>
+    </th:block>
   </body>
 </html>

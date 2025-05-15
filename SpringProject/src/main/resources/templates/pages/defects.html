@@ -6,111 +6,20 @@
   layout:decorate="~{layout/base}">
   <head>
     <title layout:title="불량 감지 결과"></title>
-
-    
-      <style>
-        /* defects.html 고유의 CSS 스타일을 여기에 작성합니다. */
-        .defect-item {
-          background-color: #ffebee; /* Light red background */
-          border: 1px solid #e57373; /* Red border */
-          margin-bottom: 15px;
-          padding: 15px;
-          border-radius: 5px;
-        }
-        .defect-item strong {
-          color: #c62828; /* Darker red for emphasis */
-        }
-        .no-defects {
-          color: #4caf50; /* Green text */
-          font-weight: bold;
-        }
-        /* Add any additional styles needed specifically for the defects page */
-        .defect-image {
-          max-width: 100px; /* 테이블 내 이미지 크기 조정 */
-          height: auto; /* 비율 유지 */
-          display: block; /* 이미지 아래 공백 제거 */
-          margin: 0 auto; /* 가운데 정렬 */
-        }
-
-        /* 데이터 테이블 스타일 */
-        #defect-table {
-          width: 100%; /* 테이블 전체 너비 사용 */
-          border-collapse: collapse; /* 테이블 셀 경계선 병합 */
-          margin-top: 20px;
-        }
-
-        #defect-table th,
-        #defect-table td {
-          border: 1px solid #ddd; /* 셀 경계선 */
-          padding: 8px; /* 셀 패딩 */
-          text-align: left; /* 텍스트 왼쪽 정렬 */
-        }
-
-        #defect-table th {
-          background-color: #f2f2f2; /* 헤더 배경색 */
-          font-weight: bold;
-        }
-
-        #defect-table tbody tr:nth-child(even) {
-          background-color: #f9f9f9; /* 짝수 행 배경색 */
-        }
-
-        #defect-table tbody tr:hover {
-          background-color: #e9e9e9; /* 마우스 오버 시 배경색 */
-        }
-
-        /* 스크립트 제어 패널 스타일 */
-        .script-control-panel {
-          background-color: #e0f7fa; /* Light blue background */
-          border: 1px solid #b2ebf2; /* Blue border */
-          padding: 15px;
-          border-radius: 5px;
-          margin-bottom: 20px;
-          display: flex; /* 버튼과 상태를 한 줄에 배치 */
-          align-items: center; /* 세로 중앙 정렬 */
-          gap: 20px; /* 요소 간 간격 */
-        }
-
-        .script-control-panel button {
-          padding: 8px 16px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-          transition: background-color 0.3s ease; /* 부드러운 전환 효과 */
-        }
-
-        .script-control-panel button#start-script-btn {
-          background-color: #4caf50; /* Green */
-          color: white;
-        }
-        .script-control-panel button#start-script-btn:hover {
-          background-color: #388e3c; /* Darker Green */
-        }
-
-        .script-control-panel button#stop-script-btn {
-          background-color: #f44336; /* Red */
-          color: white;
-        }
-        .script-control-panel button#stop-script-btn:hover {
-          background-color: #d32f2f; /* Darker Red */
-        }
-
-        .script-control-panel #script-status {
-          font-weight: bold;
-          color: #0277bd; /* Dark blue */
-        }
-      </style>
-    
+    <link rel="stylesheet" th:href="@{/css/defects.css}" />
   </head>
   <body>
     <div layout:fragment="content">
       <h2 class="text-2xl font-semibold text-gray-700 mb-4">감지 화면</h2>
       <div class="card">
         <img
-          src="http://192.168.0.122:8080"
+          id="mjpeg-stream-img"
+          src="http://localhost:8080"
           alt="MJPEG Stream"
           style="width: 640px; height: 480px; display: block; margin: 0 auto" />
+        <p id="stream-status-message" class="stream-status status-loading">
+          스트림 연결 중...
+        </p>
       </div>
 
       <h2 class="text-2xl font-semibold text-gray-700 mb-4 mt-6">
@@ -172,10 +81,9 @@
       </div>
     </div>
 
-    
-      <script>
-
-      </script>
-    
+    <th:block layout:fragment="script">
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script src="/js/defects.js"></script>
+    </th:block>
   </body>
 </html>
