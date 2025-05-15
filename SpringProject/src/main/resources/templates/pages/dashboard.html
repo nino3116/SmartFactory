@@ -6,10 +6,7 @@
   layout:decorate="~{layout/base}"
 >
   <head>
-    <title layout:title="대시보드"></title>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <title layout:title="Dashboard"></title>
   </head>
   <body>
     <div layout:fragment="content">
@@ -62,10 +59,8 @@
       </div>
     </div>
 
-    <th:block layout:fragment="script">
-      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-      <script
-        src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <th:block layout:append="script">
+      <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
       <script src="/js/dashboard.js"></script>
     </th:block>
   </body>

@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class DashBoardController {
     
     @GetMapping("/dashboard")
-    public String dashboard() {
+    public String dashboard(Model model) {
         
-
+        model.addAttribute("title", "Dashboard" );
         return "pages/dashboard";
 
     }

@@ -7,13 +7,14 @@
   >
   <head>
     <meta charset="UTF-8" />
-    <title layout:title-pattern="$LAYOUT_TITLE - $CONTENT_TITLE">
+    <title th:text="${title} == null ? 'Smart Factory' : ${title} + '- Smart Factory'">
       Smart Factory
     </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <th:block layout:fragment="css">
     <link rel="stylesheet" th:href="@{/css/output.css}" />
     <link rel="stylesheet" th:href="@{/css/dashboard.css}" />
+    <link rel="stylesheet" th:href="@{/css/defects.css}" />
     </th:block>
     <th:block layout:head></th:block>
   </head>
@@ -53,8 +54,6 @@
     <th:block layout:fragment="script"></script>
     <script th:src="@{/js/script.js}"></script>
     <script th:src="@{/js/flowbite.min.js}"></script>
-    <script th:src="@{/js/dashboard.js}"></script>
-    <script th:src="@{/js/defects.js}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </th:block>
   </body>
