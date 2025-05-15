@@ -22,13 +22,11 @@ public class SecurityConfig {
                 .requestMatchers(new AntPathRequestMatcher("/api/defect", "POST")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/latest-defects", "GET")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/detection-logs", "GET")).permitAll()
-                .requestMatchers(new AntPathRequestMatcher("/ui/**")).permitAll()
                 .requestMatchers("/css/**","/js/**", "/images/**").permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/admin/login")).permitAll() // 로그인 페이지 허용
                 .requestMatchers(new AntPathRequestMatcher("/admin/logout")).permitAll() // 로그아웃 허용
                 .requestMatchers("/api/control/**").permitAll()
-                // /api/status/script 경로에 대한 모든 요청 허용
-                .requestMatchers("/api/status/script").permitAll()
+                .requestMatchers("/api/status/script").permitAll()  // /api/status/script 경로에 대한 모든 요청 허용
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
