@@ -19,6 +19,7 @@ public class DefectPageController {
         // Spring Boot와 Thymeleaf는 src/main/resources/templates/ 디렉토리에서
         // "pages/defects.html" 파일을 찾아 렌더링합니다.
         model.addAttribute("title", "Defects");
+        model.addAttribute("activebutton", "defacts");
         System.out.println("--- 웹 페이지 요청 수신: /ui/defects ---");
         return "pages/defects";
     }

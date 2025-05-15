@@ -16,6 +16,7 @@ public class DashBoardController {
     public String dashboard(Model model) {
         
         model.addAttribute("title", "Dashboard" );
+        model.addAttribute("activebutton", "dashboard");
         return "pages/dashboard";
 
     }

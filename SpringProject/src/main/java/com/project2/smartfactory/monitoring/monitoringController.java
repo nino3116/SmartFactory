@@ -10,6 +10,7 @@ public class monitoringController {
   @GetMapping("/monitoring")
   public String monitoringPage(Model model) {
     model.addAttribute("title", "Monitoring");
+    model.addAttribute("activebutton", "monitoring");
     return "monitoring"; // 위 HTML 파일
   }
 
