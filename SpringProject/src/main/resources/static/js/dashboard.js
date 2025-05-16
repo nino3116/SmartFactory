@@ -73,12 +73,12 @@ async function fetchAndDisplayLatestDefects() {
 
 	// 로딩 메시지 표시
 	defectTableBody.innerHTML = `
-            <tr>
-              <td colspan="6" class="py-4 px-4 text-center text-gray-500">
-                불량 정보 가져오는 중...
-              </td>
-          </tr>
-        `;
+      <tr>
+       <td colspan="6" class="py-4 px-4 text-center text-gray-500">
+        불량 정보 가져오는 중...
+       </td>
+     </tr>
+    `;
 
 	try {
 		const response = await fetch(LATEST_DEFECTS_API_URL);
@@ -115,41 +115,41 @@ async function fetchAndDisplayLatestDefects() {
 				const imageUrl = defect.imageUrl || ""; // 이미지 URL이 없을 경우 빈 문자열
 
 				row.innerHTML = `
-                    <td class="py-2 px-4 border-b">${clazz}</td>
-                    <td class="py-2 px-4 border-b">${reason}</td>
-                    <td class="py-2 px-4 border-b">${confidence}</td>
-                    <td class="py-2 px-4 border-b">${box}</td>
-                    <td class="py-2 px-4 border-b">${areaPercent}</td>
-                    <td class="py-2 px-4 border-b text-center">
-                      ${
-					imageUrl
-						? `<img src="${imageUrl}" alt="Defect Snapshot" class="defect-image" onerror="this.onerror=null;this.src='https://placehold.co/100x100/e0e0e0/6b7280?text=No+Image';">`
-						: "이미지 없음"
-				}
-                    </td>
-                `;
+          <td class="py-2 px-4 border-b">${clazz}</td>
+          <td class="py-2 px-4 border-b">${reason}</td>
+          <td class="py-2 px-4 border-b">${confidence}</td>
+          <td class="py-2 px-4 border-b">${box}</td>
+          <td class="py-2 px-4 border-b">${areaPercent}</td>
+          <td class="py-2 px-4 border-b text-center">
+           ${
+							imageUrl
+								? `<img src="${imageUrl}" alt="Defect Snapshot" class="defect-image" onerror="this.onerror=null;this.src='https://placehold.co/100x100/e0e0e0/6b7280?text=No+Image';">`
+								: "이미지 없음"
+						}
+          </td>
+        `;
 				defectTableBody.appendChild(row); // 새로운 행 추가
 			});
 		} else {
 			// 불량 정보가 없으면 메시지 표시
 			defectTableBody.innerHTML = `
-                <tr>
-                  <td colspan="6" class="py-4 px-4 text-center text-gray-500">
-                    감지된 불량이 없습니다.
-                  </td>
-                </tr>
-              `;
+        <tr>
+         <td colspan="6" class="py-4 px-4 text-center text-gray-500">
+          감지된 불량이 없습니다.
+         </td>
+        </tr>
+       `;
 		}
 	} catch (error) {
 		console.error("불량 정보를 가져오는 중 오류 발생:", error);
 		// 오류 발생 시 메시지 표시
 		defectTableBody.innerHTML = `
-              <tr>
-                <td colspan="6" class="py-4 px-4 text-center text-red-500">
-                  오류 발생: ${error.message}
-                </td>
-              </tr>
-            `;
+       <tr>
+        <td colspan="6" class="py-4 px-4 text-center text-red-500">
+         오류 발생: ${error.message}
+        </td>
+       </tr>
+      `;
 	}
 }
 
