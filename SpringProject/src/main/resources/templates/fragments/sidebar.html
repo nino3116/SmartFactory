@@ -86,55 +86,59 @@
         </li>
         <li class="mb-2">
           <a
+            th:href="@{/control_panel}"
+            class="navhover flex items-center py-2 px-4 rounded-md hover:bg-yellow-500 mb-2 gap-2 transition"
+            th:classappend="${activebutton == 'control_panel' ? 'bg-yellow-500 font-semibold' : ''}"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              width="24"
+              height="24"
+              stroke-width="2"
+              class="mr-2"
+            >
+              <path d="M4 8h4v4h-4z"></path>
+              <path d="M6 4l0 4"></path>
+              <path d="M6 12l0 8"></path>
+              <path d="M10 14h4v4h-4z"></path>
+              <path d="M12 4l0 10"></path>
+              <path d="M12 18l0 2"></path>
+              <path d="M16 5h4v4h-4z"></path>
+              <path d="M18 4l0 1"></path>
+              <path d="M18 9l0 11"></path>
+            </svg>
+            Control Panel
+          </a>
+        </li>
+        <li class="mb-2">
+          <a
             th:href="@{/monitoring}"
             class="navhover flex items-center py-2 px-4 rounded-md hover:bg-yellow-500 mb-2 gap-2 transition"
             th:classappend="${activebutton == 'monitoring' ? 'bg-yellow-500 font-semibold' : ''}"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="mr-3"
+              width="24"
+              height="24"
+              stroke-width="2"
+              class = "mr-2"
             >
+              <path d="M17.011 9.385v5.128l3.989 3.487v-12z"></path>
               <path
-                d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"
-              />
+                d="M3.887 6h10.08c1.468 0 3.033 1.203 3.033 2.803v8.196a.991 .991 0 0 1 -.975 1h-10.373c-1.667 0 -2.652 -1.5 -2.652 -3l.01 -8a.882 .882 0 0 1 .208 -.71a.841 .841 0 0 1 .67 -.287z"
+              ></path>
             </svg>
             Monitoring
-          </a>
-        </li>
-        <li class="mb-2">
-          <a
-            th:href="@{/}"
-            class="navhover flex items-center py-2 px-4 rounded-md hover:bg-yellow-500 mb-2 gap-2 transition"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="mr-3"
-            >
-              <path
-                d="M21.2 8.4V5.8a2 2 0 0 0-2.1-2.1H5.8a2 2 0 0 0-2.1 2.1v12.4a2 2 0 0 0 2.1 2.1h12.4a2 2 0 0 0 2.1-2.1V15.6"
-              />
-              <path d="M8 10h.01" />
-              <path d="M12 15h.01" />
-              <path d="M16 10h.01" />
-              <path d="m7 21-9-9" />
-            </svg>
-            navber3
           </a>
         </li>
       </ul>
