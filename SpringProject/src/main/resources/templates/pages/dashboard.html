@@ -3,15 +3,35 @@
   lang="ko"
   xmlns:th="http://www.thymeleaf.org"
   xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-  layout:decorate="~{layout/base}">
+  layout:decorate="~{layout/base}"
+>
   <head>
-    <title layout:title="대시보드"></title>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <title layout:title="Dashboard"></title>
   </head>
   <body>
     <div layout:fragment="content">
+      <div class="flex justify-between mb-1 w-1/2">
+        <span class="text-base font-medium text-blue-700"
+          >공정별 진척상황</span
+        >
+        <span class="text-sm font-medium text-blue-700"
+          >45%</span
+        >
+      </div>
+      <div
+        class="w-1/2 bg-gray-200 rounded-full h-4 mb-4"
+      >
+        <div class="bg-blue-600 h-4 rounded-full" style="width: 45%"></div>
+      </div>
+
+      <!-- 폼 데이터가 전송되기 전에 반드시 입력필드가 채워져야 함-->
+      <form class="max-w-1/2" method ="post">
+          <label for="phone-input" class="block mb-2 text-md font-medium text-gray-900">총 감지해야 할 개수</label>
+          <div class="relative">
+            <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-1/2 ps-2 p-2.5 "  placeholder="입력하세요" required />
+          </div>
+          <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-md px-5 py-2.5 me-2 mb-2 mt-2">전송</button>
+      </form>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-white rounded-lg shadow p-6">
           <h2 class="text-lg font-semibold mb-4">당일 감지 상태 비율</h2>
@@ -110,7 +130,7 @@
       </div>
     </div>
 
-    <th:block layout:fragment="script">
+    <th:block layout:append="script">
       <script
         src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
       <script
