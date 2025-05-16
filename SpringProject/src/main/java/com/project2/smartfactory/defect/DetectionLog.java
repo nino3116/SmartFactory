@@ -52,6 +52,4 @@ public class DetectionLog {
         this.defectSummary = defectSummary;
     }
 
-
-
 }
