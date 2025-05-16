@@ -19,7 +19,7 @@
     <th:block layout:head></th:block>
   </head>
   <body class="flex h-screen bg-gray-100">
-    <script layout:fragment="script"></script>
+    <!--<script layout:fragment="script"></script>-->
     <div
     th:replace="~{fragments/sidebar :: sidebar}"
     class="w-64 bg-green-700 text-white flex flex-col"
@@ -52,10 +52,10 @@
           });
         </script>
     <th:block layout:fragment="script"></script>
-    <script th:src="@{/js/script.js}"></script>
+    <!--<script th:src="@{/js/script.js}"></script>-->
     <script th:src="@{/js/flowbite.min.js}"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!--<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>-->
     </th:block>
 
   </body>
