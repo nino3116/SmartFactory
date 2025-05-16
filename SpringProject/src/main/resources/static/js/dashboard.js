@@ -1,25 +1,44 @@
+// static/js/dashboard.js
+
 // API 엔드포인트 URL (Spring Boot 서버의 IP와 포트, 컨트롤러 경로에 맞게 수정)
 const LATEST_DEFECTS_API_URL = "/api/latest-defects"; // 최신 불량 정보 API 엔드포인트
-const DETECTION_LOGS_API_URL = "/api/detection-logs"; // 감지 로그 API 엔드포인트
+const CHART_DATA_API_URL = "/api/charts/data"; // 백엔드에서 가공된 차트 데이터 API 엔드포인트
 
 // Chart.js 인스턴스를 저장할 전역 변수
 let weekStatusChart = null;
 let detectionStatusChart = null;
 let yearStatusChart = null;
 let dayStatusChart = null; // 당일 감지 비율 차트 변수
+let dailyTaskCompletionChart = null; // 당일 작업 달성률 차트 변수 추가
 
-// Chart.js 플러그인: 데이터가 없을 때 텍스트 표시 (파이 차트용)
+// Chart.js 플러그인: 데이터가 없을 때 텍스트 표시 (파이 차트 및 스택 막대 차트용)
 const noDataTextPlugin = {
 	id: "noDataText",
 	beforeDraw: function (chart) {
 		const dataset = chart.data && chart.data.datasets && chart.data.datasets[0];
 
 		// 데이터셋이 없거나, 데이터가 비어있거나, 모든 값이 0인 경우
+		// 스택 막대 차트의 경우 모든 데이터셋의 합이 0인지 확인
+		let totalSum = 0;
+		if (chart.data && chart.data.datasets) {
+			chart.data.datasets.forEach((ds) => {
+				if (ds.data) {
+					// 스택 막대 차트의 경우, 각 데이터셋의 첫 번째 데이터 포인트만 합산 (단일 라벨이므로)
+					if (chart.options.indexAxis === "y" && ds.data.length > 0) {
+						totalSum += ds.data[0];
+					} else {
+						// 다른 차트 유형은 모든 데이터 합산
+						totalSum += ds.data.reduce((sum, val) => sum + val, 0);
+					}
+				}
+			});
+		}
+
 		if (
 			!dataset ||
 			!dataset.data ||
 			dataset.data.length === 0 ||
-			dataset.data.every((value) => value === 0)
+			totalSum === 0 // 모든 데이터셋의 합이 0인지 확인
 		) {
 			const ctx = chart.ctx;
 			const width = chart.width;
@@ -46,18 +65,20 @@ const noDataTextPlugin = {
 async function fetchAndDisplayLatestDefects() {
 	const defectTableBody = document.querySelector("#defect-table tbody");
 	if (!defectTableBody) {
-		console.error("Error: Element with id 'defect-table tbody' not found.");
-		return;
+		console.error(
+			"Error: Element with id 'defect-table tbody' not found for latest defects table.",
+		);
+		return; // 요소를 찾지 못하면 함수 종료
 	}
 
 	// 로딩 메시지 표시
 	defectTableBody.innerHTML = `
-            <tr>
-              <td colspan="6" class="py-4 px-4 text-center text-gray-500">
-                불량 정보 가져오는 중...
-              </td>
-          </tr>
-        `;
+            <tr>
+              <td colspan="6" class="py-4 px-4 text-center text-gray-500">
+                불량 정보 가져오는 중...
+              </td>
+          </tr>
+        `;
 
 	try {
 		const response = await fetch(LATEST_DEFECTS_API_URL);
@@ -66,10 +87,9 @@ async function fetchAndDisplayLatestDefects() {
 			throw new Error(`HTTP error! status: ${response.status}`);
 		}
 
-		const defects = await response.json(); // List<DefectInfo> 객체
+		const defects = await response.json(); // JSON 응답 파싱 (List<DefectInfo>)
 
-		const newTbody = document.createElement("tbody");
-		newTbody.id = "defect-table-body"; // ID 유지
+		defectTableBody.innerHTML = ""; // 기존 내용을 모두 지웁니다.
 
 		if (defects && defects.length > 0) {
 			defects.forEach((defect) => {
@@ -95,570 +115,586 @@ async function fetchAndDisplayLatestDefects() {
 				const imageUrl = defect.imageUrl || ""; // 이미지 URL이 없을 경우 빈 문자열
 
 				row.innerHTML = `
-                    <td class="py-2 px-4 border-b">${clazz}</td>
-                    <td class="py-2 px-4 border-b">${reason}</td>
-                    <td class="py-2 px-4 border-b">${confidence}</td>
-                    <td class="py-2 px-4 border-b">${box}</td>
-                    <td class="py-2 px-4 border-b">${areaPercent}</td>
-                    <td class="py-2 px-4 border-b text-center">
-                      ${
-												imageUrl
-													? `<img src="${imageUrl}" alt="Defect Snapshot" class="defect-image" onerror="this.onerror=null;this.src='https://placehold.co/100x100/e0e0e0/6b7280?text=No+Image';">`
-													: "이미지 없음"
-											}
-                    </td>
-                `;
-				newTbody.appendChild(row);
+                    <td class="py-2 px-4 border-b">${clazz}</td>
+                    <td class="py-2 px-4 border-b">${reason}</td>
+                    <td class="py-2 px-4 border-b">${confidence}</td>
+                    <td class="py-2 px-4 border-b">${box}</td>
+                    <td class="py-2 px-4 border-b">${areaPercent}</td>
+                    <td class="py-2 px-4 border-b text-center">
+                      ${
+					imageUrl
+						? `<img src="${imageUrl}" alt="Defect Snapshot" class="defect-image" onerror="this.onerror=null;this.src='https://placehold.co/100x100/e0e0e0/6b7280?text=No+Image';">`
+						: "이미지 없음"
+				}
+                    </td>
+                `;
+				defectTableBody.appendChild(row); // 새로운 행 추가
 			});
-			// 기존 tbody를 새로운 tbody로 교체
-			defectTableBody.parentNode.replaceChild(newTbody, defectTableBody);
 		} else {
 			// 불량 정보가 없으면 메시지 표시
-			newTbody.innerHTML = `
-                <tr>
-                  <td colspan="6" class="py-4 px-4 text-center text-gray-500">
-                    감지된 불량이 없습니다.
-                  </td>
-                </tr>
-              `;
-			defectTableBody.parentNode.replaceChild(newTbody, defectTableBody);
+			defectTableBody.innerHTML = `
+                <tr>
+                  <td colspan="6" class="py-4 px-4 text-center text-gray-500">
+                    감지된 불량이 없습니다.
+                  </td>
+                </tr>
+              `;
 		}
 	} catch (error) {
 		console.error("불량 정보를 가져오는 중 오류 발생:", error);
 		// 오류 발생 시 메시지 표시
-		const errorTbody = document.createElement("tbody");
-		errorTbody.id = "defect-table-body";
-		errorTbody.innerHTML = `
-              <tr>
-                <td colspan="6" class="py-4 px-4 text-center text-red-500">
-                  오류 발생: ${error.message}
-                </td>
-              </tr>
-            `;
-		defectTableBody.parentNode.replaceChild(errorTbody, defectTableBody);
+		defectTableBody.innerHTML = `
+              <tr>
+                <td colspan="6" class="py-4 px-4 text-center text-red-500">
+                  오류 발생: ${error.message}
+                </td>
+              </tr>
+            `;
 	}
 }
 
-// 감지 로그 데이터를 가져와서 차트를 업데이트하는 함수
-async function updateChartsFromLogs() {
+// 백엔드에서 가공된 차트 데이터를 가져와서 차트를 업데이트하는 함수
+async function fetchAndDisplayCharts() {
+	// 총 작업량 입력 필드 가져오기
+	const totalTasksInput = document.getElementById("totalTasks");
+	// 입력값이 없거나 유효하지 않으면 0으로 처리
+	const totalTasks =
+		parseInt(totalTasksInput ? totalTasksInput.value : "0") || 0;
+
+	// 백엔드 API 호출 시 totalTasks 값을 쿼리 파라미터로 전달
+	const apiUrl = `${CHART_DATA_API_URL}?totalTasks=${totalTasks}`;
+	console.log(`Fetching chart data from: ${apiUrl}`); // API 호출 URL 로깅
+
 	try {
-		const response = await fetch(DETECTION_LOGS_API_URL); // 감지 로그 API 호출
+		const response = await fetch(apiUrl);
 
 		if (!response.ok) {
 			throw new Error(`HTTP error! status: ${response.status}`);
 		}
 
-		const logs = await response.json(); // List<DetectionLog> 객체
+		const chartData = await response.json(); // 백엔드에서 가공된 JSON 데이터 파싱
+		console.log("Received chart data:", chartData); // 수신된 데이터 로깅
 
-		// 데이터가 없거나 비어있는 경우를 처리
-		const hasData = logs && logs.length > 0;
+		// 백엔드에서 받은 데이터를 사용하여 각 차트 업데이트 또는 새로 생성
 
-		// 1. 전체 감지 상태 비율 차트 데이터 가공 (파이 차트)
-		let detectionStatusData;
-		if (hasData) {
-			const statusCounts = logs.reduce((acc, log) => {
-				acc[log.status] = (acc[log.status] || 0) + 1;
-				return acc;
-			}, {});
-
-			// 항상 'Normal'과 'Defect Detected' 라벨을 포함하고 데이터가 없으면 0으로 설정
-			const labels = ["Normal", "Defect Detected"];
-			const data = [
-				statusCounts["Normal"] || 0,
-				statusCounts["Defect Detected"] || 0,
-			];
-
-			detectionStatusData = {
-				labels: labels,
-				datasets: [
-					{
-						label: "감지 상태",
-						data: data,
-						backgroundColor: [
-							"rgba(75, 192, 192, 0.5)", // Normal (Greenish)
-							"rgba(255, 99, 132, 0.5)", // Defect Detected (Reddish)
-						],
-						borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
-						borderWidth: 1,
-					},
-				],
-			};
-		} else {
-			// 데이터가 없을 때
-			detectionStatusData = {
-				labels: ["Normal", "Defect Detected"],
-				datasets: [
-					{
-						label: "감지 상태",
-						data: [0, 0],
-						backgroundColor: [
-							"rgba(75, 192, 192, 0.5)",
-							"rgba(255, 99, 132, 0.5)",
-						],
-						borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
-						borderWidth: 1,
-					},
-				],
-			};
-		}
-
-		// 2. 주간 불량 감지 추이 차트 데이터 가공 (막대 차트 - 최근 7일)
-		const sevenDaysAgo = new Date();
-		sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); // 오늘 포함 최근 7일
-		sevenDaysAgo.setHours(0, 0, 0, 0);
-
-		let weekStatusData;
-		const dailyDefectCounts = {};
-		const dateLabels = [];
-		const defectCountsData = [];
-
-		// 최근 7일간의 모든 날짜 초기화
-		for (let i = 6; i >= 0; i--) {
-			const date = new Date();
-			date.setDate(date.getDate() - i);
-			date.setHours(0, 0, 0, 0);
-			const dateString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
-			dailyDefectCounts[dateString] = 0; // 해당 날짜의 불량 개수 0으로 초기화
-			dateLabels.push(`${date.getMonth() + 1}-${date.getDate()}`); // 라벨은 'MM-DD' 형식
-		}
-
-		if (hasData) {
-			logs.forEach((log) => {
-				const logDate = new Date(log.detectionTime);
-				logDate.setHours(0, 0, 0, 0);
-				const dateString = `${logDate.getFullYear()}-${(logDate.getMonth() + 1).toString().padStart(2, "0")}-${logDate.getDate().toString().padStart(2, "0")}`;
-
-				// 최근 7일 이내의 'Defect Detected' 로그만 불량 개수에 포함
-				if (logDate >= sevenDaysAgo && log.status === "Defect Detected") {
-					dailyDefectCounts[dateString] =
-						(dailyDefectCounts[dateString] || 0) + (log.defectCount || 0);
-				}
-			});
-		}
-
-		// 초기화된 dailyDefectCounts에서 데이터 추출 (날짜 순서대로)
-		for (let i = 6; i >= 0; i--) {
-			const date = new Date();
-			date.setDate(date.getDate() - i);
-			date.setHours(0, 0, 0, 0);
-			const dateString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
-			defectCountsData.push(dailyDefectCounts[dateString]);
-		}
-
-		weekStatusData = {
-			labels: dateLabels, // 'MM-DD' 형식의 날짜 라벨 (최근 7일)
-			datasets: [
-				{
-					label: "불량 개수",
-					data: defectCountsData, // 일별 불량 개수
-					backgroundColor: "rgba(54, 162, 235, 0.5)", // 파랑
-					borderColor: "rgba(54, 162, 235, 1)",
-					borderWidth: 1,
-				},
-			],
-		};
-
-		// 3. 연간 불량 감지 추이 차트 데이터 가공 (선형 차트 - 최근 12개월)
-		const twelveMonthsAgo = new Date();
-		twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11); // 현재 월 포함 12개월
-		twelveMonthsAgo.setDate(1); // 해당 월의 1일로 설정
-		twelveMonthsAgo.setHours(0, 0, 0, 0);
-
-		let yearStatusData;
-		const monthlyDefectCounts = {};
-		const monthLabels = [];
-		const monthlyData = [];
-
-		// 최근 12개월의 모든 월 초기화
-		for (let i = 11; i >= 0; i--) {
-			const date = new Date();
-			date.setMonth(date.getMonth() - i);
-			const yearMonthString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
-			monthlyDefectCounts[yearMonthString] = 0; // 해당 월의 불량 개수 0으로 초기화
-			monthLabels.push(yearMonthString); // 라벨은 'YYYY-MM' 형식
-		}
-
-		if (hasData) {
-			logs.forEach((log) => {
-				const logDate = new Date(log.detectionTime);
-				logDate.setDate(1);
-				logDate.setHours(0, 0, 0, 0);
-				const yearMonthString = `${logDate.getFullYear()}-${(logDate.getMonth() + 1).toString().padStart(2, "0")}`;
-
-				// 최근 12개월 이내의 'Defect Detected' 로그만 불량 개수에 포함
-				if (logDate >= twelveMonthsAgo && log.status === "Defect Detected") {
-					monthlyDefectCounts[yearMonthString] =
-						(monthlyDefectCounts[yearMonthString] || 0) +
-						(log.defectCount || 0);
-				}
-			});
-		}
-
-		// 초기화된 monthlyDefectCounts에서 데이터 추출 (월 순서대로)
-		for (let i = 11; i >= 0; i--) {
-			const date = new Date();
-			date.setMonth(date.getMonth() - i);
-			const yearMonthString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
-			monthlyData.push(monthlyDefectCounts[yearMonthString]);
-		}
-
-		yearStatusData = {
-			labels: monthLabels, // 'YYYY-MM' 형식의 월 라벨 (최근 12개월)
-			datasets: [
-				{
-					label: "불량 개수",
-					data: monthlyData, // 월별 불량 개수
-					fill: false,
-					borderColor: "rgba(255, 159, 64, 1)", // 주황색
-					tension: 0.1,
-				},
-			],
-		};
-
-		// 4. 당일 감지 상태 비율 차트 데이터 가공 (파이 차트)
-		let dayStatusData;
-		const today = new Date();
-		today.setHours(0, 0, 0, 0); // 오늘 날짜의 시작 시간
-
-		if (hasData) {
-			const todayLogs = logs.filter((log) => {
-				try {
-					const logDate = new Date(log.detectionTime);
-					const logDateOnly = new Date(
-						logDate.getFullYear(),
-						logDate.getMonth(),
-						logDate.getDate(),
-					);
-					return logDateOnly.getTime() === today.getTime();
-				} catch (e) {
-					console.error(
-						"Error parsing log date for today's chart:",
-						log.detectionTime,
-						e,
-					);
-					return false;
-				}
-			});
-
-			const todayStatusCounts = todayLogs.reduce((acc, log) => {
-				acc[log.status] = (acc[log.status] || 0) + 1;
-				return acc;
-			}, {});
-
-			// 항상 'Normal'과 'Defect Detected' 라벨을 포함하고 데이터가 없으면 0으로 설정
-			const labels = ["Normal", "Defect Detected"];
-			const data = [
-				todayStatusCounts["Normal"] || 0,
-				todayStatusCounts["Defect Detected"] || 0,
-			];
-
-			dayStatusData = {
-				labels: labels,
-				datasets: [
-					{
-						label: "감지 상태",
-						data: data,
-						backgroundColor: [
-							"rgba(75, 192, 192, 0.5)", // Normal (Greenish)
-							"rgba(255, 99, 132, 0.5)", // Defect Detected (Reddish)
-						],
-						borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
-						borderWidth: 1,
-					},
-				],
-			};
-		} else {
-			// 데이터가 없을 때
-			dayStatusData = {
-				labels: ["Normal", "Defect Detected"],
-				datasets: [
-					{
-						label: "감지 상태",
-						data: [0, 0],
-						backgroundColor: [
-							"rgba(75, 192, 192, 0.5)",
-							"rgba(255, 99, 132, 0.5)",
-						],
-						borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
-						borderWidth: 1,
-					},
-				],
-			};
-		}
-
-		// 차트 업데이트 또는 새로 생성
-		// Overall Detection Status Chart (Pie Chart)
+		// 1. 전체 감지 상태 비율 차트 (파이 차트)
 		const ctx1 = document
 			.getElementById("detectionStatusChart")
 			.getContext("2d");
-		if (detectionStatusChart) {
-			detectionStatusChart.data = detectionStatusData;
-			detectionStatusChart.update();
+		if (!ctx1) {
+			console.error(
+				"Error: Canvas element with id 'detectionStatusChart' not found.",
+			);
 		} else {
-			detectionStatusChart = new Chart(ctx1, {
-				type: "pie",
-				data: detectionStatusData,
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					layout: {
-						padding: 40,
-					},
-					plugins: {
-						legend: {
-							position: "top",
-						},
-						title: {
-							display: true,
-							text: "전체 감지 상태 비율",
-						},
-						// DataLabels 플러그인 설정 (차트 내부에 백분율 표시)
-						datalabels: {
-							formatter: (value, ctx) => {
-								const total = ctx.chart.data.datasets[0].data.reduce(
-									(sum, val) => sum + val,
-									0,
-								);
-								if (total === 0) return ""; // 데이터가 없으면 빈 문자열 반환
-								const percentage = `${((value / total) * 100).toFixed(1)}%`; // 소수점 첫째 자리까지 표시
-								return percentage;
+			const data = chartData.overallStatus;
+			if (detectionStatusChart) {
+				detectionStatusChart.data.labels = data.labels;
+				detectionStatusChart.data.datasets[0].data = data.data;
+				detectionStatusChart.update();
+			} else {
+				detectionStatusChart = new Chart(ctx1, {
+					type: "pie",
+					data: {
+						labels: data.labels,
+						datasets: [
+							{
+								label: "감지 상태",
+								data: data.data,
+								backgroundColor: [
+									"rgba(75, 192, 192, 0.5)", // Normal (Greenish)
+									"rgba(255, 99, 132, 0.5)", // Defect Detected (Reddish)
+								],
+								borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
+								borderWidth: 1,
 							},
-							color: "#fff", // 라벨 색상
-							textShadowBlur: 4,
-							textShadowColor: "rgba(0, 0, 0, 0.5)",
+						],
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						layout: {
+							padding: 40,
 						},
-						// Tooltip 설정
-						tooltip: {
-							callbacks: {
-								label: function (tooltipItem) {
-									const dataset = tooltipItem.dataset;
-									const total = dataset.data.reduce((sum, val) => sum + val, 0);
-									const currentValue = dataset.data[tooltipItem.dataIndex];
-									const percentage =
-										total === 0
-											? "0.0"
-											: ((currentValue / total) * 100).toFixed(1); // 소수점 첫째 자리까지 표시
-									return `${tooltipItem.label}: ${currentValue} (${percentage}%)`;
+						plugins: {
+							legend: {
+								position: "top",
+							},
+							title: {
+								display: true,
+								text: "전체 감지 상태 비율",
+							},
+							datalabels: {
+								formatter: (value, ctx) => {
+									const total = ctx.chart.data.datasets[0].data.reduce(
+										(sum, val) => sum + val,
+										0,
+									);
+									if (total === 0) return "";
+									const percentage = `${((value / total) * 100).toFixed(1)}%`;
+									return percentage;
+								},
+								color: "#fff",
+								textShadowBlur: 4,
+								textShadowColor: "rgba(0, 0, 0, 0.5)",
+								font: { size: 20, weight: "bold" },
+							},
+							tooltip: {
+								callbacks: {
+									label: function (tooltipItem) {
+										const dataset = tooltipItem.dataset;
+										const total = dataset.data.reduce(
+											(sum, val) => sum + val,
+											0,
+										);
+										const currentValue = dataset.data[tooltipItem.dataIndex];
+										const percentage =
+											total === 0
+												? "0.0"
+												: ((currentValue / total) * 100).toFixed(1);
+										return `${tooltipItem.label}: ${currentValue} (${percentage}%)`;
+									},
 								},
 							},
 						},
 					},
-				},
-				plugins: [noDataTextPlugin], // noDataText 플러그인 등록
-			});
+					plugins: [noDataTextPlugin, ChartDataLabels],
+				});
+			}
 		}
 
-		// Week Status Chart (Bar Chart)
+		// 2. 주간 불량 감지 추이 차트 (막대 차트)
 		const ctx2 = document.getElementById("weekStatusChart").getContext("2d");
-		if (weekStatusChart) {
-			weekStatusChart.data = weekStatusData;
-			weekStatusChart.update();
+		if (!ctx2) {
+			console.error(
+				"Error: Canvas element with id 'weekStatusChart' not found.",
+			);
 		} else {
-			weekStatusChart = new Chart(ctx2, {
-				type: "bar",
-				data: weekStatusData,
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					scales: {
-						y: {
-							beginAtZero: true,
-							title: {
-								display: true,
-								text: "불량 개수",
+			const data = chartData.weeklyDefectTrend;
+			if (weekStatusChart) {
+				weekStatusChart.data.labels = data.labels;
+				weekStatusChart.data.datasets[0].data = data.data;
+				weekStatusChart.update();
+			} else {
+				weekStatusChart = new Chart(ctx2, {
+					type: "bar",
+					data: {
+						labels: data.labels,
+						datasets: [
+							{
+								label: "불량 개수",
+								data: data.data,
+								backgroundColor: "rgba(54, 162, 235, 0.5)",
+								borderColor: "rgba(54, 162, 235, 1)",
+								borderWidth: 1,
+								datalabels: {
+									display: true,
+									color: "black",
+									anchor: "end",
+									align: "top",
+									formatter: function (value, context) {
+										return value + "개";
+									},
+									font: { size: 12, weight: "bold" },
+								},
 							},
-							// Y축 눈금을 정수로만 표시
-							ticks: {
-								callback: function (value) {
-									if (Number.isInteger(value)) {
-										return value;
-									}
+						],
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						scales: {
+							y: {
+								beginAtZero: true,
+								title: { display: true, text: "불량 개수" },
+								ticks: {
+									callback: function (value) {
+										if (Number.isInteger(value)) {
+											return value;
+										}
+										return null;
+									},
+								},
+							},
+							x: { title: { display: true, text: "날짜" } },
+						},
+						layout: { padding: 40 },
+						plugins: {
+							legend: { display: true, position: "top" },
+							title: { display: true, text: "주간 불량 감지 추이 (개수)" },
+							tooltip: {
+								callbacks: {
+									label: function (tooltipItem) {
+										const dataset = tooltipItem.dataset;
+										const currentValue = dataset.data[tooltipItem.dataIndex];
+										return `${tooltipItem.label}: ${currentValue} 개`;
+									},
 								},
 							},
 						},
-						x: {
-							title: {
-								display: true,
-								text: "날짜",
-							},
-						},
 					},
-					layout: {
-						padding: 40,
-					},
-					plugins: {
-						legend: {
-							display: true,
-							position: "top",
-						},
-						title: {
-							display: true,
-							text: "주간 불량 감지 추이",
-						},
-						tooltip: {
-							callbacks: {
-								label: function (tooltipItem) {
-									const dataset = tooltipItem.dataset;
-									const currentValue = dataset.data[tooltipItem.dataIndex];
-									return `${tooltipItem.label}: ${currentValue} 개`;
-								},
-							},
-						},
-					},
-				},
-			});
+					plugins: [ChartDataLabels],
+				});
+			}
 		}
 
-		// Year Status Chart (Line Chart)
+		// 3. 연간 불량 감지 추이 차트 (선형 차트)
 		const ctx3 = document.getElementById("yearStatusChart").getContext("2d");
-		if (yearStatusChart) {
-			yearStatusChart.data = yearStatusData;
-			yearStatusChart.update();
+		if (!ctx3) {
+			console.error(
+				"Error: Canvas element with id 'yearStatusChart' not found.",
+			);
 		} else {
-			yearStatusChart = new Chart(ctx3, {
-				type: "line",
-				data: yearStatusData,
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					scales: {
-						y: {
-							beginAtZero: true,
-							title: {
-								display: true,
-								text: "불량 개수",
+			const data = chartData.yearlyDefectTrend;
+			if (yearStatusChart) {
+				yearStatusChart.data.labels = data.labels;
+				yearStatusChart.data.datasets[0].data = data.data;
+				yearStatusChart.update();
+			} else {
+				yearStatusChart = new Chart(ctx3, {
+					type: "line",
+					data: {
+						labels: data.labels,
+						datasets: [
+							{
+								label: "불량 개수",
+								data: data.data,
+								fill: false,
+								borderColor: "rgba(255, 159, 64, 1)",
+								tension: 0.1,
+								datalabels: {
+									display: true,
+									color: "black",
+									anchor: "end",
+									align: "top",
+									formatter: function (value, context) {
+										return value + "개";
+									},
+									font: { size: 12, weight: "bold" },
+								},
 							},
-							// Y축 눈금을 정수로만 표시
-							ticks: {
-								callback: function (value) {
-									if (Number.isInteger(value)) {
-										return value;
-									}
+						],
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						scales: {
+							y: {
+								beginAtZero: true,
+								title: { display: true, text: "불량 개수" },
+								ticks: {
+									callback: function (value) {
+										if (Number.isInteger(value)) {
+											return value;
+										}
+										return null;
+									},
+								},
+							},
+							x: { title: { display: true, text: "월" } },
+						},
+						layout: { padding: 40 },
+						plugins: {
+							legend: { display: true, position: "top" },
+							title: { display: true, text: "연간 불량 감지 추이 (개수)" },
+							tooltip: {
+								callbacks: {
+									label: function (tooltipItem) {
+										const dataset = tooltipItem.dataset;
+										const currentValue = dataset.data[tooltipItem.dataIndex];
+										return `${tooltipItem.label}: ${currentValue} 개`;
+									},
 								},
 							},
 						},
-						x: {
-							title: {
-								display: true,
-								text: "월",
-							},
-						},
 					},
-					layout: {
-						padding: 40,
-					},
-					plugins: {
-						legend: {
-							display: true,
-							position: "top",
-						},
-						title: {
-							display: true,
-							text: "연간 불량 감지 추이",
-						},
-						tooltip: {
-							callbacks: {
-								label: function (tooltipItem) {
-									const dataset = tooltipItem.dataset;
-									const currentValue = dataset.data[tooltipItem.dataIndex];
-									return `${tooltipItem.label}: ${currentValue} 개`;
-								},
-							},
-						},
-					},
-				},
-			});
+					plugins: [ChartDataLabels],
+				});
+			}
 		}
 
-		// Day Status Chart (Pie Chart)
+		// 4. 당일 감지 상태 비율 차트 (파이 차트)
 		const ctx4 = document.getElementById("dayStatusChart").getContext("2d");
-		if (dayStatusChart) {
-			dayStatusChart.data = dayStatusData;
-			dayStatusChart.update();
+		if (!ctx4) {
+			console.error(
+				"Error: Canvas element with id 'dayStatusChart' not found.",
+			);
 		} else {
-			dayStatusChart = new Chart(ctx4, {
-				type: "pie",
-				data: dayStatusData,
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					layout: {
-						padding: 40,
-					},
-					plugins: {
-						legend: {
-							position: "top",
-						},
-						title: {
-							display: true,
-							text: "당일 감지 상태 비율",
-						},
-						// DataLabels 플러그인 설정 (차트 내부에 백분율 표시)
-						datalabels: {
-							formatter: (value, ctx) => {
-								const total = ctx.chart.data.datasets[0].data.reduce(
-									(sum, val) => sum + val,
-									0,
-								);
-								if (total === 0) return ""; // 데이터가 없으면 빈 문자열 반환
-								const percentage = `${((value / total) * 100).toFixed(1)}%`; // 소수점 첫째 자리까지 표시
-								return percentage;
+			const data = chartData.dailyStatus;
+			if (dayStatusChart) {
+				dayStatusChart.data.labels = data.labels;
+				dayStatusChart.data.datasets[0].data = data.data;
+				dayStatusChart.update();
+			} else {
+				dayStatusChart = new Chart(ctx4, {
+					type: "pie",
+					data: {
+						labels: data.labels,
+						datasets: [
+							{
+								label: "감지 상태",
+								data: data.data,
+								backgroundColor: [
+									"rgba(75, 192, 192, 0.5)", // Normal (Greenish)
+									"rgba(255, 99, 132, 0.5)", // Defect Detected (Reddish)
+								],
+								borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
+								borderWidth: 1,
 							},
-							color: "#fff", // 라벨 색상
-							textShadowBlur: 4,
-							textShadowColor: "rgba(0, 0, 0, 0.5)",
+						],
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						layout: {
+							padding: 40,
 						},
-						// Tooltip 설정
-						tooltip: {
-							callbacks: {
-								label: function (tooltipItem) {
-									const dataset = tooltipItem.dataset;
-									const total = dataset.data.reduce((sum, val) => sum + val, 0);
-									const currentValue = dataset.data[tooltipItem.dataIndex];
-									const percentage =
-										total === 0
-											? "0.0"
-											: ((currentValue / total) * 100).toFixed(1); // 소수점 첫째 자리까지 표시
-									return `${tooltipItem.label}: ${currentValue} (${percentage}%)`;
+						plugins: {
+							legend: {
+								position: "top",
+							},
+							title: {
+								display: true,
+								text: "당일 감지 상태 비율",
+							},
+							datalabels: {
+								formatter: (value, ctx) => {
+									const total = ctx.chart.data.datasets[0].data.reduce(
+										(sum, val) => sum + val,
+										0,
+									);
+									if (total === 0) return "";
+									const percentage = `${((value / total) * 100).toFixed(1)}%`;
+									return percentage;
+								},
+								color: "#fff",
+								textShadowBlur: 4,
+								textShadowColor: "rgba(0, 0, 0, 0.5)",
+								font: { size: 28, weight: "bold" },
+							},
+							tooltip: {
+								callbacks: {
+									label: function (tooltipItem) {
+										const dataset = tooltipItem.dataset;
+										const total = dataset.data.reduce(
+											(sum, val) => sum + val,
+											0,
+										);
+										const currentValue = dataset.data[tooltipItem.dataIndex];
+										const percentage =
+											total === 0
+												? "0.0"
+												: ((currentValue / total) * 100).toFixed(1);
+										return `${tooltipItem.label}: ${currentValue} (${percentage}%)`;
+									},
 								},
 							},
 						},
 					},
-				},
-				plugins: [noDataTextPlugin], // noDataText 플러그인 등록
-			});
+					plugins: [noDataTextPlugin, ChartDataLabels],
+				});
+			}
+		}
+
+		// 5. 당일 작업 완료/미완료 차트 (스택 가로 막대 차트)
+		const ctx5 = document
+			.getElementById("dailyTaskCompletionChart")
+			.getContext("2d");
+		if (!ctx5) {
+			console.error(
+				"Error: Canvas element with id 'dailyTaskCompletionChart' not found.",
+			);
+		} else {
+			const data = chartData.dailyTaskCompletion; // 백엔드에서 받은 당일 작업 완료/미완료 데이터
+			const totalTasksForChart =
+				parseInt(document.getElementById("totalTasks")?.value || "0") || 0; // 현재 총 작업량 값
+
+			// 백엔드에서 유효한 데이터가 왔는지 확인 (labels와 datasets가 모두 있어야 함)
+			if (data && data.labels && data.datasets) {
+				// X축 최대값을 총 작업량으로 설정 (총 작업량이 0이면 최소 1)
+				const xAxisMax = totalTasksForChart > 0 ? totalTasksForChart : 1;
+
+				if (dailyTaskCompletionChart) {
+					// 차트 데이터 및 옵션 업데이트
+					dailyTaskCompletionChart.data.labels = data.labels;
+					dailyTaskCompletionChart.data.datasets = data.datasets; // 데이터셋 전체를 업데이트
+					dailyTaskCompletionChart.options.scales.x.max = xAxisMax; // X축 max 값 업데이트
+					dailyTaskCompletionChart.update();
+					console.log("dailyTaskCompletionChart 업데이트 완료", {
+						data: dailyTaskCompletionChart.data,
+						options: dailyTaskCompletionChart.options,
+					});
+				} else {
+					// 차트 새로 생성
+					dailyTaskCompletionChart = new Chart(ctx5, {
+						type: "bar",
+						data: {
+							labels: data.labels,
+							datasets: data.datasets, // 백엔드에서 받은 datasets 그대로 사용
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							indexAxis: "y", // 가로 막대
+							scales: {
+								x: {
+									stacked: true,
+									beginAtZero: true,
+									title: { display: true, text: "개수" },
+									max: xAxisMax, // X축 최대값을 총 작업량으로 설정
+									ticks: {
+										callback: function (value) {
+											if (Number.isInteger(value)) {
+												return value;
+											}
+											return null;
+										},
+									},
+								},
+								y: {
+									stacked: true,
+									ticks: { display: false }, // Y축 라벨 숨김
+									grid: { display: false }, // Y축 그리드 라인 숨김
+									border: { display: false }, // Y축 경계선 숨김
+								},
+							},
+							layout: { padding: 10 },
+							plugins: {
+								legend: { position: "top" },
+								title: { display: true, text: "당일 작업 완료/미완료" },
+								datalabels: {
+									display: true,
+									color: "#fff",
+									textShadowBlur: 4,
+									textShadowColor: "rgba(0, 0, 0, 0.5)",
+									formatter: function (value, context) {
+										return value > 0 ? value + "개" : "";
+									},
+									font: { size: 16, weight: "bold" },
+									anchor: "center",
+									align: "center",
+								},
+								tooltip: {
+									callbacks: {
+										label: function (tooltipItem) {
+											const datasetLabel = tooltipItem.dataset.label || "";
+											const value = tooltipItem.raw;
+											return `${datasetLabel}: ${value} 개`;
+										},
+									},
+								},
+							},
+						},
+						plugins: [ChartDataLabels, noDataTextPlugin], // noDataText 플러그인 추가
+					});
+					console.log("dailyTaskCompletionChart 새로 생성 완료");
+				}
+			} else {
+				console.warn(
+					"백엔드로부터 당일 작업 완료/미완료 차트 데이터가 유효하지 않습니다.",
+					data,
+				);
+				// 유효하지 않은 데이터 수신 시 차트를 초기화하거나 메시지 표시 로직 추가 가능
+				if (dailyTaskCompletionChart) {
+					dailyTaskCompletionChart.destroy();
+					dailyTaskCompletionChart = null;
+					// 또는 캔버스에 "데이터 없음" 메시지를 직접 표시
+				}
+			}
 		}
 	} catch (error) {
-		console.error("차트 데이터 가져오는 중 오류 발생:", error);
-		// 오류 발생 시 차트 초기화 또는 오류 메시지 표시
-		if (weekStatusChart) weekStatusChart.destroy();
-		if (detectionStatusChart) detectionStatusChart.destroy();
-		if (yearStatusChart) yearStatusChart.destroy();
-		if (dayStatusChart) dayStatusChart.destroy();
-		// 필요에 따라 "데이터 없음" 메시지 등을 캔버스 영역에 표시하는 로직 추가
+		console.error("차트 데이터를 가져오는 중 오류 발생:", error);
+		// 오류 발생 시 차트를 초기화하거나 "데이터 없음" 메시지를 표시할 수 있습니다.
+		// 필요하다면 각 차트 컨텍스트를 가져와서 차트를 파괴하고 메시지를 표시하는 로직을 추가하세요.
+		// 예: dailyTaskCompletionChart가 존재하면 파괴
+		if (dailyTaskCompletionChart) {
+			dailyTaskCompletionChart.destroy();
+			dailyTaskCompletionChart = null;
+		}
 	}
 }
 
-// 페이지 로드 시 및 주기적으로 데이터 가져오기
+// 브라우저 창 크기 변경 시 차트 크기 조절
+window.addEventListener("resize", () => {
+	console.log("Window resized. Resizing charts...");
+	if (weekStatusChart) {
+		weekStatusChart.resize();
+	}
+	if (detectionStatusChart) {
+		detectionStatusChart.resize();
+	}
+	if (yearStatusChart) {
+		yearStatusChart.resize();
+	}
+	if (dayStatusChart) {
+		dayStatusChart.resize();
+	}
+	if (dailyTaskCompletionChart) {
+		dailyTaskCompletionChart.resize();
+	}
+});
+
+// 페이지 로드 시 및 주기적으로 불량 정보 및 차트 데이터 가져오기
 document.addEventListener("DOMContentLoaded", () => {
-	// Chart.js DataLabels 플러그인 등록
-	// CDN에서 로드하므로 별도의 import/require는 필요 없지만,
-	// Chart.plugins.register() 또는 Chart.register()를 사용하여 명시적으로 등록해야 합니다.
-	// Chart.js v3+에서는 Chart.register()를 사용합니다.
+	// Chart.js DataLabels 플러그인 등록 (CDN에서 로드하므로 여기서 다시 등록할 필요 없음)
 	if (typeof ChartDataLabels !== "undefined") {
-		Chart.register(ChartDataLabels);
-		console.log("ChartDataLabels plugin registered.");
+		console.log("ChartDataLabels plugin is available.");
 	} else {
 		console.warn(
 			"ChartDataLabels plugin not found. Make sure the CDN is loaded correctly.",
 		);
 	}
 
+	// 총 작업량 입력 필드 가져오기
+	const totalTasksInput = document.getElementById("totalTasks");
+
+	// --- Local Storage에서 총 작업량 값 불러오기 ---
+	if (totalTasksInput) {
+		const savedTotalTasks = localStorage.getItem("totalTasksValue");
+		// 저장된 값이 있고 유효한 숫자인지 확인
+		if (
+			savedTotalTasks !== null &&
+			!isNaN(parseInt(savedTotalTasks)) &&
+			parseInt(savedTotalTasks) >= 0
+		) {
+			// 저장된 값이 있다면 입력 필드에 설정
+			totalTasksInput.value = savedTotalTasks;
+			console.log(`Local Storage에서 총 작업량 값 불러옴: ${savedTotalTasks}`);
+		} else {
+			console.log(
+				"Local Storage에 저장된 총 작업량 값이 없거나 유효하지 않습니다. 기본값 0 사용.",
+			);
+			totalTasksInput.value = "0"; // 기본값 설정
+			localStorage.setItem("totalTasksValue", "0"); // 유효하지 않으면 0으로 저장
+		}
+
+		// --- 총 작업량 입력 필드 값이 변경될 때마다 Local Storage에 저장 및 차트 업데이트 ---
+		totalTasksInput.addEventListener("input", () => {
+			const currentValue = totalTasksInput.value;
+			const parsedValue = parseInt(currentValue);
+			// 입력 값이 유효한 숫자인 경우에만 저장 및 차트 업데이트
+			if (!isNaN(parsedValue) && parsedValue >= 0) {
+				localStorage.setItem("totalTasksValue", parsedValue.toString()); // 숫자로 변환 후 문자열로 저장
+				console.log(
+					`총 작업량 값 변경 감지 및 Local Storage에 저장: ${parsedValue}`,
+				);
+				// 입력 값이 변경될 때마다 차트 데이터 다시 가져오기 및 업데이트
+				fetchAndDisplayCharts();
+			} else {
+				console.warn("유효하지 않은 총 작업량 입력 값:", currentValue);
+				// 유효하지 않은 입력에 대한 처리 (예: 경고 메시지 표시 또는 이전 유효 값 유지)
+				// 여기서는 콘솔 경고만 표시하고 Local Storage에는 저장하지 않습니다.
+				// 필요하다면 사용자에게 피드백을 주는 UI를 추가할 수 있습니다.
+			}
+		});
+	} else {
+		console.error("Error: Element with id 'totalTasks' not found.");
+	}
+
 	fetchAndDisplayLatestDefects(); // 페이지 로드 시 최신 불량 정보 즉시 가져오기
-	updateChartsFromLogs(); // 페이지 로드 시 감지 로그 즉시 가져오기 (차트 업데이트 포함)
+	fetchAndDisplayCharts(); // 페이지 로드 시 차트 데이터 즉시 가져오기
 
 	// 5초마다 불량 정보 업데이트 (주기는 필요에 따라 조정)
 	setInterval(fetchAndDisplayLatestDefects, 5000);
-	// 10초마다 감지 로그 업데이트 (주기는 필요에 따라 조정) - 차트 업데이트만 수행
-	setInterval(updateChartsFromLogs, 10000);
+	// 10초마다 차트 데이터 업데이트 (주기는 필요에 따라 조정)
+	setInterval(fetchAndDisplayCharts, 10000);
 });
