@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import ch.qos.logback.core.model.Model;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
@@ -94,6 +95,7 @@ public class DefectController {
         System.out.println("--- API 요청 수신 (최신 불량 정보 요청) ---");
         // DefectService를 통해 최신 불량 정보 리스트를 가져와 반환합니다.
         // DefectService의 getLatestDefects 메소드는 List<DefectInfo>를 반환하도록 유지합니다.
+        
         List<DefectInfo> latestDefects = defectService.getLatestDefects();
         System.out.println("최신 불량 정보 " + (latestDefects != null ? latestDefects.size() : 0) + "건 조회 완료.");
         System.out.println("----------------------------------");

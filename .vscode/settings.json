@@ -3,5 +3,8 @@
   "java.configuration.updateBuildConfiguration": "interactive",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
-  "editor.tabSize": 2
+  "editor.tabSize": 2,
+  // "files.associations": {
+  //       "*.html": "html", // 기본 HTML 연결 (혹시 다른 연결이 있다면 유지)
+  //   },
 }

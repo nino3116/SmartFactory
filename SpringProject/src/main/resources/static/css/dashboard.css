@@ -6,7 +6,6 @@
 body {
   font-family: "PretendardVariable", sans-serif; /* 기본 폰트 설정 */
 }
-/* defects.html 및 dashboard.html 공통 또는 고유의 CSS 스타일을 여기에 작성합니다. */
 
 /* defects.html에서 가져온 테이블 및 이미지 스타일 */
 .defect-image {
@@ -17,48 +16,57 @@ body {
 }
 
 /* 데이터 테이블 스타일 */
-#defect-table {
-  /* detection-log-table 스타일 제거 */
+#defect-table,
+#detection-log-table {
+  /* 로그 테이블 스타일 추가 */
   width: 100%; /* 테이블 전체 너비 사용 */
   border-collapse: collapse; /* 테이블 셀 경계선 병합 */
   margin-top: 20px;
 }
 
 #defect-table th,
-#defect-table td {
-  /* detection-log-table 스타일 제거 */
+#defect-table td,
+#detection-log-table th, /* 로그 테이블 스타일 추가 */
+#detection-log-table td {
+  /* 로그 테이블 스타일 추가 */
   border: 1px solid #ddd; /* 셀 경계선 */
   padding: 8px; /* 셀 패딩 */
   text-align: left; /* 텍스트 왼쪽 정렬 */
 }
 
-#defect-table th {
-  /* detection-log-table 스타일 제거 */
+#defect-table th,
+#detection-log-table th {
+  /* 로그 테이블 스타일 추가 */
   background-color: #f2f2f2; /* 헤더 배경색 */
   font-weight: bold;
 }
 
-#defect-table tbody tr:nth-child(even) {
-  /* detection-log-table 스타일 제거 */
+#defect-table tbody tr:nth-child(even),
+#detection-log-table tbody tr:nth-child(even) {
+  /* 로그 테이블 스타일 추가 */
   background-color: #f9f9f9; /* 짝수 행 배경색 */
 }
 
-#defect-table tbody tr:hover {
-  /* detection-log-table 스타일 제거 */
+#defect-table tbody tr:hover,
+#detection-log-table tbody tr:hover {
+  /* 로그 테이블 스타일 추가 */
   background-color: #e9e9e9; /* 마우스 오버 시 배경색 */
 }
 
 /* 불량 정보 로딩/없음/오류 메시지 스타일 */
-#defect-list-container .text-center {
-  /* detection-log-container 스타일 제거 */
+#defect-list-container .text-center,
+#detection-log-container .text-center {
+  /* 로그 테이블 컨테이너 스타일 추가 */
   text-align: center;
 }
-#defect-list-container .text-gray-500 {
-  /* detection-log-container 스타일 제거 */
+#defect-list-container .text-gray-500,
+#detection-log-container .text-gray-500 {
+  /* 로그 테이블 컨테이너 스타일 추가 */
   color: #6b7280; /* Tailwind gray-500 */
 }
-#defect-list-container .text-red-500 {
-  /* detection-log-container 스타일 제거 */
+#defect-list-container .text-red-500,
+#detection-log-container .text-red-500 {
+  /* 로그 테이블 컨테이너 스타일 추가 */
   color: #ef4444; /* Tailwind red-500 */
 }
 
@@ -74,19 +82,6 @@ body {
 .bg-white.rounded-lg.shadow.p-6 {
   height: 500px; /* 원하는 고정 높이 값으로 조정하세요 */
   /* overflow: hidden; /* 내용이 넘칠 경우 숨김 (필요시) */
-}
-
-/* 새로운 행 추가 시 애니메이션 (선택 사항) */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-.new-row {
-  animation: fadeIn 0.5s ease-in-out;
 }
 
 /* 필요한 경우 여기에 추가적인 CSS 규칙을 작성하세요 */

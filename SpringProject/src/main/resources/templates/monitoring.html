@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html
+  lang="ko"
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="~{layout/base}"
+>
+  <head>
+    <title layout:title="Monitoring"></title>
+  </head>
+  <body>
+    <div layout:fragment="content">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">
+        실시간 설비 모니터링
+      </h2>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-white rounded-2xl shadow-md p-4 border border-gray-200">
+          <div class="aspect-video bg-gray-800 rounded-md overflow-hidden">
+            <video
+              src="/stream/cam1"
+              autoplay
+              muted
+              class="w-full h-full object-cover"
+            ></video>
+          </div>
+          <p class="mt-2 text-center text-lg text-gray-700">1번 설비 카메라</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md p-4 border border-gray-200">
+          <div class="aspect-video bg-gray-800 rounded-md overflow-hidden">
+            <video
+              src="/stream/cam2"
+              autoplay
+              muted
+              class="w-full h-full object-cover"
+            ></video>
+          </div>
+          <p class="mt-2 text-center text-lg text-gray-700">2번 설비 카메라</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md p-4 border border-gray-200">
+          <div class="aspect-video bg-gray-800 rounded-md overflow-hidden">
+            <video
+              src="/stream/cam3"
+              autoplay
+              muted
+              class="w-full h-full object-cover"
+            ></video>
+          </div>
+          <p class="mt-2 text-center text-lg text-gray-700">3번 설비 카메라</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md p-4 border border-gray-200">
+          <div class="aspect-video bg-gray-800 rounded-md overflow-hidden">
+            <video
+              src="/stream/cam4"
+              autoplay
+              muted
+              class="w-full h-full object-cover"
+            ></video>
+          </div>
+          <p class="mt-2 text-center text-lg text-gray-700">4번 설비 카메라</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md p-4 border border-gray-200">
+          <div class="aspect-video bg-gray-800 rounded-md overflow-hidden">
+            <video
+              src="/stream/cam5"
+              autoplay
+              muted
+              class="w-full h-full object-cover"
+            ></video>
+          </div>
+          <p class="mt-2 text-center text-lg text-gray-700">5번 설비 카메라</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md p-4 border border-gray-200">
+          <div class="aspect-video bg-gray-800 rounded-md overflow-hidden">
+            <video
+              src="/stream/cam6"
+              autoplay
+              muted
+              class="w-full h-full object-cover"
+            ></video>
+          </div>
+          <p class="mt-2 text-center text-lg text-gray-700">
+            6번 설비 카메라
+          </p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md p-4 border border-gray-200">
+          <div class="aspect-video bg-gray-800 rounded-md overflow-hidden">
+            <video
+              src="/stream/cam7"
+              autoplay
+              muted
+              class="w-full h-full object-cover"
+            ></video>
+          </div>
+          <p class="mt-2 text-center text-lg text-gray-700">7번 설비 카메라</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md p-4 border border-gray-200">
+          <div class="aspect-video bg-gray-800 rounded-md overflow-hidden">
+            <video
+              src="/stream/cam8"
+              autoplay
+              muted
+              class="w-full h-full object-cover"
+            ></video>
+          </div>
+          <p class="mt-2 text-center text-lg text-gray-700">8번 설비 카메라</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md p-4 border border-gray-200">
+          <div class="aspect-video bg-gray-800 rounded-md overflow-hidden">
+            <video
+              src="/stream/cam9"
+              autoplay
+              muted
+              class="w-full h-full object-cover"
+            ></video>
+          </div>
+          <p class="mt-2 text-center text-lg text-gray-700">9번 설비 카메라</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

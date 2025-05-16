@@ -3,12 +3,10 @@
   lang="ko"
   xmlns:th="http://www.thymeleaf.org"
   xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-  layout:decorate="~{layout/base}">
+  layout:decorate="~{layout/base}"
+>
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title layout:title="불량 감지 결과"></title>
-    <link rel="stylesheet" th:href="@{/css/defects.css}" />
+    <title layout:title="Defects"></title>
   </head>
   <body>
     <div layout:fragment="content">
@@ -18,7 +16,8 @@
           id="mjpeg-stream-img"
           src="http://localhost:8080"
           alt="MJPEG Stream"
-          style="width: 640px; height: 480px; display: block; margin: 0 auto" />
+          style="width: 640px; height: 480px; display: block; margin: 0 auto"
+        />
         <p id="stream-status-message" class="stream-status status-loading">
           스트림 연결 중...
         </p>
@@ -83,8 +82,7 @@
       </div>
     </div>
 
-    <th:block layout:fragment="script">
-      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <th:block layout:append="script">
       <script src="/js/defects.js"></script>
     </th:block>
   </body>

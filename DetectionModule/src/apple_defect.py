@@ -102,8 +102,8 @@ API_DETECTION_RESULT_URL = "http://localhost:80/api/defect"  # Spring Boot Defec
 # API_SNAPSHOT_BASE_URL = f"{SPRING_BOOT_API_BASE_URL}/api/snapshots"
 
 # --- MJPEG 스트리밍 서버 설정 변수 ---
-STREAM_HOST = "0.0.0.0"  # 스트리밍 서버 호스트 (모든 인터페이스에서 접근 허용)
-STREAM_PORT = 8080  # 스트리밍 서버 포트
+STREAM_HOST = "localhost"  # 스트리밍 서버 호스트 (모든 인터페이스에서 접근 허용)
+STREAM_PORT = 8000  # 스트리밍 서버 포트
 
 # --- 전역 변수 및 스레드 동기화 ---
 # 처리된 최신 프레임을 저장할 전역 변수
