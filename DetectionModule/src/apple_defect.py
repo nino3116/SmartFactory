@@ -1082,7 +1082,24 @@ def main_loop(
 
             # --- 감지 결과 데이터 (DetectionResultDto 구조) 준비 ---
             # analyze_defects에서 반환된 detected_defects_list 사용
-            status = "Defect Detected" if defect_detected else "Normal"
+            # Determine the overall status based on detected defects
+            status = "Normal"  # Default to Normal
+            if defect_detected:
+                # Prioritize "Defective" status if any such defect exists
+                if any(
+                    defect.get("reason") == "Defective"
+                    for defect in detected_defects_list
+                ):
+                    status = "Defective"
+                # Otherwise, if any "Substandard" defect exists, set status to "Substandard"
+                elif any(
+                    defect.get("reason") == "Substandard"
+                    for defect in detected_defects_list
+                ):
+                    status = "Substandard"
+                # Note: If defect_detected is True, analyze_defects ensures detected_defects_list
+                # contains items with 'reason' as 'Defective' or 'Substandard'.
+                # Thus, one of the above conditions should be met.
             defect_count = len(detected_defects_list) if defect_detected else 0
             # 불량 유형 요약 생성
             defect_summary = "Normal"

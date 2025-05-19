@@ -1,51 +1,55 @@
 /* defects.html 고유의 CSS 스타일을 여기에 작성합니다. */
-.defect-item {
-  background-color: #ffebee; /* Light red background */
-  border: 1px solid #e57373; /* Red border */
-  margin-bottom: 15px;
-  padding: 15px;
-  border-radius: 5px;
+
+/* 감지 로그 컨테이너 스타일: 스크롤 가능한 영역 */
+.detection-log-scroll-container {
+  max-height: 400px; /* 스크롤이 시작되는 최대 높이 */
+  overflow-y: auto; /* 세로 스크롤 활성화 */
+  border: 1px solid #e2e8f0; /* Tailwind gray-200 색상 */
+  border-radius: 0.25rem; /* Tailwind rounded 스타일 */
 }
-.defect-item strong {
-  color: #c62828; /* Darker red for emphasis */
+
+/* 테이블 헤더 고정 (선택 사항) */
+.detection-log-scroll-container table thead th {
+  position: sticky; /* 스크롤 시 헤더 고정 */
+  top: 0; /* 스크롤 컨테이너의 상단에 고정 */
+  background-color: #fff; /* 헤더 배경색 */
+  z-index: 10; /* 다른 스크롤 요소 위에 표시 */
 }
-.no-defects {
-  color: #4caf50; /* Green text */
-  font-weight: bold;
-}
-/* Add any additional styles needed specifically for the defects page */
+
+/* 이미지 크기 조정 */
 .defect-image {
-  max-width: 100px; /* 테이블 내 이미지 크기 조정 */
+  width: 80px; /* 이미지 너비 고정 */
   height: auto; /* 비율 유지 */
-  display: block; /* 이미지 아래 공백 제거 */
-  margin: 0 auto; /* 가운데 정렬 */
+  border-radius: 0.25rem; /* Tailwind rounded 스타일 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Tailwind shadow-sm 스타일 */
+  /* 테이블 내 이미지 크기 조정 및 가운데 정렬 */
+  max-width: 100px;
+  display: block;
+  margin: 0 auto;
 }
 
-/* 데이터 테이블 스타일 */
-#defect-table {
-  width: 100%; /* 테이블 전체 너비 사용 */
-  border-collapse: collapse; /* 테이블 셀 경계선 병합 */
-  margin-top: 20px;
-}
-
-#defect-table th,
-#defect-table td {
-  border: 1px solid #ddd; /* 셀 경계선 */
-  padding: 8px; /* 셀 패딩 */
-  text-align: left; /* 텍스트 왼쪽 정렬 */
-}
-
-#defect-table th {
-  background-color: #f2f2f2; /* 헤더 배경색 */
+/* 스트림 상태 메시지 스타일 */
+.stream-status {
+  text-align: center;
+  margin-top: 10px;
   font-weight: bold;
 }
+.status-loading {
+  color: #6b7280;
+} /* gray */
+.status-success {
+  color: #4caf50;
+} /* green */
+.status-error {
+  color: #f44336;
+} /* red */
 
-#defect-table tbody tr:nth-child(even) {
-  background-color: #f9f9f9; /* 짝수 행 배경색 */
-}
-
-#defect-table tbody tr:hover {
-  background-color: #e9e9e9; /* 마우스 오버 시 배경색 */
+/* 카드 스타일 (Tailwind 클래스와 함께 사용) */
+.info-card {
+  background-color: #fff;
+  border-radius: 0.5rem; /* Tailwind rounded-lg */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Tailwind shadow-md */
+  padding: 1.5rem; /* Tailwind p-6 */
 }
 
 /* 스크립트 제어 패널 스타일 */
@@ -54,10 +58,11 @@
   border: 1px solid #b2ebf2; /* Blue border */
   padding: 15px;
   border-radius: 5px;
-  margin-bottom: 20px;
+  margin-bottom: 20px; /* 아래쪽 마진 추가 */
   display: flex; /* 버튼과 상태를 한 줄에 배치 */
   align-items: center; /* 세로 중앙 정렬 */
   gap: 20px; /* 요소 간 간격 */
+  flex-wrap: wrap; /* 작은 화면에서 요소들이 줄바꿈되도록 */
 }
 
 .script-control-panel button {
@@ -90,18 +95,72 @@
   color: #0277bd; /* Dark blue */
 }
 
-/* 이미지 로딩 상태 메시지 스타일 */
-.stream-status {
-  text-align: center;
-  margin-top: 10px;
+/* 불량 항목 스타일 (현재 HTML 구조에서는 직접 사용되지 않을 수 있습니다.) */
+
+.defect-item {
+  background-color: #ffebee;
+  border: 1px solid #e57373;
+  margin-bottom: 15px;
+  padding: 15px;
+  border-radius: 5px;
+}
+.defect-item strong {
+  color: #c62828;
+}
+.no-defects {
+  color: #4caf50;
   font-weight: bold;
 }
-.status-loading {
-  color: #6b7280;
-} /* gray */
-.status-success {
-  color: #4caf50;
-} /* green */
-.status-error {
-  color: #f44336;
-} /* red */
+
+/* 데이터 테이블 스타일 */
+#defect-table {
+  width: 100%; /* 테이블 전체 너비 사용 */
+  border-collapse: collapse; /* 테이블 셀 경계선 병합 */
+  margin-top: 20px; /* 상단 마진 */
+}
+
+#defect-table th,
+#defect-table td {
+  border: 1px solid #ddd; /* 셀 경계선 */
+  padding: 8px; /* 셀 패딩 */
+  text-align: left; /* 텍스트 왼쪽 정렬 */
+}
+
+#defect-table th {
+  background-color: #f2f2f2; /* 헤더 배경색 */
+  font-weight: bold;
+}
+
+#defect-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9; /* 짝수 행 배경색 */
+}
+
+#defect-table tbody tr:hover {
+  background-color: #e9e9e9; /* 마우스 오버 시 배경색 */
+}
+
+/* 감지 로그 테이블 스타일 (defect-table과 유사하게 적용) */
+#detection-log-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#detection-log-table th,
+#detection-log-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+#detection-log-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+#detection-log-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+#detection-log-table tbody tr:hover {
+  background-color: #e9e9e9;
+}
