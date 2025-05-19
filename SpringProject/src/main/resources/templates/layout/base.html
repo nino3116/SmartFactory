@@ -20,42 +20,41 @@
   </head>
   <body class="flex h-screen bg-gray-100">
     <script layout:fragment="script"></script>
-    <div
-    th:replace="~{fragments/sidebar :: sidebar}"
-    class="w-64 bg-green-700 text-white flex flex-col"
-    ></div>
-    
-    <div class="flex-1 flex flex-col overflow-hidden">
-      <header th:replace="~{fragments/header :: header}"></header>
+      <div
+      th:replace="~{fragments/sidebar :: sidebar}"
+      class="w-64 bg-green-700 text-white flex flex-col"
+      ></div>
       
-      <div th:replace="~{fragments/notification :: notifications}"></div>
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <header th:replace="~{fragments/header :: header}"></header>
+        
+        <div th:replace="~{fragments/notification :: notifications}"></div>
+        
+        <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+          <div layout:fragment="content"></div>
+        </main>
+      </div>
       
-      <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
-        <div layout:fragment="content"></div>
-      </main>
-    </div>
-    
-    <script th:inline="javascript">
-      document.addEventListener("DOMContentLoaded", function () {
-        const notificationButton = document.getElementById(
-          "notification-button"
-          );
-          const notificationContainer = document.getElementById(
-            "notification-container"
+      <script th:inline="javascript">
+        document.addEventListener("DOMContentLoaded", function () {
+          const notificationButton = document.getElementById(
+            "notification-button"
             );
-            
-            if (notificationButton && notificationContainer) {
-              notificationButton.addEventListener("click", function () {
-                notificationContainer.classList.toggle("hidden");
-              });
-            }
-          });
-        </script>
-    <th:block layout:fragment="script"></script>
-    <script th:src="@{/js/script.js}"></script>
-    <script th:src="@{/js/flowbite.min.js}"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            const notificationContainer = document.getElementById(
+              "notification-container"
+              );
+              
+              if (notificationButton && notificationContainer) {
+                notificationButton.addEventListener("click", function () {
+                  notificationContainer.classList.toggle("hidden");
+                });
+              }
+            });
+      </script>
+        <script th:src="@{/js/defects.js}"></script>
+        <script th:src="@{/js/dashboard.js}"></script>    
+        <script th:src="@{/js/flowbite.min.js}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </th:block>
 
   </body>
