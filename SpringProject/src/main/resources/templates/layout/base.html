@@ -3,29 +3,24 @@
   lang="ko"
   xmlns:th="http://www.thymeleaf.org"
   xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-  xmlns:sec="https://www.thymeleaf.org/extras/spring-security"
->
+  xmlns:sec="https://www.thymeleaf.org/extras/spring-security">
   <head>
     <meta charset="UTF-8" />
     <title
-      th:text="${title} == null ? 'Smart Factory' : ${title} + '- Smart Factory'"
-    >
+      th:text="${title} == null ? 'Smart Factory' : ${title} + '- Smart Factory'">
       Smart Factory
     </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <th:block layout:fragment="css">
-      <link rel="stylesheet" th:href="@{/css/output.css}" />
-      <link rel="stylesheet" th:href="@{/css/dashboard.css}" />
-      <link rel="stylesheet" th:href="@{/css/defects.css}" />
-    </th:block>
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <th:block layout:fragment="css"> </th:block>
     <th:block layout:head></th:block>
   </head>
   <body class="flex h-screen bg-gray-100">
     <script layout:fragment="script"></script>
+
     <div
       th:replace="~{fragments/sidebar :: sidebar}"
-      class="w-64 bg-green-700 text-white flex flex-col"
-    ></div>
+      class="w-64 bg-green-700 text-white flex flex-col"></div>
 
     <div class="flex-1 flex flex-col overflow-hidden">
       <header th:replace="~{fragments/header :: header}"></header>
@@ -53,10 +48,6 @@
         }
       });
     </script>
-
-    <script th:src="@{/js/script.js}"></script>
     <script th:src="@{/js/flowbite.min.js}"></script>
-
-    <!--<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>-->
   </body>
 </html>

@@ -1,6 +1,5 @@
 package com.project2.smartfactory.defect;
 
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +44,7 @@ public class DefectService {
             DetectionLog logEntry = new DetectionLog(
                 detectionResultDto.getStatus(),
                 detectionResultDto.getDefectCount(),
-                detectionResultDto.getImageUrl(),
+                detectionResultDto.getImageUrl(), // DTO의 전체 이미지 URL 사용
                 detectionResultDto.getDefectSummary()
             );
             // 감지 시간은 DTO에서 받아오거나, 여기서 새로 설정할 수 있습니다.
@@ -70,6 +69,19 @@ public class DefectService {
                 // 만약 불량 상세 정보와 로그를 연결하고 싶다면 DefectInfo 엔티티에
                 // DetectionLog에 대한 참조 필드를 추가하고 매핑해야 합니다.
                 // 여기서는 간단하게 불량 정보만 별도로 저장합니다.
+
+                // DefectInfo 엔티티 저장 전에 imageUrl과 detectionTime 설정
+                LocalDateTime currentDetectionTime = logEntry.getDetectionTime(); // 저장된 로그의 시간 사용
+                String overallImageUrl = detectionResultDto.getImageUrl(); // DTO의 전체 이미지 URL
+
+                for (DefectInfo defect : defects) {
+                    // 각 DefectInfo 객체에 전체 감지 이미지 URL과 감지 시간 설정
+                    // 만약 개별 불량 이미지 URL이 필요하다면, Python에서 해당 데이터를
+                    // MQTT 페이로드의 각 불량 객체에 추가하고 DefectInfo 엔티티도 수정해야 합니다.
+                    defect.setImageUrl(overallImageUrl);
+                    defect.setDetectionTime(currentDetectionTime);
+                }
+
 
                 // DefectInfo 엔티티 저장
                 List<DefectInfo> savedDefects = defectRepository.saveAll(defects);
@@ -125,7 +137,7 @@ public class DefectService {
     // 필요에 따라 데이터베이스 조회, 삭제 등 추가 서비스 메소드를 구현할 수 있습니다.
     // 예: 특정 기간의 불량 정보 조회 (차트 등에 사용)
     // public List<DefectInfo> getDefectsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
-    //     // DefectRepository에 해당 조회 메소드를 추가하고 여기서 호출합니다.
-    //     // return defectRepository.findByDetectionTimeBetween(startDate, endDate); // 예시
+    //      // DefectRepository에 해당 조회 메소드를 추가하고 여기서 호출합니다.
+    //      // return defectRepository.findByDetectionTimeBetween(startDate, endDate); // 예시
     // }
 }

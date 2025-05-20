@@ -203,8 +203,13 @@ async function fetchAndDisplayCharts() {
 								backgroundColor: [
 									"rgba(75, 192, 192, 0.5)", // Normal (Greenish)
 									"rgba(255, 99, 132, 0.5)", // Defect Detected (Reddish)
+									"rgb(250, 184, 113)", // Substandard (Yellowish)
 								],
-								borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
+								borderColor: [
+									"rgba(75, 192, 192, 1)",
+									"rgba(255, 99, 132, 1)",
+									"rgba(252, 133, 6, 1)",
+								],
 								borderWidth: 1,
 							},
 						],
@@ -337,7 +342,7 @@ async function fetchAndDisplayCharts() {
 			}
 		}
 
-		// 3. 연간 불량 감지 추이 차트 (선형 차트)
+		// 3. 연간 불량 감지 추이 차트 (선형 차트) - 불량률 표시 (소수점 첫째 자리)
 		const ctx3 = document.getElementById("yearStatusChart").getContext("2d");
 		if (!ctx3) {
 			console.error(
@@ -356,7 +361,7 @@ async function fetchAndDisplayCharts() {
 						labels: data.labels,
 						datasets: [
 							{
-								label: "불량 개수",
+								label: "불량률", // 라벨을 '불량률'로 변경
 								data: data.data,
 								fill: false,
 								borderColor: "rgba(255, 159, 64, 1)",
@@ -366,8 +371,9 @@ async function fetchAndDisplayCharts() {
 									color: "black",
 									anchor: "end",
 									align: "top",
+									// 불량률 값을 소수점 첫째 자리까지 표시하고 '%' 추가
 									formatter: function (value, context) {
-										return value + "개";
+										return value.toFixed(1) + "%";
 									},
 									font: { size: 12, weight: "bold" },
 								},
@@ -380,13 +386,11 @@ async function fetchAndDisplayCharts() {
 						scales: {
 							y: {
 								beginAtZero: true,
-								title: { display: true, text: "불량 개수" },
+								title: { display: true, text: "불량률 (%)" }, // Y축 라벨도 불량률로 변경
 								ticks: {
+									// 불량률이므로 소수점 표시 허용
 									callback: function (value) {
-										if (Number.isInteger(value)) {
-											return value;
-										}
-										return null;
+										return value.toFixed(1); // Y축 틱도 소수점 첫째 자리까지 표시
 									},
 								},
 							},
@@ -395,13 +399,14 @@ async function fetchAndDisplayCharts() {
 						layout: { padding: 40 },
 						plugins: {
 							legend: { display: true, position: "top" },
-							title: { display: true, text: "연간 불량 감지 추이 (개수)" },
+							title: { display: true, text: "연간 불량 감지 추이 (%)" }, // 차트 제목도 불량률로 변경
 							tooltip: {
 								callbacks: {
 									label: function (tooltipItem) {
 										const dataset = tooltipItem.dataset;
 										const currentValue = dataset.data[tooltipItem.dataIndex];
-										return `${tooltipItem.label}: ${currentValue} 개`;
+										// 툴팁에서도 불량률 값을 소수점 첫째 자리까지 표시하고 '%' 추가
+										return `${tooltipItem.label}: ${currentValue.toFixed(1)} %`;
 									},
 								},
 							},
@@ -436,8 +441,13 @@ async function fetchAndDisplayCharts() {
 								backgroundColor: [
 									"rgba(75, 192, 192, 0.5)", // Normal (Greenish)
 									"rgba(255, 99, 132, 0.5)", // Defect Detected (Reddish)
+									"rgb(250, 184, 113)", // Substandard (Yellowish)
 								],
-								borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
+								borderColor: [
+									"rgba(75, 192, 192, 1)",
+									"rgba(255, 99, 132, 1)",
+									"rgba(252, 133, 6, 1)",
+								],
 								borderWidth: 1,
 							},
 						],
@@ -560,7 +570,7 @@ async function fetchAndDisplayCharts() {
 							layout: { padding: 10 },
 							plugins: {
 								legend: { position: "top" },
-								title: { display: true, text: "당일 작업 완료/미완료" },
+								title: { display: true, text: "당일 공정 진척상황" },
 								datalabels: {
 									display: true,
 									color: "#fff",
