@@ -4,17 +4,19 @@
   xmlns:th="http://www.thymeleaf.org"
   xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
   xmlns:sec="https://www.thymeleaf.org/extras/spring-security"
-  >
+>
   <head>
     <meta charset="UTF-8" />
-    <title th:text="${title} == null ? 'Smart Factory' : ${title} + '- Smart Factory'">
+    <title
+      th:text="${title} == null ? 'Smart Factory' : ${title} + '- Smart Factory'"
+    >
       Smart Factory
     </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <th:block layout:fragment="css">
-    <link rel="stylesheet" th:href="@{/css/output.css}" />
-    <link rel="stylesheet" th:href="@{/css/dashboard.css}" />
-    <link rel="stylesheet" th:href="@{/css/defects.css}" />
+      <link rel="stylesheet" th:href="@{/css/output.css}" />
+      <link rel="stylesheet" th:href="@{/css/dashboard.css}" />
+      <link rel="stylesheet" th:href="@{/css/defects.css}" />
     </th:block>
     <th:block layout:head></th:block>
   </head>
