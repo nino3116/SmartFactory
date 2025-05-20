@@ -44,6 +44,10 @@ public class UsersController {
             bindingResult.rejectValue("currentPassword", "invalid", "현재 비밀번호가 일치하지 않습니다.");
         }
 
+        if (usersService.checkAdminPassword(adminPasswordForm.getNewPassword(), user.getAdminPasswordHash())) {
+            bindingResult.rejectValue("newPassword", "same", "새 비밀번호가 현재 비밀번호와 같습니다.");
+        }
+
         if (bindingResult.hasErrors()) {
             model.addAttribute("adminId", user.getId());
             return "admin_password_edit";

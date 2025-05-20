@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class ControlPanelController {
  private static final String RASPBERRY_PI_IP = "192.168.0.125"; // 라즈베리 파이 IP 주소
-    private static final String RASPBERRY_PI_USER = "pi"; // 라즈베리 파이 사용자 이름
-    private static final String PYTHON_SCRIPT_PATH = "/home/nino/control_panel.py"; // Python 스크립트 경로
+    private static final String RASPBERRY_PI_USER = "nino"; // 라즈베리 파이 사용자 이름
+    private static final String PYTHON_SCRIPT_PATH = "/home/nino/projects/gpio.py"; // Python 스크립트 경로
 
     @GetMapping("/control_panel")
     public String ControlPanel(Model model) {
