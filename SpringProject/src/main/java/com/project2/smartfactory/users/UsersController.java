@@ -36,9 +36,7 @@ public class UsersController {
 
     // POST: 비밀번호 변경 처리
     @PostMapping("/password/edit")
-    public String updateAdminPassword(@Valid AdminPasswordForm adminPasswordForm,
-                                      BindingResult bindingResult,
-                                      Model model) {
+    public String updateAdminPassword(@Valid AdminPasswordForm adminPasswordForm, BindingResult bindingResult, Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Users user = usersService.getUserByUsername(auth.getName());
 
