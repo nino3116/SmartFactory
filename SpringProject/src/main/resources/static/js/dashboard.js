@@ -203,8 +203,13 @@ async function fetchAndDisplayCharts() {
 								backgroundColor: [
 									"rgba(75, 192, 192, 0.5)", // Normal (Greenish)
 									"rgba(255, 99, 132, 0.5)", // Defect Detected (Reddish)
+									"rgb(250, 184, 113)", // Substandard (Yellowish)
 								],
-								borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
+								borderColor: [
+									"rgba(75, 192, 192, 1)",
+									"rgba(255, 99, 132, 1)",
+									"rgba(252, 133, 6, 1)",
+								],
 								borderWidth: 1,
 							},
 						],
@@ -436,8 +441,13 @@ async function fetchAndDisplayCharts() {
 								backgroundColor: [
 									"rgba(75, 192, 192, 0.5)", // Normal (Greenish)
 									"rgba(255, 99, 132, 0.5)", // Defect Detected (Reddish)
+									"rgb(250, 184, 113)", // Substandard (Yellowish)
 								],
-								borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
+								borderColor: [
+									"rgba(75, 192, 192, 1)",
+									"rgba(255, 99, 132, 1)",
+									"rgba(252, 133, 6, 1)",
+								],
 								borderWidth: 1,
 							},
 						],

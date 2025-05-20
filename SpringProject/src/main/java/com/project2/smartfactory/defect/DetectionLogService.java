@@ -79,11 +79,11 @@ public class DetectionLogService {
             logger.warn("No detection logs found. Returning empty chart data."); // logger 사용
             // 빈 데이터로 초기화된 Map 반환
              return Map.of(
-                 "overallStatus", Map.of("labels", List.of("Normal", "Defect Detected","Substandard"), "data", List.of(0L, 0L)),
+                 "overallStatus", Map.of("labels", List.of("Normal", "Defective","Substandard"), "data", List.of(0L, 0L)),
                  "weeklyDefectTrend", Map.of("labels", List.of(), "data", List.of()),
                  // yearlyDefectTrend 구조 수정: data에 불량률 리스트 포함
                  "yearlyDefectTrend", Map.of("labels", List.of(), "data", List.of()),
-                 "dailyStatus", Map.of("labels", List.of("Normal", "Defect Detected","Substandard"), "data", List.of(0L, 0L)),
+                 "dailyStatus", Map.of("labels", List.of("Normal", "Defective","Substandard"), "data", List.of(0L, 0L)),
                  "dailyTaskCompletion", Map.of(
                      "labels", List.of("오늘 작업"),
                      "datasets", List.of(
@@ -103,15 +103,15 @@ public class DetectionLogService {
                 .filter(log -> log.getStatus() != null)
                 .collect(Collectors.groupingBy(DetectionLog::getStatus, Collectors.counting()));
 
-        // 항상 Normal, Defect Detected 라벨 포함 및 데이터가 없을 경우 0으로 처리
+        // 항상 Normal, Defective 라벨 포함 및 데이터가 없을 경우 0으로 처리
         long normalCount = overallStatusCounts.getOrDefault("Normal", 0L);
-        long defectCount = overallStatusCounts.getOrDefault("Defect Detected", 0L);
+        long defectCount = overallStatusCounts.getOrDefault("Defective", 0L);
         long substdCount = overallStatusCounts.getOrDefault("Substandard", 0L);
         chartData.put("overallStatus", Map.of(
-                "labels", List.of("Normal", "Defect Detected","Substandard"),
+                "labels", List.of("Normal", "Defective","Substandard"),
                 "data", List.of(normalCount, defectCount,substdCount)
         ));
-        logger.debug("Overall status: Normal={}, Defect Detected={}, Substandard={}", normalCount, defectCount, substdCount); // logger 사용
+        logger.debug("Overall status: Normal={}, Defective={}, Substandard={}", normalCount, defectCount, substdCount); // logger 사용
 
 
         // 2. 주간 불량 감지 추이 (막대 차트 - 최근 7일 불량 개수)
@@ -136,8 +136,8 @@ public class DetectionLogService {
                         return false;
                     }
                     LocalDate logDate = log.getDetectionTime().toLocalDate();
-                    // 최근 7일 이내의 로그 중 "Defect Detected" 상태인 로그만 필터링
-                    return !logDate.isBefore(today.minusDays(6)) && "Defect Detected".equals(log.getStatus()) && "Substandard".equals(log.getStatus());
+                    // 최근 7일 이내의 로그 중 "Defective" 상태인 로그만 필터링
+                    return !logDate.isBefore(today.minusDays(6)) && ("Defective".equals(log.getStatus()) || "Substandard".equals(log.getStatus()));
                 })
                 .forEach(log -> {
                     LocalDate logDate = log.getDetectionTime().toLocalDate();
@@ -188,8 +188,8 @@ public class DetectionLogService {
                     LocalDate logDate = log.getDetectionTime().toLocalDate();
                     String monthKey = logDate.format(monthFormatter);
 
-                    // 해당 월의 불량 개수를 합산 ("Defect Detected" 상태인 경우만)
-                    if ("Defect Detected".equals(log.getStatus())) {
+                    // 해당 월의 불량 개수를 합산 ("Defective" 상태인 경우만)
+                    if ("Defective".equals(log.getStatus()) || "Substandard".equals(log.getStatus())) {
                          monthlyDefectCounts.compute(monthKey, (k, v) -> (v == null ? 0L : v) + (log.getDefectCount() != null ? log.getDefectCount() : 0L));
                     }
 
@@ -242,14 +242,15 @@ public class DetectionLogService {
                 })
                 .collect(Collectors.groupingBy(DetectionLog::getStatus, Collectors.counting()));
 
-        // 항상 Normal, Defect Detected 라벨 포함 및 데이터가 없을 경우 0으로 처리
+        // 항상 Normal, Defective 라벨 포함 및 데이터가 없을 경우 0으로 처리
         long todayNormalCount = dailyStatusCounts.getOrDefault("Normal", 0L);
-        long todayDefectCount = dailyStatusCounts.getOrDefault("Defect Detected", 0L);
+        long todayDefectCount = dailyStatusCounts.getOrDefault("Defective", 0L);
+        long todaySubstdCount = dailyStatusCounts.getOrDefault("Substandard", 0L);
         chartData.put("dailyStatus", Map.of(
-                "labels", List.of("Normal", "Defect Detected"),
-                "data", List.of(todayNormalCount, todayDefectCount)
+                "labels", List.of("Normal", "Defective", "Substandard"),
+                "data", List.of(todayNormalCount, todayDefectCount, todaySubstdCount)
         ));
-        logger.debug("Daily status: Normal={}, Defect Detected={}", todayNormalCount, todayDefectCount); // logger 사용
+        logger.debug("Daily status: Normal={}, Defective={}, Substandard={}", todayNormalCount, todayDefectCount, todaySubstdCount); // logger 사용
 
 
         // 5. 당일 작업 완료/미완료 (스택 막대 차트)
