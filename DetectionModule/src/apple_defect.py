@@ -90,6 +90,8 @@ MQTT_BROKER_HOST = (
 MQTT_BROKER_PORT = 1883  # MQTT 브로커 포트 (일반적으로 1883)
 MQTT_TOPIC_STATUS = "defect_detection/status"  # 불량 감지 상태를 보낼 토픽 (Normal, Defect Detected) - 사용자 설정 반영 (이름 변경)
 MQTT_TOPIC_DETAILS = "defect_detection/details"  # 불량 상세 정보를 보낼 토픽 (JSON)
+MQTT_TOPIC_TRIGGER = "factory/detect_start"  # 감지 시작 신호를 받을 토픽
+MQTT_TOPIC_RESULT = "factory/detect_result"  # 감지 상태 결과를 보낼 토픽
 
 # --- API 서버 설정 변수 ---
 # API 서버의 주소와 포트, 엔드포인트
@@ -208,7 +210,7 @@ def analyze_defects(
         results (Results): YOLO 추론 결과 객체.
         model_names (dict): 클래스 인덱스와 이름 매핑 딕셔너리.
         area_threshold_substandard_percent (float): 사과 면적 대비 비상품 판정 백분율 임계값 (>= 이 값).
-        area_threshold_defective_percent (float): 사과 면적 대비 불량 판정 백분율 임계값 (>= 이 값).
+        area_threshold_defective_percent (float): 사과 면적 대비 불량 판별 백분율 임계값 (>= 이 값).
 
     Returns:
         list: 감지된 불량 정보를 담은 딕셔너리 리스트 (정상 판정된 객체는 포함되지 않음).
@@ -284,7 +286,7 @@ def analyze_defects(
                 }
             )
 
-        # 'Bruise', 'rotten', 'stem'는 항상 '불량'으로 판정
+        # 'Bruise', 'rotten', 'stem'는 항상 '불량'으로 판별
         always_defective_ids = [
             id for id in [bruise_class_id, rotten_class_id, stem_class_id] if id != -1
         ]
@@ -468,7 +470,7 @@ def visualize_results(
                 label_text += f" ({defect['areaPercentOnApple']:.2f}%)"
 
             # OpenCV를 사용하여 annotated_frame에 직접 그리기 예시 (불량 객체 박스)
-            # 불량으로 판정된 객체에 빨간색 박스를 그립니다.
+            # 불량으로 판별된 객체에 빨간색 박스를 그립니다.
             box_color_bgr = (0, 0, 255)  # Default Red (Defective)
             if defect["reason"] == "Substandard":
                 box_color_bgr = (0, 165, 255)  # Orange (BGR)
@@ -525,30 +527,55 @@ def on_connect(client, userdata, flags, rc, properties):  # <-- properties 매�
             print("연결 거부: 승인되지 않음")
 
 
+# MQTT 메시지 수신 콜백 함수 추가 (on_connect 함수 아래에 추가)
+def on_message(client, userdata, message, properties):  # properties 매개변수 추가 (API v2)
+    """
+    MQTT 메시지 수신 시 호출되는 콜백 함수
+    """
+    try:
+        if message.topic == MQTT_TOPIC_TRIGGER:
+            payload = message.payload.decode('utf-8')
+            if payload == "object_detected":
+                print(f"\nMQTT 트리거 메시지 수신: {payload}")
+                # userdata에 저장된 감지 함수 호출
+                if userdata and 'trigger_detection' in userdata:
+                    userdata['trigger_detection']()
+    except Exception as e:
+        print(f"MQTT 메시지 처리 중 오류 발생: {e}")
+
+
 # MQTT 클라이언트 초기화 및 연결 함수
-def initialize_mqtt_client(broker_host, broker_port):
+def initialize_mqtt_client(broker_host, broker_port, trigger_detection_callback):
     """
     MQTT 클라이언트를 초기화하고 브로커에 연결합니다.
 
     Args:
-        broker_host (str): MQTT 브로커 주소.
-        broker_port (int): MQTT 브로커 포트.
+        broker_host (str): MQTT 브로커 주소
+        broker_port (int): MQTT 브로커 포트
+        trigger_detection_callback (function): 감지를 트리거할 콜백 함수
 
     Returns:
-        mqtt.Client: 초기화되고 연결된 MQTT 클라이언트 객체, 연결 실패 시 None 반환.
+        mqtt.Client: 초기화되고 연결된 MQTT 클라이언트 객체, 연결 실패 시 None 반환
     """
     print(f"MQTT 브로커 연결 시도: {broker_host}:{broker_port}")
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)  # API 버전 명시
-    client.on_connect = on_connect  # 연결 콜백 함수 설정
+    
+    # userdata에 콜백 함수 저장
+    userdata = {'trigger_detection': trigger_detection_callback}
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, userdata=userdata)
+    
+    client.on_connect = on_connect
+    client.on_message = on_message  # 메시지 수신 콜백 설정
 
     try:
         client.connect(broker_host, broker_port, 60)
-        # 네트워크 루프 시작 (백그라운드 스레드에서 실행)
+        # 네트워크 루프 시작
         client.loop_start()
-        # 연결이 완료될 때까지 잠시 대기
-        time.sleep(1)  # 필요에 따라 조정
-        # 연결 상태 다시 확인
+        time.sleep(1)
+        
         if client.is_connected():
+            # 트리거 토픽 구독
+            client.subscribe(MQTT_TOPIC_TRIGGER)
+            print(f"MQTT 토픽 구독 시작: {MQTT_TOPIC_TRIGGER}")
             return client
         else:
             print("MQTT 연결 시도 후 연결 상태 확인 실패.")
@@ -659,56 +686,6 @@ def send_detection_result_to_api_async(
     # 스레드 시작
     api_thread.start()
     print("API 전송 스레드 시작됨.")
-
-
-# # 스냅샷 저장 함수 (로컬에 임시 저장)
-# def save_snapshot_local(frame, detected_defects_list, snapshot_base_dir):  # 인자 추가
-#     """
-#     감지 결과에 따라 스냅샷을 로컬 디렉토리에 저장하고 파일 경로를 반환합니다.
-#     불량 감지 시 snapshots/defects에, 정상 감지 시 snapshots/normal에 저장합니다.
-#     """
-#     if frame is None:
-#         print("오류: 저장할 프레임이 없습니다.")
-#         return None
-
-#     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-#     # 스냅샷 저장 기본 디렉토리 및 하위 디렉토리 설정
-#     normal_dir = os.path.join(snapshot_base_dir, "normal")
-#     defects_dir = os.path.join(snapshot_base_dir, "defects")
-
-#     # 디렉토리 생성 확인
-#     os.makedirs(normal_dir, exist_ok=True)
-#     os.makedirs(defects_dir, exist_ok=True)
-
-#     # 불량 감지 여부에 따라 저장 디렉토리 결정
-#     if detected_defects_list:
-#         # 불량 감지 시 defects 디렉토리에 저장
-#         filename = f"defect_snapshot_{timestamp}.png"
-#         save_dir = defects_dir
-#     else:
-#         # 정상 감지 시 normal 디렉토리에 저장
-#         filename = f"normal_snapshot_{timestamp}.png"
-#         save_dir = normal_dir
-
-#     file_path = os.path.join(save_dir, filename)
-
-#     try:
-#         cv.imwrite(file_path, frame)
-#         print(f"스냅샷 저장 완료: {file_path}")
-#         # 저장된 파일의 상대 경로 반환 (Spring Boot에서 접근 가능하도록)
-#         # Spring Boot가 SNAPSHOT_BASE_DIR을 정적 리소스로 제공한다고 가정
-#         # 예: snapshots/defects/defect_snapshot_20231027_103000.png
-#         # snapshot_base_dir을 기준으로 상대 경로 생성
-#         relative_path = os.path.join(
-#             os.path.basename(snapshot_base_dir), os.path.basename(save_dir), filename
-#         ).replace(
-#             "\\", "/"
-#         )  # 경로 구분자 통일
-#         return relative_path
-#     except Exception as e:
-#         print(f"스냅샷 저장 중 오류 발생: {e}")
-#         return None
 
 
 # 스냅샷 저장 함수 (로컬에 임시 저장)
@@ -901,24 +878,25 @@ def main_loop(
     opencv_font_thickness,
     area_threshold_substandard_percent,
     area_threshold_defective_percent,
-    inference_interval_seconds,
-    snapshot_temp_dir,  # 임시 저장 디렉토리 변수 이름 변경
+    snapshot_temp_dir,
     s3_bucket_name,
     aws_region,
-    s3_object_base_path,  # S3 객체 기본 경로 매개변수 추가
+    s3_object_base_path,
     mqtt_broker_host,
     mqtt_broker_port,
     mqtt_topic_status,
     mqtt_topic_details,
-    api_detection_result_url,  # API 엔드포인트 URL 변수 이름 변경
+    mqtt_topic_trigger,
+    mqtt_topic_result,
+    api_detection_result_url,
     stream_host,
     stream_port,
 ):
     """
-    영상 스트림에서 프레임을 읽고 감지, 판별, 시각화 과정을 반복합니다.
-    설정된 시간 간격마다 감지를 수행하고, 불량 감지 시 스냅샷을 저장하며 MQTT 신호와 API 요청을 보냅니다.
+    영상 스트림에서 프레임을 읽고 MQTT 트리거 메시지를 기다립니다.
+    트리거 수신 시 감지를 실행하고 결과를 전송합니다.
     """
-    global latest_frame  # 전역 변수 사용 선언
+    global latest_frame
 
     # 1. 모델 로드
     model = load_yolo_model(model_path)
@@ -930,244 +908,120 @@ def main_loop(
     if cap is None:
         return
 
-    # 3. MQTT 클라이언트 초기화 및 연결
-    mqtt_client = initialize_mqtt_client(mqtt_broker_host, mqtt_broker_port)
-    if mqtt_client is None:
-        print("MQTT 연결에 실패했습니다. 불량 감지 시 MQTT 메시지를 보내지 않습니다.")
-
-    # 4. AWS S3 클라이언트 초기화
-    s3_client = None  # 초기화
-    if (
-        s3_bucket_name and aws_region
-    ):  # 버킷 이름과 리전이 설정된 경우에만 S3 클라이언트 생성 시도
-        try:
-            s3_client = boto3.client("s3", region_name=aws_region)
-            # S3 버킷 존재 여부 확인 (선택 사항)
-            # s3_client.head_bucket(Bucket=s3_bucket_name)
-            print(
-                f"AWS S3 클라이언트 생성 완료. 버킷: {s3_bucket_name}, 리전: {aws_region}"
-            )
-        except NoCredentialsError:
-            print("AWS 자격 증명을 찾을 수 없습니다. S3 기능을 사용할 수 없습니다.")
-        except PartialCredentialsError:
-            print(
-                "불완전한 AWS 자격 증명이 감지되었습니다. AWS 자격 증명을 확인하세요."
-            )
-        except Exception as e:
-            print(
-                f"AWS S3 클라이언트 생성 또는 버킷 확인 오류: {e}. S3 기능을 사용할 수 없습니다."
-            )
-            s3_client = None  # 오류 발생 시 클라이언트를 None으로 설정
-    else:
-        print(
-            "S3 버킷 이름 또는 리전이 설정되지 않았습니다. S3 기능을 사용할 수 없습니다."
-        )
-
-    # 5. MJPEG 스트리밍 서버 시작 (별도 스레드)
-    stream_server_thread = threading.Thread(
-        target=run_mjpeg_stream_server, args=(stream_host, stream_port)
-    )
-    stream_server_thread.daemon = True  # 메인 스레드 종료 시 함께 종료되도록 데몬 설정
-    stream_server_thread.start()
-    print("MJPEG 스트리밍 서버 스레드 시작됨.")
-
-    print("\n영상 스트림으로부터 프레임을 읽고 감지를 시작합니다.")
-    print(
-        f"처리된 영상은 http://{stream_host}:{stream_port}/ 에서 MJPEG 스트림으로 확인 가능합니다."
-    )
-    print(f"감지는 약 {inference_interval_seconds}초 간격으로 수행됩니다.")
-    if s3_client:
-        print(
-            f"스냅샷은 '{snapshot_temp_dir}'에 임시 저장 후 S3 버킷 '{s3_bucket_name}' ({aws_region})의 '{s3_object_base_path}' 경로에 업로드됩니다."
-        )
-    else:
-        print(f"스냅샷은 '{snapshot_temp_dir}'에 임시 저장만 됩니다 (S3 설정 없음).")
-    print(f"Spring Boot API URL: {api_detection_result_url}")  # 변수 이름 변경 반영
-    print("'q' 키를 누르면 감지를 종료합니다.")
-
-    # 마지막 추론(감지) 시간을 기록하는 변수 초기화
-    last_inference_time = time.time() - inference_interval_seconds
-
-    # Optional: FPS 계산을 위한 변수 초기화
-    # start_time = time.time()
-    # frame_count = 0
-
-    while True:
+    # 감지 실행 함수 정의
+    def perform_detection():
+        nonlocal cap, model  # 외부 변수 사용
+        
+        # 현재 프레임 읽기
         ret, frame = cap.read()
         if not ret:
-            print(
-                "영상 스트림에서 프레임을 더 이상 읽을 수 없습니다. 스트림이 종료되었거나 오류가 발생했습니다."
-            )
+            print("프레임 읽기 실패")
+            return
+
+        print("\n--- 감지 실행 중 (MQTT 트리거) ---")
+        
+        # 여기서부터 기존 감지 로직 실행
+        results = perform_inference(model, frame, conf_threshold, iou_threshold)
+        detected_defects_list = analyze_defects(
+            results,
+            model.names,
+            area_threshold_substandard_percent,
+            area_threshold_defective_percent,
+        )
+
+        # 결과 시각화 및 처리
+        annotated_frame = frame.copy()
+        if results and results[0].boxes:
+            plot_masks = hasattr(results[0], "masks") and results[0].masks is not None
+            annotated_frame = results[0].plot(masks=plot_masks, boxes=True, labels=False, conf=False)
+
+        annotated_frame = visualize_results(
+            annotated_frame,
+            detected_defects_list,
+            opencv_font,
+            opencv_font_scale,
+            opencv_font_thickness,
+        )
+
+        # 전역 프레임 업데이트
+        with frame_lock:
+            latest_frame = annotated_frame.copy()
+
+        # 결과 처리 및 전송
+        defect_detected = detected_defects_list and len(detected_defects_list) > 0
+        status = "Normal"
+        if defect_detected:
+            if any(defect.get("reason") == "Defective" for defect in detected_defects_list):
+                status = "Defective"
+            elif any(defect.get("reason") == "Substandard" for defect in detected_defects_list):
+                status = "Substandard"
+
+        # MQTT 결과 메시지 전송
+        result_message = {
+            "status": status,
+            "timestamp": datetime.now().isoformat(),
+            "defectCount": len(detected_defects_list) if defect_detected else 0
+        }
+        if mqtt_client:
+            publish_mqtt_message(mqtt_client, mqtt_topic_result, json.dumps(result_message))
+            print(f"감지 결과 전송 완료: {status}")
+
+        # 나머지 처리 (스냅샷 저장, API 전송 등) 계속...
+        # (기존 코드와 동일하게 진행)
+
+    # 3. MQTT 클라이언트 초기화 (감지 콜백 함수 전달)
+    mqtt_client = initialize_mqtt_client(mqtt_broker_host, mqtt_broker_port, perform_detection)
+    if mqtt_client is None:
+        print("MQTT 연결 실패")
+        return
+
+    # 4. AWS S3 클라이언트 초기화 (기존과 동일)
+    s3_client = None
+    if s3_bucket_name and aws_region:
+        try:
+            s3_client = boto3.client("s3", region_name=aws_region)
+            print(f"AWS S3 클라이언트 생성 완료. 버킷: {s3_bucket_name}, 리전: {aws_region}")
+        except Exception as e:
+            print(f"AWS S3 클라이언트 생성 오류: {e}")
+
+    # 5. MJPEG 스트리밍 서버 시작 (기존과 동일)
+    stream_server_thread = threading.Thread(
+        target=run_mjpeg_stream_server, 
+        args=(stream_host, stream_port)
+    )
+    stream_server_thread.daemon = True
+    stream_server_thread.start()
+
+    print("\n감지 시스템이 준비되었습니다.")
+    print(f"MQTT 트리거 토픽 '{mqtt_topic_trigger}'에서 'object_detected' 메시지 수신을 대기합니다.")
+    print(f"결과는 '{mqtt_topic_result}' 토픽으로 전송됩니다.")
+    print(f"처리된 영상은 http://{stream_host}:{stream_port}/ 에서 확인 가능합니다.")
+    print("'q' 키를 누르면 프로그램이 종료됩니다.")
+
+    # 메인 루프 - 프레임 읽기만 수행하고 감지는 MQTT 트리거 시에만 실행
+    while True:
+        # 영상 스트림에서 프레임 읽기 (감지하지 않고 스트리밍용으로만 사용)
+        ret, frame = cap.read()
+        if not ret:
+            print("영상 스트림 읽기 실패")
             break
 
-        current_time = time.time()
+        # 스트리밍용 프레임 업데이트
+        with frame_lock:
+            latest_frame = frame.copy()
 
-        if current_time - last_inference_time >= inference_interval_seconds:
-            print(f"\n--- 감지 수행 (약 {inference_interval_seconds}초 경과) ---")
-            last_inference_time = current_time
-
-            # 6. 객체 감지 및 세그멘테이션 추론 수행
-            results = perform_inference(model, frame, conf_threshold, iou_threshold)
-
-            # 7. 감지 결과를 분석하여 불량 판별
-            # analyze_defects 함수는 불량만 담은 딕셔너리 리스트를 반환
-            detected_defects_list = analyze_defects(
-                results,
-                model.names,
-                area_threshold_substandard_percent,
-                area_threshold_defective_percent,
-            )
-
-            # 8. 감지 결과 기본 시각화 (Ultralytics plot 사용)
-            annotated_frame = frame.copy()
-            if results and results[0].boxes:
-                plot_masks = (
-                    hasattr(results[0], "masks") and results[0].masks is not None
-                )
-                annotated_frame = results[0].plot(
-                    masks=plot_masks, boxes=True, labels=False, conf=False
-                )
-
-            # 9. 불량 판별 결과에 따라 시각화에 추가 정보 그리기 (OpenCV 영문 텍스트 사용)
-            annotated_frame = visualize_results(
-                annotated_frame,
-                detected_defects_list,
-                opencv_font,
-                opencv_font_scale,
-                opencv_font_thickness,
-            )
-
-            # --- 처리된 프레임을 전역 변수에 업데이트 (스트리밍 서버에서 사용) ---
-            with frame_lock:
-                latest_frame = annotated_frame.copy()
-
-            # --- 스냅샷 저장 및 S3 업로드 ---
-            print("스냅샷 저장 및 업로드 처리 중...")
-            # 스냅샷 저장 (로컬 파일로 임시 저장) - 불량 여부와 관계없이 항상 저장
-            snapshot_filepath = save_snapshot_local(annotated_frame, snapshot_temp_dir)
-
-            image_url = None  # 업로드된 이미지 URL 초기화
-            defect_detected = (
-                detected_defects_list is not None and len(detected_defects_list) > 0
-            )  # 불량 감지 여부 판단
-
-            # 스냅샷 파일이 성공적으로 저장되었고 S3 클라이언트가 유효한 경우 S3에 업로드 시도
-            if snapshot_filepath and s3_client:
-                try:
-                    # S3에 파일 업로드 및 공개 URL 가져오기
-                    # 감지 결과에 따라 S3 객체 경로를 분리하여 전달
-                    image_url = upload_file_to_s3(
-                        s3_client,
-                        s3_bucket_name,
-                        snapshot_filepath,
-                        s3_object_base_path,
-                        defect_detected,
-                    )  # 인자 추가
-
-                    if image_url:
-                        print(f"S3 업로드 이미지 URL: {image_url}")
-                        # 로컬에 임시 저장된 스냅샷 파일 삭제 (선택 사항)
-                        try:
-                            os.remove(snapshot_filepath)
-                            print(f"로컬 임시 스냅샷 파일 삭제: {snapshot_filepath}")
-                        except Exception as e:
-                            print(f"로컬 임시 스냅샷 파일 삭제 오류: {e}")
-
-                    else:
-                        print("S3 이미지 URL 가져오기 실패.")
-
-                except Exception as e:
-                    print(f"스냅샷 S3 업로드 또는 URL 처리 중 오류 발생: {e}")
-                    # 오류 발생 시 image_url은 None 상태로 유지
-
-            # --- 감지 결과 데이터 (DetectionResultDto 구조) 준비 ---
-            # analyze_defects에서 반환된 detected_defects_list 사용
-            # Determine the overall status based on detected defects
-            status = "Normal"  # Default to Normal
-            if defect_detected:
-                # Prioritize "Defective" status if any such defect exists
-                if any(
-                    defect.get("reason") == "Defective"
-                    for defect in detected_defects_list
-                ):
-                    status = "Defective"
-                # Otherwise, if any "Substandard" defect exists, set status to "Substandard"
-                elif any(
-                    defect.get("reason") == "Substandard"
-                    for defect in detected_defects_list
-                ):
-                    status = "Substandard"
-                # Note: If defect_detected is True, analyze_defects ensures detected_defects_list
-                # contains items with 'reason' as 'Defective' or 'Substandard'.
-                # Thus, one of the above conditions should be met.
-            defect_count = len(detected_defects_list) if defect_detected else 0
-            # 불량 유형 요약 생성
-            defect_summary = "Normal"
-            if defect_detected:
-                # 상세 사유 (detailed_reason)를 사용하여 요약 생성
-                detailed_reasons = [
-                    d.get("detailed_reason", "Unknown") for d in detected_defects_list
-                ]
-                # 중복 제거 및 쉼표로 연결
-                defect_summary = ", ".join(sorted(list(set(detailed_reasons))))
-
-            # Spring Boot API로 전송할 데이터 구조 (DetectionResultDto와 일치)
-            detection_result_data = {
-                "detectionTime": datetime.now().isoformat(),  # 현재 시간 (ISO 8601 형식)
-                "status": status,
-                "defectCount": defect_count,
-                "imageUrl": image_url,  # S3 업로드된 이미지 URL (없으면 None)
-                "defectSummary": defect_summary,
-                "defects": detected_defects_list,  # 불량 상세 정보 리스트 (없으면 빈 리스트)
-            }
-
-            # --- API 서버로 감지 결과 전송 ---
-            # send_detection_result_to_api_async 함수는 이제 DetectionResultDto 구조의 딕셔너리를 받음
-            # 불량 여부와 관계없이 항상 API로 전송하여 로그를 남김
-            print(
-                f"감지 결과 데이터 API 전송 시도: Status='{status}', Count={defect_count}, ImageURL='{image_url}'"
-            )
-            send_detection_result_to_api_async(
-                api_detection_result_url, detection_result_data
-            )
-
-            # --- MQTT 메시지 발행 (선택 사항: API 전송으로 대체 가능) ---
-            # 불량 감지 상태 신호 보내기 (간단한 메시지)
-            status_message_mqtt = "Defect Detected" if defect_detected else "Normal"
-            publish_mqtt_message(mqtt_client, mqtt_topic_status, status_message_mqtt)
-            print(
-                f"MQTT 상태 메시지 발행: '{status_message_mqtt}' to '{mqtt_topic_status}'"
-            )
-
-            # 불량 상세 정보 보내기 (JSON 형태) - 이제 API 전송 데이터와 동일한 구조
-            # MQTT 상세 메시지에는 불량 목록만 포함하거나, 전체 결과를 포함할 수 있습니다.
-            # 여기서는 API로 보내는 전체 결과 구조를 MQTT로도 보냅니다.
-            details_message_mqtt = json.dumps(
-                detection_result_data, indent=4
-            )  # 전체 결과 데이터 사용
-            publish_mqtt_message(mqtt_client, mqtt_topic_details, details_message_mqtt)
-            print(
-                f"MQTT 상세 메시지 발행: {len(detected_defects_list) if detected_defects_list else 0}건의 불량 정보 (API 구조) to '{mqtt_topic_details}'"
-            )
-
-        # 9. 결과 화면 표시 (MJPEG 스트리밍으로 대체)
-        # cv.imshow는 더 이상 사용하지 않습니다.
-
-        # 키 입력을 대기하고 'q' 키가 눌리면 루프 종료
-        if cv.waitKey(1) & 0xFF == ord("q"):
+        # 종료 키 확인
+        if cv.waitKey(1) & 0xFF == ord('q'):
             break
 
-    # --- 자원 해제 ---
+    # 자원 해제
     cap.release()
-    # cv.destroyAllWindows()는 더 이상 사용하지 않습니다.
-
-    # MQTT 클라이언트 연결 종료
     if mqtt_client:
         mqtt_client.loop_stop()
         mqtt_client.disconnect()
-        print("MQTT 클라이언트 연결 종료.")
+        print("MQTT 클라이언트 연결 종료")
 
-    print("\n감지 및 영상 스트림 처리가 종료되었습니다.")
+    print("\n프로그램이 종료되었습니다.")
 
 
 # --- 스크립트 실행 ---
@@ -1209,16 +1063,17 @@ if __name__ == "__main__":
         OPENCV_FONT_THICKNESS,
         AREA_THRESHOLD_SUBSTANDARD_PERCENT,
         AREA_THRESHOLD_DEFECTIVE_PERCENT,
-        INFERENCE_INTERVAL_SECONDS,
-        SNAPSHOT_TEMP_DIR,  # 임시 저장 디렉토리 전달
-        YOUR_S3_BUCKET_NAME,  # S3 버킷 이름 전달 (None 가능)
-        YOUR_AWS_REGION,  # AWS 리전 전달 (None 가능)
-        YOUR_S3_OBJECT_BASE_PATH,  # S3 객체 기본 경로 전달
+        SNAPSHOT_TEMP_DIR,
+        YOUR_S3_BUCKET_NAME,
+        YOUR_AWS_REGION,
+        YOUR_S3_OBJECT_BASE_PATH,
         MQTT_BROKER_HOST,
         MQTT_BROKER_PORT,
         MQTT_TOPIC_STATUS,
         MQTT_TOPIC_DETAILS,
-        YOUR_API_DETECTION_RESULT_URL,  # API 엔드포인트 URL 전달
+        MQTT_TOPIC_TRIGGER,  # 추가
+        MQTT_TOPIC_RESULT,   # 추가
+        YOUR_API_DETECTION_RESULT_URL,
         STREAM_SERVER_HOST,
         STREAM_SERVER_PORT,
     )

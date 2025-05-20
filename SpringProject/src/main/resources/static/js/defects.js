@@ -333,13 +333,6 @@ document.addEventListener("DOMContentLoaded", () => {
 			// 감지 로그 데이터의 JSON 구조에 맞게 파싱 및 처리 (List<DetectionLog> 객체 예상)
 			const logs = await response.json();
 
-			// --- 디버그 로그: 데이터 가져온 직후 순서 확인 ---
-			//console.log("--- Original Logs Order (after fetch) ---");
-			//logs.forEach((log) =>
-			//	console.log(log.id, new Date(log.detectionTime).toLocaleString()),
-			//);
-			//console.log("-----------------------------------------");
-
 			// 가져온 로그 데이터를 전역 변수에 저장 (모달에서 사용)
 			// 원본 순서 그대로 저장
 			detectionLogsData = logs;
@@ -350,13 +343,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				// --- 서버에서 이미 최신순으로 보내준다고 가정하고 reverse() 제거 ---
 				// 만약 서버에서 오래된 순서로 보내준다면 이 부분을 다시 logs.slice().reverse()로 변경해야 합니다.
 				const orderedLogsForDisplay = logs; // <-- reverse() 제거
-
-				// --- 디버그 로그: 테이블 표시용 순서 확인 ---
-				//console.log("--- Logs Order for Display ---");
-				//orderedLogsForDisplay.forEach((log) =>
-				//	console.log(log.id, new Date(log.detectionTime).toLocaleString()),
-				//);
-				//console.log("-----------------------------------------");
 
 				orderedLogsForDisplay.forEach((log) => {
 					// <-- 테이블 표시용 배열 순회
