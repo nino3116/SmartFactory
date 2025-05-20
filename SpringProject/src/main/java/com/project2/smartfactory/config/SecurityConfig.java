@@ -21,7 +21,7 @@ import org.springframework.security.web.SecurityFilterChain;
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers(new AntPathRequestMatcher("/api/defect", "POST")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/api/latest-defects", "GET")).permitAll()
-                    .requestMatchers(new AntPathRequestMatcher("/ui/**")).permitAll()
+                    // .requestMatchers(new AntPathRequestMatcher("/ui/**")).permitAll()
                     // AntPathRequstMatcher 는 개별적으로만 사용이 가능함
                     .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/admin/login")).permitAll() // 로그인 페이지 허용
