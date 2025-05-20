@@ -3,48 +3,212 @@
   lang="ko"
   xmlns:th="http://www.thymeleaf.org"
   xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-  layout:decorate="~{layout/base}"
->
+  layout:decorate="~{layout/base}">
   <head>
     <title layout:title="Defects"></title>
+    <link rel="stylesheet" th:href="@{/css/defects.css}" />
+    <style>
+      /*
+   이 부분은 defects.css에 포함되지 않은,
+   이 HTML 파일에만 적용되는 아주 특정한 스타일을 위한 공간입니다.
+   대부분의 스타일은 defects.css에 정의하는 것이 좋습니다.
+   */
+
+      /* 모달 기본 스타일 */
+      .modal {
+        display: none; /* 기본적으로 숨김 */
+        position: fixed; /* 화면에 고정 */
+        z-index: 1000; /* 다른 요소들 위에 표시 */
+        left: 0;
+        top: 0;
+        width: 100%; /* 전체 너비 */
+        height: 100%; /* 전체 높이 */
+        overflow: auto; /* 내용이 넘칠 경우 스크롤 */
+        background-color: rgba(0, 0, 0, 0.8); /* 배경 투명도 */
+        justify-content: center; /* 수평 중앙 정렬 */
+        align-items: center; /* 수직 중앙 정렬 */
+        /* flex를 사용하여 중앙 정렬하지만, display: none 일 때는 적용되지 않음 */
+      }
+
+      /* 모달 내용 스타일 */
+      .modal-content {
+        background-color: #fefefe;
+        margin: auto; /* 상하 자동 마진으로 중앙 정렬 */
+        padding: 20px;
+        border-radius: 8px; /* 둥근 모서리 */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 그림자 효과 */
+        max-width: 80%; /* 최대 너비 */
+        max-height: 90%; /* 최대 높이 */
+        overflow-y: auto; /* 내용이 길 경우 세로 스크롤 */
+        position: relative; /* 닫기 버튼 위치 기준 */
+      }
+
+      /* 닫기 버튼 스타일 */
+      .close-button {
+        color: #aaa;
+        /* float: right; 제거 - position: absolute 사용 시 불필요 */
+        font-size: 28px;
+        font-weight: bold;
+        position: absolute; /* 절대 위치 */
+        top: 10px;
+        right: 20px;
+        cursor: pointer;
+        z-index: 1001; /* 모달 내용 위에 표시 */
+      }
+
+      .close-button:hover,
+      .close-button:focus {
+        color: #000;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      /* 이미지 스타일 (모달 내 이미지) */
+      #modalImage {
+        display: block; /* 이미지 하단 공백 제거 */
+        margin: 0 auto; /* 이미지 중앙 정렬 */
+        max-width: 100%; /* 모달 내용 너비에 맞게 조절 */
+        height: auto; /* 비율 유지 */
+      }
+
+      /* 로그 상세 정보 스타일 */
+      #modalLogDetails p {
+        margin-bottom: 5px; /* 각 항목 하단 간격 */
+        line-height: 1.5; /* 줄 간격 */
+      }
+
+      /* defects.css에 있을 것으로 예상되는 스타일 (예시) */
+      .info-card {
+        background-color: #fff; /* 카드 배경색 */
+        border-radius: 8px; /* 둥근 모서리 */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 그림자 */
+        padding: 20px; /* 내부 패딩 */
+        margin-bottom: 20px; /* 하단 마진 */
+      }
+
+      .stream-status {
+        display: inline-block; /* 인라인 블록 요소로 만듦 */
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.9em;
+        margin-left: 10px;
+      }
+
+      .status-loading {
+        background-color: #ffc107; /* 노란색 */
+        color: #333;
+      }
+
+      .status-success {
+        background-color: #28a745; /* 초록색 */
+        color: white;
+      }
+
+      .status-error {
+        background-color: #dc3545; /* 빨간색 */
+        color: white;
+      }
+
+      /* 스크립트 상태 스타일 */
+      #script-status {
+        font-weight: bold;
+        margin-left: 10px;
+      }
+
+      /* 감지 로그 테이블 스크롤 컨테이너 */
+      .detection-log-scroll-container {
+        max-height: 400px; /* 최대 높이 설정 */
+        overflow-y: auto; /* 세로 스크롤 활성화 */
+        border: 1px solid #dee2e6; /* 경계선 */
+        border-radius: 4px; /* 둥근 모서리 */
+      }
+
+      /* 이미지 스타일 (테이블 내 이미지) */
+      .defect-image,
+      .log-image {
+        width: 50px; /* 이미지 너비 */
+        height: auto; /* 비율 유지 */
+        border-radius: 4px; /* 이미지 둥근 모서리 */
+        /* cursor: pointer; 제거 - 행 클릭으로 변경 */
+        /* transition: transform 0.2s ease-in-out; 제거 - 행 클릭으로 변경 */
+      }
+
+      /* .defect-image:hover, .log-image:hover {
+            transform: scale(1.1); 제거
+        } */
+
+      /* 로그 테이블 행에 호버 및 클릭 스타일 추가 */
+      #detection-log-table tbody tr {
+        cursor: pointer; /* 클릭 가능한 요소임을 표시 */
+        transition: background-color 0.2s ease-in-out; /* 호버 애니메이션 */
+      }
+
+      #detection-log-table tbody tr:hover {
+        background-color: #e9ecef; /* 호버 시 배경색 변경 */
+      }
+    </style>
   </head>
   <body>
     <div layout:fragment="content">
-      <h2 class="text-2xl font-semibold text-gray-700 mb-4">감지 화면</h2>
-      <div class="card">
-        <img
-          id="mjpeg-stream-img"
-          src="http://localhost:8080"
-          alt="MJPEG Stream"
-          style="width: 640px; height: 480px; display: block; margin: 0 auto"
-        />
-        <p id="stream-status-message" class="stream-status status-loading">
-          스트림 연결 중...
-        </p>
-      </div>
+      <h2 class="text-2xl font-semibold text-gray-700 mb-4">감지 및 제어</h2>
 
-      <h2 class="text-2xl font-semibold text-gray-700 mb-4 mt-6">
-        스크립트 제어
-      </h2>
-      <div class="script-control-panel">
-        <p>현재 상태: <span id="script-status">로딩 중...</span></p>
-        <button id="start-script-btn">스크립트 시작</button>
-        <button id="stop-script-btn">스크립트 중지</button>
+      <div class="flex flex-col md:flex-row md:flex-nowrap gap-6 mb-6">
+        <div
+          class="info-card w-full md:w-1/2 flex-grow flex-shrink-0 md:flex-shrink">
+          <h3 class="text-xl font-semibold text-gray-700 mb-4">감지 화면</h3>
+          <div class="card">
+            <img
+              id="mjpeg-stream-img"
+              src="http://localhost:8080"
+              alt="MJPEG Stream"
+              style="
+                width: 100%;
+                height: auto;
+                display: block;
+                margin: 0 auto;
+              " />
+            <p id="stream-status-message" class="stream-status status-loading">
+              스트림 연결 중...
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="info-card w-full md:w-1/2 flex-grow flex-shrink-0 md:flex-shrink">
+          <h3 class="text-xl font-semibold text-gray-700 mb-4">
+            스크립트 제어
+          </h3>
+          <div class="script-control-panel">
+            <p class="mb-4">
+              현재 상태: <span id="script-status">로딩 중...</span>
+            </p>
+            <button
+              id="start-script-btn"
+              class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">
+              스크립트 시작
+            </button>
+            <button
+              id="stop-script-btn"
+              class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">
+              스크립트 중지
+            </button>
+          </div>
+        </div>
       </div>
 
       <h2 class="text-2xl font-semibold text-gray-700 mb-4 mt-6">
         최신 불량 감지 결과
       </h2>
-      <div id="defect-list-container" class="overflow-x-auto">
+      <div id="defect-list-container" class="overflow-x-auto info-card">
         <table id="defect-table" class="min-w-full bg-white">
           <thead>
             <tr>
-              <th>클래스</th>
-              <th>사유</th>
-              <th>신뢰도</th>
-              <th>위치 (Box)</th>
-              <th>면적 비율 (%)</th>
-              <th>감지 사진</th>
+              <th class="py-2 px-4 border-b text-left">클래스</th>
+              <th class="py-2 px-4 border-b text-left">사유</th>
+              <th class="py-2 px-4 border-b text-left">신뢰도</th>
+              <th class="py-2 px-4 border-b text-left">위치 (Box)</th>
+              <th class="py-2 px-4 border-b text-left">면적 비율 (%)</th>
+              <th class="py-2 px-4 border-b text-center">감지 사진</th>
             </tr>
           </thead>
           <tbody>
@@ -60,30 +224,49 @@
       <h2 class="text-2xl font-semibold text-gray-700 mb-4 mt-6">
         감지 결과 로그
       </h2>
-      <div id="detection-log-container" class="overflow-x-auto">
-        <table id="detection-log-table" class="min-w-full bg-white">
-          <thead>
-            <tr>
-              <th>시간</th>
-              <th>상태</th>
-              <th>불량 유형 요약</th>
-              <th>불량 개수</th>
-              <th>이미지</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="5" class="py-4 px-4 text-center text-gray-500">
-                감지 로그 로딩 중...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="detection-log-scroll-container info-card">
+        <div id="detection-log-container" class="overflow-x-auto">
+          <table id="detection-log-table" class="min-w-full bg-white">
+            <thead>
+              <tr>
+                <th class="py-2 px-4 border-b text-left">시간</th>
+                <th class="py-2 px-4 border-b text-left">상태</th>
+                <th class="py-2 px-4 border-b text-left">불량 유형 요약</th>
+                <th class="py-2 px-4 border-b text-left">불량 개수</th>
+                <th class="py-2 px-4 border-b text-center">이미지</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="5" class="py-4 px-4 text-center text-gray-500">
+                  감지 로그 로딩 중...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="imageModal" class="modal">
+        <div class="modal-content">
+          <span class="close-button">&times;</span>
+          <img
+            id="modalImage"
+            src=""
+            alt="상세 이미지"
+            style="max-width: 100%; height: auto" />
+          <div
+            id="modalLogDetails"
+            style="
+              margin-top: 20px;
+              padding-top: 20px;
+              border-top: 1px solid #eee;
+            "></div>
+        </div>
       </div>
     </div>
-
-    <th:block layout:append="script">
-      <script src="/js/defects.js"></script>
+    <th:block layout:fragment="script">
+      <script th:src="@{/js/defects.js}"></script>
     </th:block>
   </body>
 </html>
