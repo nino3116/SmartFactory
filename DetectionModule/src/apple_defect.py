@@ -31,10 +31,10 @@ MODEL_PATH = "wsl_seg_best.pt"
 VIDEO_STREAM_URL = "http://192.168.0.124:8000/stream.mjpg"
 
 # 3. 탐지 임계값 (Confidence Threshold) - 모델이 객체를 얼마나 확신할 때 감지할지 결정
-CONF_THRESHOLD = 0.5  # 필요에 따라 조정하세요 (예: 0.3, 0.7 등)
+CONF_THRESHOLD = 0.4  # 필요에 따라 조정하세요 (예: 0.3, 0.7 등)
 
 # 4. IOU 임계값 (NMS IoU Threshold) - 겹치는 바운딩 박스 중 하나만 남길 기준
-IOU_THRESHOLD = 0.5  # 필요에 따라 조정하세요 (예: 0.4, 0.6 등)
+IOU_THRESHOLD = 0.4  # 필요에 따라 조정하세요 (예: 0.4, 0.6 등)
 
 # 5. 결과 시각화 창 표시 여부
 SHOW_DETECTION_WINDOW = True
@@ -815,32 +815,40 @@ class MJPEGStreamHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
 
         while True:
-            # 최신 프레임에 접근하기 위해 잠금 획득
-            with frame_lock:
-                frame = latest_annotated_frame  # 전역 변수에서 최신 시각화된 프레임 가져오기
+            try:  # ConnectionAbortedError 처리를 위한 try-except 블록 추가
+                # 최신 프레임에 접근하기 위해 잠금 획득
+                with frame_lock:
+                    frame = latest_annotated_frame  # 전역 변수에서 최신 시각화된 프레임 가져오기
 
-            if frame is not None:
-                # 프레임을 JPEG 형식으로 인코딩
-                ret, jpeg = cv.imencode(".jpg", frame)
+                if frame is not None:
+                    # 프레임을 JPEG 형식으로 인코딩
+                    ret, jpeg = cv.imencode(".jpg", frame)
 
-                if ret:
-                    # 이미지 데이터를 바이트 스트림으로 변환
-                    frame_bytes = jpeg.tobytes()
+                    if ret:
+                        # 이미지 데이터를 바이트 스트림으로 변환
+                        frame_bytes = jpeg.tobytes()
 
-                    # MJPEG 스트림 파트 헤더 전송
-                    self.wfile.write(b"--frame\r\n")
-                    self.wfile.write(b"Content-Type: image/jpeg\r\n")
-                    self.wfile.write(
-                        f"Content-Length: {len(frame_bytes)}\r\n".encode("utf-8")
-                    )
-                    self.wfile.write(b"\r\n")
-                    # 이미지 데이터 전송
-                    self.wfile.write(frame_bytes)
-                    self.wfile.write(b"\r\n")
+                        # MJPEG 스트림 파트 헤더 전송
+                        self.wfile.write(b"--frame\r\n")
+                        self.wfile.write(b"Content-Type: image/jpeg\r\n")
+                        self.wfile.write(
+                            f"Content-Length: {len(frame_bytes)}\r\n".encode("utf-8")
+                        )
+                        self.wfile.write(b"\r\n")
+                        # 이미지 데이터 전송
+                        self.wfile.write(frame_bytes)
+                        self.wfile.write(b"\r\n")
 
-            # 다음 프레임 전송까지 잠시 대기 (스트림 속도 제어)
-            # 너무 빠르게 보내면 네트워크 부하가 커질 수 있습니다.
-            time.sleep(0.03)  # 약 30 FPS (1/30초)
+                # 다음 프레임 전송까지 잠시 대기 (스트림 속도 제어)
+                # 너무 빠르게 보내면 네트워크 부하가 커질 수 있습니다.
+                time.sleep(0.03)  # 약 30 FPS (1/30초)
+            except ConnectionAbortedError:
+                # 클라이언트가 연결을 끊었을 때 발생하는 오류이므로, 정상적인 종료로 간주하고 루프를 빠져나옵니다.
+                print(f"MJPEG 스트리밍 클라이언트 연결 중단: {self.client_address}")
+                break  # 루프 종료
+            except Exception as e:
+                print(f"MJPEG 스트리밍 중 예상치 못한 오류 발생: {e}")
+                break  # 다른 오류 발생 시에도 루프 종료
 
 
 # MJPEG 스트리밍 서버를 실행하는 함수
@@ -888,8 +896,8 @@ def perform_detection(
     """
     global latest_raw_frame, latest_yolo_results, latest_annotated_frame
 
-    print("\n--- MQTT 트리거 감지 시작 (1초 대기) ---")
-    time.sleep(3)  # 요청된 1초 대기
+    print("\n--- MQTT 트리거 감지 시작 (5초 대기) ---")
+    time.sleep(5)  # 요청된 5초 대기
 
     # 최신 프레임과 YOLO 결과를 가져오기 위해 잠금 획득
     current_raw_frame = None

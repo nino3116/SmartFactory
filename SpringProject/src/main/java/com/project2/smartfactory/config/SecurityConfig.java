@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .ignoringRequestMatchers(new AntPathRequestMatcher("/api/defect", "POST"))
                 // /api/control/** (POST)에 대해 CSRF 보호 비활성화 추가
                 .ignoringRequestMatchers(new AntPathRequestMatcher("/api/control/**"))
+                .ignoringRequestMatchers(new AntPathRequestMatcher("/api/settings/daily-total-tasks", "POST"))
             );
         return http.build();
     }
