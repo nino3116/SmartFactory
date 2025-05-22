@@ -25,12 +25,16 @@ public class MqttStatusSubscriber {
 
     // 구독할 토픽 (controller.py에서 상태를 발행하는 토픽과 일치해야 함)
     @Value("${mqtt.topic.script.status}")
-    private String statusTopic;
+    private String scriptStatusTopic;
+
+    @Value("${mqtt.topic.system.status}")
+    private String systemStatusTopic;
 
     private MqttClient mqttClient;
 
     // 스크립트의 현재 상태를 저장할 변수 (기본값 설정)
     private String currentScriptStatus = "Unknown"; // 초기 상태
+    private String currentSystemStatus = "Unknown"; // 초기 상태
 
     // 컴포넌트 초기화 시 MQTT 클라이언트 연결 및 토픽 구독
     @PostConstruct
@@ -49,7 +53,7 @@ public class MqttStatusSubscriber {
 
             // 토픽 구독 및 메시지 리스너 설정
             // IMqttMessageListener는 메시지 수신 시 실행될 콜백 함수를 정의합니다.
-            mqttClient.subscribe(statusTopic, new IMqttMessageListener() {
+            mqttClient.subscribe(scriptStatusTopic, new IMqttMessageListener() {
                 @Override
                 public void messageArrived(String topic, MqttMessage message) throws Exception {
                     String statusMessage = new String(message.getPayload());
@@ -59,7 +63,19 @@ public class MqttStatusSubscriber {
                 }
             });
 
-            System.out.println(String.format("토픽 구독 (Subscriber): %s", statusTopic));
+            System.out.println(String.format("스크립트 상태 토픽 구독 (Subscriber): %s", scriptStatusTopic));
+
+            mqttClient.subscribe(systemStatusTopic, new IMqttMessageListener() {
+                @Override
+                public void messageArrived(String topic, MqttMessage message) throws Exception {
+                    String statusMessage = new String(message.getPayload());
+                    System.out.println(String.format("MQTT 상태 메시지 수신: 토픽='%s', 메시지='%s'", topic, statusMessage));
+                    // 수신된 상태 메시지를 전역 변수에 저장
+                    currentSystemStatus = statusMessage;
+                }
+            });
+
+            System.out.println(String.format("시스템 상태 토픽 구독 (Subscriber): %s", systemStatusTopic));
 
         } catch (MqttException me) {
             System.err.println("MQTT Subscriber 연결/구독 오류: " + me.getMessage());
@@ -92,5 +108,9 @@ public class MqttStatusSubscriber {
      */
     public String getCurrentScriptStatus() {
         return currentScriptStatus;
+    }
+
+    public String getCurrentSystemStatus() {
+        return currentSystemStatus;
     }
 }

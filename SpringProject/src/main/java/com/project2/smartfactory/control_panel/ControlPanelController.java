@@ -15,6 +15,4 @@ public class ControlPanelController {
     model.addAttribute("activebutton", "control_panel");
     return "pages/control_panel";
   }
-
-
 }
