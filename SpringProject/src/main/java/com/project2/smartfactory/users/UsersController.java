@@ -36,14 +36,16 @@ public class UsersController {
 
     // POST: 비밀번호 변경 처리
     @PostMapping("/password/edit")
-    public String updateAdminPassword(@Valid AdminPasswordForm adminPasswordForm,
-                                      BindingResult bindingResult,
-                                      Model model) {
+    public String updateAdminPassword(@Valid AdminPasswordForm adminPasswordForm, BindingResult bindingResult, Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Users user = usersService.getUserByUsername(auth.getName());
 
         if (!usersService.checkAdminPassword(adminPasswordForm.getCurrentPassword(), user.getAdminPasswordHash())) {
             bindingResult.rejectValue("currentPassword", "invalid", "현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        if (usersService.checkAdminPassword(adminPasswordForm.getNewPassword(), user.getAdminPasswordHash())) {
+            bindingResult.rejectValue("newPassword", "same", "새 비밀번호가 현재 비밀번호와 같습니다.");
         }
 
         if (bindingResult.hasErrors()) {

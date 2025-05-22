@@ -1,12 +1,10 @@
 package com.project2.smartfactory.defect;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import ch.qos.logback.core.model.Model;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
@@ -45,11 +42,11 @@ public class DefectController {
 
         // 수신된 detectionResultDto가 null이 아닌지 확인하고 처리합니다.
         if (detectionResultDto == null) {
-             System.err.println("수신된 감지 결과 데이터가 null입니다.");
-             Map<String, String> errorBody = new HashMap<>();
-             errorBody.put("status", "error");
-             errorBody.put("message", "Received detection result data is null");
-             return new ResponseEntity<>(errorBody, HttpStatus.BAD_REQUEST);
+            System.err.println("수신된 감지 결과 데이터가 null입니다.");
+            Map<String, String> errorBody = new HashMap<>();
+            errorBody.put("status", "error");
+            errorBody.put("message", "Received detection result data is null");
+            return new ResponseEntity<>(errorBody, HttpStatus.BAD_REQUEST);
         }
 
         System.out.println("수신된 감지 결과: " + detectionResultDto.toString()); // 수신된 DTO 로깅
