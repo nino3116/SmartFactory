@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }).then(() => fetchAndDisplayControlLogs());
       }else{
         status = (data=="Unknown")?data:JSON.parse(data)['status'];
-        if (status != prev_status){
+        if (status != prev_status && !prev_status.includes("Loading")){
           await $.get('/ctrl/system/detect_change/'+prev_status+'/'+status, function (data) {
             console.log('/ctrl/system/detect_change/'+prev_status+'/'+status);
           }).then(() => fetchAndDisplayControlLogs());
@@ -121,6 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await $.get('/api/control/system/start', function (data) {
       console.log(`${data}`);
     });
+    await setTimeout(500);
     await $.get('/api/status/system', function (data) {
       result = (data=="Unknown")?data:JSON.parse(data)['status'];
     });
@@ -136,6 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await $.get('/api/control/system/stop', function (data) {
       console.log(`${data}`);
     });
+    await setTimeout(500);
     await $.get('/api/status/system', function (data) {
       result = (data=="Unknown")?data:JSON.parse(data)['status'];
     });
@@ -182,6 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				"status-error",
 			);
 			// 새 상태 클래스 추가 (stateClass 값에 따라)
+      console.log(stateClass);
 			if (stateClass === "loading") {
 				scriptStatusSpan.classList.add("status-loading");
         checkScriptStatus.classList.add("status-loading");
@@ -239,16 +242,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			// 서버 응답 문자열에 따라 상태 클래스 결정 (예시)
 			let stateClass = "info"; // 기본 상태 (필요하다면 CSS 클래스 추가)
-			if (status.includes("실행 중") || status.includes("Running")) {
-				stateClass = "success";
-			} else if (status.includes("중지됨") || status.includes("Stopped")) {
+			if (status.includes("중지됨") || status.includes("Stopped") || status.includes("Not Running")) {
 				stateClass = "error"; // 중지 상태를 오류로 표시하거나 다른 클래스 사용
+			} else if (status.includes("실행 중") || status.includes("Running") || status.includes("Started")) {
+				stateClass = "success";
 			} else if (status.includes("오류") || status.includes("Error")) {
 				stateClass = "error";
 			} else if (status.includes("로딩") || status.includes("Loading")) {
 				stateClass = "loading";
 			} else {
-        stateClass = "success";
+        stateClass = "loading";
       }
 
 			updateScriptStatus(status, stateClass); // 가져온 상태와 클래스로 업데이트

@@ -69,6 +69,8 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
     @PostConstruct // Spring 애플리케이션 시작 시 실행
     public void init() {
         connectAndSubscribe();
+        this.getCurrentScriptStatus();
+        this.getCurrentSystemStatus();
     }
 
     /**
