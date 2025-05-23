@@ -48,6 +48,10 @@ document.addEventListener("DOMContentLoaded", () => {
     var prev_status = systemStatus.textContent;
     await $.get('/api/status/system', async function (data) {
       console.log(`${data}`);
+
+      if (data.substr(0,2)=="<!"){
+        window.location.reload(true);
+      }
       var status = data;
 
       if(data == "Unknown" && prev_status != "Unknown"){
@@ -228,6 +232,10 @@ document.addEventListener("DOMContentLoaded", () => {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 			const status = await response.text(); // 상태는 단순 문자열로 예상
+
+      if (status.includes("<!")){
+        window.location.reload(true);
+      }
 
 			// 서버 응답 문자열에 따라 상태 클래스 결정 (예시)
 			let stateClass = "info"; // 기본 상태 (필요하다면 CSS 클래스 추가)
