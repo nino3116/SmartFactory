@@ -108,10 +108,10 @@ public class MqttSubscriberService implements MqttCallback {
                 System.out.println("Defect Details Received:");
                 for (DefectInfo defect : defectDetails) {
                     System.out.println(" - Class: " + defect.getClazz() +
-                                       ", Reason: " + defect.getReason() +
-                                       ", Detailed Reason: " + defect.getDetailedReason() +
-                                       ", Confidence: " + defect.getConfidence() +
-                                       ", Box Location: " + defect.getBox()
+                                    ", Reason: " + defect.getReason() +
+                                    ", Detailed Reason: " + defect.getDetailedReason() +
+                                    ", Confidence: " + defect.getConfidence() +
+                                    ", Box Location: " + defect.getBox()
 
                     );
                     // TODO: 파싱된 불량 정보를 데이터베이스에 저장, 웹 페이지에 표시 등 후처리 로직 구현

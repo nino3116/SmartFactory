@@ -67,8 +67,8 @@ public class MqttStatusSubscriber {
             mqttClient = null;
             currentScriptStatus = "Subscription Failed"; // 구독 실패 상태 표시
         } catch (Exception e) {
-             System.err.println("MQTT Subscriber 초기화 중 예상치 못한 오류 발생: " + e.getMessage());
-             mqttClient = null;
+            System.err.println("MQTT Subscriber 초기화 중 예상치 못한 오류 발생: " + e.getMessage());
+            mqttClient = null;
              currentScriptStatus = "Initialization Error"; // 초기화 오류 상태 표시
         }
     }

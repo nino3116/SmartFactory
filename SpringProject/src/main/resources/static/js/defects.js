@@ -317,9 +317,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 		detectionLogTableBody.innerHTML = `
                 <tr>
-                   <td colspan="5" class="py-4 px-4 text-center text-gray-500">
-                         감지 로그 가져오는 중...
-                   </td>
+									<td colspan="5" class="py-4 px-4 text-center text-gray-500">
+												감지 로그 가져오는 중...
+									</td>
                 </tr>
               `; // 로딩 메시지
 
@@ -465,9 +465,9 @@ document.addEventListener("DOMContentLoaded", () => {
 			console.error("감지 로그를 가져오는 중 오류 발생:", error);
 			detectionLogTableBody.innerHTML = `
                     <tr>
-                       <td colspan="5" class="py-4 px-4 text-center text-red-500">
-                            오류 발생: ${escapeHTML(error.message)}
-                       </td>
+											<td colspan="5" class="py-4 px-4 text-center text-red-500">
+													오류 발생: ${escapeHTML(error.message)}
+											</td>
                     </tr>
                   `;
 		}

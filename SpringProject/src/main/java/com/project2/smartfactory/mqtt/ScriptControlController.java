@@ -48,7 +48,7 @@ public class ScriptControlController {
     @PostMapping("/control/stop")
     public ResponseEntity<String> stopScript() {
         System.out.println("웹 요청: 스크립트 중지 명령 수신");
-         try {
+        try {
             // MQTT Publisher 서비스를 사용하여 명령 토픽으로 "STOP" 메시지 발행
             mqttPublisherService.publishMessage(commandTopic, "STOP", 2, false); // QoS 1, Retained false
             return ResponseEntity.ok("스크립트 중지 명령 발행 성공");

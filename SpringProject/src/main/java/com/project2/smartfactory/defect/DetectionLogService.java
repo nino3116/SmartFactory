@@ -78,20 +78,20 @@ public class DetectionLogService {
         if (logs.isEmpty()) {
             logger.warn("No detection logs found. Returning empty chart data."); // logger 사용
             // 빈 데이터로 초기화된 Map 반환
-             return Map.of(
-                 "overallStatus", Map.of("labels", List.of("Normal", "Defective","Substandard"), "data", List.of(0L, 0L)),
-                 "weeklyDefectTrend", Map.of("labels", List.of(), "data", List.of()),
-                 // yearlyDefectTrend 구조 수정: data에 불량률 리스트 포함
-                 "yearlyDefectTrend", Map.of("labels", List.of(), "data", List.of()),
-                 "dailyStatus", Map.of("labels", List.of("Normal", "Defective","Substandard"), "data", List.of(0L, 0L)),
-                 "dailyTaskCompletion", Map.of(
-                     "labels", List.of("오늘 작업"),
-                     "datasets", List.of(
-                         Map.of("label", "완료", "data", List.of(0L)),
-                         Map.of("label", "미완료", "data", List.of((long) totalTasks))
-                     )
-                 )
-             );
+            return Map.of(
+                "overallStatus", Map.of("labels", List.of("Normal", "Defective","Substandard"), "data", List.of(0L, 0L)),
+                "weeklyDefectTrend", Map.of("labels", List.of(), "data", List.of()),
+                // yearlyDefectTrend 구조 수정: data에 불량률 리스트 포함
+                "yearlyDefectTrend", Map.of("labels", List.of(), "data", List.of()),
+                "dailyStatus", Map.of("labels", List.of("Normal", "Defective","Substandard"), "data", List.of(0L, 0L)),
+                "dailyTaskCompletion", Map.of(
+                    "labels", List.of("오늘 작업"),
+                    "datasets", List.of(
+                        Map.of("label", "완료", "data", List.of(0L)),
+                        Map.of("label", "미완료", "data", List.of((long) totalTasks))
+                    )
+                )
+            );
         }
 
         Map<String, Object> chartData = new java.util.HashMap<>();
@@ -190,7 +190,7 @@ public class DetectionLogService {
 
                     // 해당 월의 불량 개수를 합산 ("Defective" 상태인 경우만)
                     if ("Defective".equals(log.getStatus()) || "Substandard".equals(log.getStatus())) {
-                         monthlyDefectCounts.compute(monthKey, (k, v) -> (v == null ? 0L : v) + (log.getDefectCount() != null ? log.getDefectCount() : 0L));
+                        monthlyDefectCounts.compute(monthKey, (k, v) -> (v == null ? 0L : v) + (log.getDefectCount() != null ? log.getDefectCount() : 0L));
                     }
 
                     // TODO: 해당 월의 총 생산/검사량 데이터를 합산하는 로직 추가
