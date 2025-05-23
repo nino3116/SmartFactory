@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api")
 public class SystemControlController {
   private final MqttPublisherService mqttPublisherService;
-  private final MqttStatusSubscriber mqttStatusSubscriber;
+  private final MqttSubscriberService mqttSubscriberService;
 
   @Value("${mqtt.topic.system.command}")
   private String commandTopic;
@@ -64,7 +64,7 @@ public class SystemControlController {
     public ResponseEntity<String> getSystemStatus() {
         System.out.println("웹 요청: 시스템 상태 조회 수신");
         // MQTT Status Subscriber로부터 현재 상태 가져와서 반환
-        String status = mqttStatusSubscriber.getCurrentSystemStatus();
+        String status = mqttSubscriberService.getCurrentSystemStatus();
         System.out.println("현재 시스템 상태: " + status);
         return ResponseEntity.ok(status);
     }
