@@ -62,10 +62,10 @@ public class SystemControlController {
      */
     @GetMapping("/status/system")
     public ResponseEntity<String> getSystemStatus() {
-        System.out.println("웹 요청: 시스템 상태 조회 수신");
+        // System.out.println("웹 요청: 시스템 상태 조회 수신");
         // MQTT Status Subscriber로부터 현재 상태 가져와서 반환
         String status = mqttSubscriberService.getCurrentSystemStatus();
-        System.out.println("현재 시스템 상태: " + status);
+        // System.out.println("현재 시스템 상태: " + status);
         return ResponseEntity.ok(status);
     }
 }
