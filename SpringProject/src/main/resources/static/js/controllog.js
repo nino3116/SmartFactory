@@ -3,165 +3,313 @@ document.addEventListener("DOMContentLoaded", () => {
   const SPRING_BOOT_BASE_URL = "http://localhost:80"; // Spring Boot 기본 URL (예: "http://localhost:8080")
   const CONTROL_LOGS_API_URL = `${SPRING_BOOT_BASE_URL}/ctrl/logs`;
 
-  const LOGS_UPDATE_INTERVAL = 60000; // 예: 60초
+	const SCRIPT_CONTROL_START_URL = `${SPRING_BOOT_BASE_URL}/api/control/start`; // 스크립트 시작 API 엔드포인트
+	const SCRIPT_CONTROL_STOP_URL = `${SPRING_BOOT_BASE_URL}/api/control/stop`; // 스크립트 중지 API 엔드포인트
+	const SCRIPT_STATUS_API_URL = `${SPRING_BOOT_BASE_URL}/api/status/script`; // 스크립트 상태 조회 API 엔드포인트
+
+  const STATUS_UPDATE_INTERVAL = 5000; // 스크립트 상태는 자주 확인해도 부담 적음
+  const LOGS_UPDATE_INTERVAL = 5000;
 
   const controlLogTableBody = document.querySelector(
 		"#control-log-table tbody",
 	);
 
-      // === 상태 표시 엘리먼트와 버튼 그룹 ===
-        const systemStatus = document.getElementById("system-status");
-        const checkSystemStatus = document.getElementById("check-system-status");
-        const sensorStatus = document.getElementById("sensor-status");
-        const buzzerStatus = document.getElementById("buzzer-status");
+  // === 상태 표시 엘리먼트와 버튼 그룹 ===
+  const systemStatus = document.getElementById("system-status");
+  const checkSystemStatus = document.getElementById("check-system-status");
+  const checkscriptStatus = document.getElementById("check-script-status");
+  const scriptStatusSpan = document.getElementById("script-status");
+	const startScriptBtn = document.getElementById("start-script-btn");
+	const stopScriptBtn = document.getElementById("stop-script-btn");
+  // const sensorStatus = document.getElementById("sensor-status");
+  // const buzzerStatus = document.getElementById("buzzer-status");
 
-        const startBtn = document.getElementById("btn-start");
-        const stopBtn = document.getElementById("btn-stop");
+  const startBtn = document.getElementById("btn-start");
+  const stopBtn = document.getElementById("btn-stop");
 
-        const toggleButtons = document.querySelectorAll(".toggle-button");
+  const toggleButtons = document.querySelectorAll(".toggle-button");
 
-        // === 유틸: 상태 텍스트 + 색상 클래스 변경 ===
-        async function updateStatus(el, isOn) {
-          el.textContent = isOn ? "ON" : "OFF";
-          el.classList.toggle("text-green-600", isOn);
-          el.classList.toggle("text-gray-600", !isOn);
-        }
+  // === 유틸: 상태 텍스트 + 색상 클래스 변경 ===
+  async function updateStatus(el, isOn) {
+    el.textContent = isOn ? "ON" : "OFF";
+    el.classList.toggle("text-green-600", isOn);
+    el.classList.toggle("text-gray-600", !isOn);
+  }
 
-        async function updateSystemStatus(){
-          var prev_status = systemStatus.textContent;
-          await $.get('/api/status/system', async function (data) {
-            console.log(`${data}`);
-            var status = data;
-            systemStatus.textContent = status;
-            checkSystemStatus.textContent = status;
+  async function fetchAndDisplaySystemStatus(){
+    var prev_status = systemStatus.textContent;
+    await $.get('/api/status/system', async function (data) {
+      console.log(`${data}`);
+      var status = data;
+      systemStatus.textContent = status;
+      checkSystemStatus.textContent = status;
 
-            if(data == "Unknown" && prev_status != "Unknown"){
-              status = data;
-              await $.get('/ctrl/system/check/detect_error/'+status, function (data) {
-                console.log('/ctrl/system/check/detect_error/'+status);
-              }).then(() => fetchAndDisplayControlLogs());
-            }else{
-              status = (data=="Unknown")?data:JSON.parse(data)['status'];
-              if (status != prev_status){
-                await $.get('/ctrl/system/detect_change/'+prev_status+'/'+status, function (data) {
-                  console.log('/ctrl/system/detect_change/'+prev_status+'/'+status);
-                }).then(() => fetchAndDisplayControlLogs());
-              }
-
-              if (status === "running"){
-                isOn = true;
-              }else{
-                isOn = false;
-              }
-              systemStatus.classList.toggle("text-green-600", isOn);
-              systemStatus.classList.toggle("text-gray-600", !isOn);
-              checkSystemStatus.classList.toggle("text-green-600", isOn);
-              checkSystemStatus.classList.toggle("text-gray-600", !isOn);
-            }
-            
-            
-          });
-        }
-
-        // === 유틸: 버튼 색상 상태 변경 (하이라이트) ===
-        function setActiveButton(activeBtn, inactiveBtn) {
-          activeBtn.classList.add(
-            "ring-2",
-            "ring-offset-2",
-            "ring-green-300",
-            "font-bold"
-          );
-          inactiveBtn.classList.remove(
-            "ring-2",
-            "ring-offset-2",
-            "ring-green-300",
-            "font-bold"
-          );
-        }
-
-        function setInactiveButton(activeBtn, inactiveBtn) {
-          activeBtn.classList.add(
-            "ring-2",
-            "ring-offset-2",
-            "ring-red-300",
-            "font-bold"
-          );
-          inactiveBtn.classList.remove(
-            "ring-2",
-            "ring-offset-2",
-            "ring-red-300",
-            "font-bold"
-          );
-        }
-
-        // === 시스템 시작/중지 버튼 제어 ===
-        startBtn.addEventListener("click", async () => {
-          var status = systemStatus.textContent;
-          var result = "Unknown";
-          await $.get('/api/control/system/start', function (data) {
-            console.log(`${data}`);
-          });
-          await $.get('/api/status/system', function (data) {
-            result = (data=="Unknown")?data:JSON.parse(data)['status'];
-          });
-          await $.get('/ctrl/system/on/'+status+'/'+result, function (data) {
-            console.log('/ctrl/system/on/'+status+'/'+result);
+      if(data == "Unknown" && prev_status != "Unknown"){
+        status = data;
+        await $.get('/ctrl/system/check/detect_error/'+status, function (data) {
+          console.log('/ctrl/system/check/detect_error/'+status);
+        }).then(() => fetchAndDisplayControlLogs());
+      }else{
+        status = (data=="Unknown")?data:JSON.parse(data)['status'];
+        if (status != prev_status){
+          await $.get('/ctrl/system/detect_change/'+prev_status+'/'+status, function (data) {
+            console.log('/ctrl/system/detect_change/'+prev_status+'/'+status);
           }).then(() => fetchAndDisplayControlLogs());
-          updateSystemStatus();
-          // setActiveButton(startBtn, stopBtn);
-        });
+        }
 
-        stopBtn.addEventListener("click", async () => {
-          var status = systemStatus.textContent;
-          var result = "Unknown";
-          await $.get('/api/control/system/stop', function (data) {
-            console.log(`${data}`);
-          });
-          await $.get('/api/status/system', function (data) {
-            result = (data=="Unknown")?data:JSON.parse(data)['status'];
-          });
-          await $.get('/ctrl/system/off/'+status+'/'+result, function (data) {
-            console.log('/ctrl/system/off/'+status+'/'+result);
-          }).then(() => fetchAndDisplayControlLogs());
-          updateSystemStatus();
-          // setInactiveButton(stopBtn, startBtn);
-        });
+        if (status === "running"){
+          isOn = true;
+        }else{
+          isOn = false;
+        }
+        systemStatus.classList.toggle("text-green-600", isOn);
+        systemStatus.classList.toggle("text-gray-600", !isOn);
+        checkSystemStatus.classList.toggle("text-green-600", isOn);
+        checkSystemStatus.classList.toggle("text-gray-600", !isOn);
+      }
+      
+      
+    });
+  }
 
-        // === 센서/부저 제어 버튼 제어 ===
-        toggleButtons.forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const target = btn.dataset.target; // sensor or buzzer
-            const action = btn.dataset.action; // on or off
-            const statusEl = document.getElementById(`${target}-status`);
-            const btnOn = document.getElementById(`btn-${target}-on`);
-            const btnOff = document.getElementById(`btn-${target}-off`);
+  // === 유틸: 버튼 색상 상태 변경 (하이라이트) ===
+  function setActiveButton(activeBtn, inactiveBtn) {
+    activeBtn.classList.add(
+      "ring-2",
+      "ring-offset-2",
+      "ring-green-300",
+      "font-bold"
+    );
+    inactiveBtn.classList.remove(
+      "ring-2",
+      "ring-offset-2",
+      "ring-green-300",
+      "font-bold"
+    );
+  }
 
-            const isOn = action === "on";
-            updateStatus(statusEl, isOn);
+  function setInactiveButton(activeBtn, inactiveBtn) {
+    activeBtn.classList.add(
+      "ring-2",
+      "ring-offset-2",
+      "ring-red-300",
+      "font-bold"
+    );
+    inactiveBtn.classList.remove(
+      "ring-2",
+      "ring-offset-2",
+      "ring-red-300",
+      "font-bold"
+    );
+  }
 
-            if (isOn) {
-              setActiveButton(btnOn, btnOff);
-            } else {
-              setInactiveButton(btnOff, btnOn);
-            }
-          });
-        });
+  // === 시스템 시작/중지 버튼 제어 ===
+  startBtn.addEventListener("click", async () => {
+    var status = systemStatus.textContent;
+    var result = "Unknown";
+    await $.get('/api/control/system/start', function (data) {
+      console.log(`${data}`);
+    });
+    await $.get('/api/status/system', function (data) {
+      result = (data=="Unknown")?data:JSON.parse(data)['status'];
+    });
+    await $.get('/ctrl/system/on/'+status+'/'+result, function (data) {
+      console.log('/ctrl/system/on/'+status+'/'+result);
+    }).then(() => fetchAndDisplayControlLogs());
+    updateSystemStatus();
+    // setActiveButton(startBtn, stopBtn);
+  });
 
-        // === 초기 상태 설정 ===
-        updateStatus(systemStatus, false);
-        setInactiveButton(stopBtn, startBtn);
+  stopBtn.addEventListener("click", async () => {
+    var status = systemStatus.textContent;
+    var result = "Unknown";
+    await $.get('/api/control/system/stop', function (data) {
+      console.log(`${data}`);
+    });
+    await $.get('/api/status/system', function (data) {
+      result = (data=="Unknown")?data:JSON.parse(data)['status'];
+    });
+    await $.get('/ctrl/system/off/'+status+'/'+result, function (data) {
+      console.log('/ctrl/system/off/'+status+'/'+result);
+    }).then(() => fetchAndDisplayControlLogs());
+    updateSystemStatus();
+    // setInactiveButton(stopBtn, startBtn);
+  });
 
-        updateStatus(sensorStatus, false);
-        setInactiveButton(
-          document.getElementById("btn-sensor-off"),
-          document.getElementById("btn-sensor-on")
-        );
+  // === 센서/부저 제어 버튼 제어 ===
+  toggleButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.target; // sensor or buzzer
+      const action = btn.dataset.action; // on or off
+      const statusEl = document.getElementById(`${target}-status`);
+      const btnOn = document.getElementById(`btn-${target}-on`);
+      const btnOff = document.getElementById(`btn-${target}-off`);
 
-        updateStatus(buzzerStatus, false);
-        setInactiveButton(
-          document.getElementById("btn-buzzer-off"),
-          document.getElementById("btn-buzzer-on")
-        );
+      const isOn = action === "on";
+      updateStatus(statusEl, isOn);
+
+      if (isOn) {
+        setActiveButton(btnOn, btnOff);
+      } else {
+        setInactiveButton(btnOff, btnOn);
+      }
+    });
+  });
+
+  // 스크립트 상태 업데이트 함수 (UI 표시)
+	function updateScriptStatus(statusText, stateClass) {
+		if (scriptStatusSpan) {
+			scriptStatusSpan.textContent = statusText;
+      checkscriptStatus.textContent = statusText;
+			// 기존 상태 클래스 제거
+			scriptStatusSpan.classList.remove(
+				"status-loading",
+				"status-success",
+				"status-error",
+			);
+      checkscriptStatus.classList.remove(
+				"status-loading",
+				"status-success",
+				"status-error",
+			);
+			// 새 상태 클래스 추가 (stateClass 값에 따라)
+			if (stateClass === "loading") {
+				scriptStatusSpan.classList.add("status-loading");
+        checkscriptStatus.classList.add("status-loading");
+			} else if (stateClass === "success") {
+				scriptStatusSpan.classList.add("status-success");
+        checkscriptStatus.classList.add("status-loading");
+			} else if (stateClass === "error") {
+				scriptStatusSpan.classList.add("status-error");
+        checkscriptStatus.classList.add("status-loading");
+			} else {
+				// 기본 상태 (stateClass가 없을 경우)
+				scriptStatusSpan.classList.add("status-loading"); // 기본적으로 로딩 상태로 표시
+        checkscriptStatus.classList.add("status-loading");
+			}
+		} else {
+			console.error("Error: 스크립트 상태 표시 요소를 찾을 수 없습니다.");
+		}
+	}
+
+	// 스크립트 상태를 가져와서 표시하는 함수 (Fetch API 사용)
+	async function fetchAndDisplayScriptStatus() {
+		if (!scriptStatusSpan) return;
+
+		updateScriptStatus("상태 확인 중...", "loading"); // 상태 확인 시작 시 로딩 표시
+
+		try {
+			const response = await fetch(SCRIPT_STATUS_API_URL);
+			if (!response.ok) {
+				updateScriptStatus(`상태 오류: ${response.status}`, "error");
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			const status = await response.text(); // 상태는 단순 문자열로 예상
+
+			// 서버 응답 문자열에 따라 상태 클래스 결정 (예시)
+			let stateClass = "info"; // 기본 상태 (필요하다면 CSS 클래스 추가)
+			if (status.includes("실행 중") || status.includes("Running")) {
+				stateClass = "success";
+			} else if (status.includes("중지됨") || status.includes("Stopped")) {
+				stateClass = "error"; // 중지 상태를 오류로 표시하거나 다른 클래스 사용
+			} else if (status.includes("오류") || status.includes("Error")) {
+				stateClass = "error";
+			} else if (status.includes("로딩") || status.includes("Loading")) {
+				stateClass = "loading";
+			}
+
+			updateScriptStatus(status, stateClass); // 가져온 상태와 클래스로 업데이트
+		} catch (error) {
+			console.error("스크립트 상태를 가져오는 중 오류 발생:", error);
+			updateScriptStatus(`상태 오류: ${escapeHTML(error.message)}`, "error"); // 오류 발생 시 오류 상태 표시
+		}
+	}
+
+	// 스크립트 시작 명령을 보내는 함수 (Fetch API 사용)
+	async function startScript() {
+		updateScriptStatus("스크립트 시작 요청 중...", "loading"); // 요청 시작 시 로딩 표시
+		try {
+			const response = await fetch(SCRIPT_CONTROL_START_URL, {
+				method: "POST", // POST 요청
+				headers: {
+					"Content-Type": "application/json", // 필요에 따라 Content-Type 설정
+				},
+				// body: JSON.stringify({}) // 필요한 경우 요청 본문 추가
+			});
+			if (!response.ok) {
+				updateScriptStatus(`시작 요청 오류: ${response.status}`, "error");
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			console.log("스크립트 시작 명령 전송 성공");
+			// 명령 전송 후 상태를 즉시 업데이트 시도
+			setTimeout(fetchAndDisplayScriptStatus, 1000); // 1초 후 상태 다시 가져오기
+		} catch (error) {
+			console.error("스크립트 시작 명령 전송 중 오류 발생:", error);
+			displayMessage(`스크립트 시작 명령 전송 실패: ${error.message}`, "error");
+			updateScriptStatus(
+				`시작 요청 실패: ${escapeHTML(error.message)}`,
+				"error",
+			); // 오류 발생 시 오류 상태 표시
+		}
+	}
+
+	// 스크립트 중지 명령을 보내는 함수 (Fetch API 사용)
+	async function stopScript() {
+		updateScriptStatus("스크립트 중지 요청 중...", "loading"); // 요청 시작 시 로딩 표시
+		try {
+			const response = await fetch(SCRIPT_CONTROL_STOP_URL, {
+				method: "POST", // POST 요청
+				headers: {
+					"Content-Type": "application/json", // 필요에 따라 Content-Type 설정
+				},
+				// body: JSON.stringify({}) // 필요한 경우 요청 본문 추가
+			});
+			if (!response.ok) {
+				updateScriptStatus(`중지 요청 오류: ${response.status}`, "error");
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			console.log("스크립트 중지 명령 전송 성공");
+			// 명령 전송 후 상태를 즉시 업데이트 시도
+			setTimeout(fetchAndDisplayScriptStatus, 1000); // 1초 후 상태 다시 가져오기
+		} catch (error) {
+			console.error("스크립트 중지 명령 전송 중 오류 발생:", error);
+			displayMessage(`스크립트 중지 명령 전송 실패: ${error.message}`, "error");
+			updateScriptStatus(
+				`중지 요청 실패: ${escapeHTML(error.message)}`,
+				"error",
+			); // 오류 발생 시 오류 상태 표시
+		}
+	}
+
+  // 스크립트 제어 버튼 이벤트 리스너 추가
+	if (startScriptBtn) {
+		startScriptBtn.addEventListener("click", startScript);
+	} else {
+		console.error("Error: 'start-script-btn' 요소를 찾을 수 없습니다.");
+	}
+
+	if (stopScriptBtn) {
+		stopScriptBtn.addEventListener("click", stopScript);
+	} else {
+		console.error("Error: 'stop-script-btn' 요소를 찾을 수 없습니다.");
+	}
+
+
+  // === 초기 상태 설정 ===
+  // updateStatus(systemStatus, false);
+  setInactiveButton(stopBtn, startBtn);
+
+  // updateStatus(sensorStatus, false);
+  // setInactiveButton(
+  //   document.getElementById("btn-sensor-off"),
+  //   document.getElementById("btn-sensor-on")
+  // );
+
+  // updateStatus(buzzerStatus, false);
+  // setInactiveButton(
+  //   document.getElementById("btn-buzzer-off"),
+  //   document.getElementById("btn-buzzer-on")
+  // );
 
   // --- 유틸리티 함수 ---
 
@@ -296,10 +444,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 초기 데이터 로딩
 	fetchAndDisplayControlLogs();
-  updateSystemStatus();
+  fetchAndDisplaySystemStatus();
+  fetchAndDisplayScriptStatus();
   
   // 주기적으로 데이터 업데이트 설정 - S3 요청을 줄이려면 이 간격을 늘리세요.
   setInterval(fetchAndDisplayControlLogs, LOGS_UPDATE_INTERVAL);
-  setInterval(updateSystemStatus, LOGS_UPDATE_INTERVAL);
+  setInterval(fetchAndDisplaySystemStatus, LOGS_UPDATE_INTERVAL);
+  setInterval(fetchAndDisplayScriptStatus, STATUS_UPDATE_INTERVAL);
 
 }); // DOMContentLoaded 끝
