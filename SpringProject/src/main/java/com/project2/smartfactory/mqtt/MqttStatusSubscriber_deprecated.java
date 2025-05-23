@@ -13,7 +13,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
 @Component
-public class MqttStatusSubscriber {
+public class MqttStatusSubscriber_deprecated {
 
     // application.properties 또는 application.yml에서 MQTT 브로커 주소 주입
     @Value("${mqtt.broker.url}")

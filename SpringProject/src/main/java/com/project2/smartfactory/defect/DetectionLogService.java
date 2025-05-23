@@ -149,7 +149,7 @@ public class DetectionLogService {
             long totalItemsValue = yearlyTotalCounts.getOrDefault(yearKey, 0L);
             if (totalItemsValue > 0) {
                 double defectRate = (double) defectCountValue * 100.0 / totalItemsValue;
-                yearlyDefectRates.put(yearKey, defectRate);
+                yearlyDefectRates.put(yearKey, Math.round(defectRate * 10.0) / 10.0); // 소수점 첫째 자리까지 반올림
             } else {
                 yearlyDefectRates.put(yearKey, 0.0);
             }
@@ -162,16 +162,23 @@ public class DetectionLogService {
         logger.debug("Yearly defect trend (rates): {}", yearlyDefectRates);
 
 
-        // 4. 월간 불량 감지 추이 (막대 차트 - 최근 12개월 불량 개수) - 새로 추가
-        logger.debug("Calculating monthly defect trend (counts).");
-        Map<String, Long> monthlyDefectCounts = new TreeMap<>();
-        DateTimeFormatter monthFormatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        // 4. 월간 불량 감지 추이 (막대 차트 - 최근 12개월 불량률) - 수정됨
+        logger.debug("Calculating monthly defect trend (percentage).");
+        Map<String, Long> monthlyDefectCounts = new TreeMap<>(); // 월별 불량 개수
+        Map<String, Long> monthlyTotalCounts = new TreeMap<>(); // 월별 총 감지 개수
+        DateTimeFormatter monthKeyFormatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        DateTimeFormatter monthLabelFormatter = DateTimeFormatter.ofPattern("yy.MM");
+        // 새로운 포맷터 추가: yyyy-MM-dd 형식의 문자열을 파싱하기 위함
+        DateTimeFormatter fullMonthDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
         LocalDate twelveMonthsAgo = today.minusMonths(11).withDayOfMonth(1);
 
+        // 최근 12개월 초기화
         for (int i = 11; i >= 0; i--) {
             LocalDate date = today.minusMonths(i).withDayOfMonth(1);
-            String monthKey = date.format(monthFormatter);
+            String monthKey = date.format(monthKeyFormatter);
             monthlyDefectCounts.put(monthKey, 0L);
+            monthlyTotalCounts.put(monthKey, 0L);
         }
 
         logs.stream()
@@ -181,19 +188,39 @@ public class DetectionLogService {
                         return false;
                     }
                     LocalDate logDate = log.getDetectionTime().toLocalDate();
-                    return !logDate.isBefore(twelveMonthsAgo) && ("Defective".equals(log.getStatus()) || "Substandard".equals(log.getStatus()));
+                    return !logDate.isBefore(twelveMonthsAgo); // 최근 12개월 데이터만 필터링
                 })
                 .forEach(log -> {
                     LocalDate logDate = log.getDetectionTime().toLocalDate();
-                    String monthKey = logDate.format(monthFormatter);
-                    monthlyDefectCounts.compute(monthKey, (k, v) -> (v == null ? 0L : v) + (log.getDefectCount() != null ? log.getDefectCount() : 0L));
+                    String monthKey = logDate.format(monthKeyFormatter);
+
+                    // 불량 항목만 카운트
+                    if ("Defective".equals(log.getStatus()) || "Substandard".equals(log.getStatus())) {
+                         monthlyDefectCounts.compute(monthKey, (k, v) -> (v == null ? 0L : v) + (log.getDefectCount() != null ? log.getDefectCount() : 0L));
+                    }
+                    // 총 감지 항목 수 카운트 (정상, 불량, 미흡 모두 포함)
+                    monthlyTotalCounts.compute(monthKey, (k, v) -> (v == null ? 0L : v) + 1L);
                 });
 
+        Map<String, Double> monthlyDefectRates = new TreeMap<>();
+        monthlyDefectCounts.forEach((monthKey, defectCountValue) -> {
+            long totalItemsValue = monthlyTotalCounts.getOrDefault(monthKey, 0L);
+            if (totalItemsValue > 0) {
+                double defectRate = (double) defectCountValue * 100.0 / totalItemsValue;
+                monthlyDefectRates.put(monthKey, Math.round(defectRate * 10.0) / 10.0); // 소수점 첫째 자리까지 반올림
+            } else {
+                monthlyDefectRates.put(monthKey, 0.0);
+            }
+        });
+
         chartData.put("monthlyDefectTrend", Map.of(
-                "labels", monthlyDefectCounts.keySet().stream().map(monthStr -> LocalDate.parse(monthStr + "-01").format(DateTimeFormatter.ofPattern("yy.MM"))).collect(Collectors.toList()),
-                "data", monthlyDefectCounts.values()
+                "labels", monthlyDefectRates.keySet().stream()
+                        // monthStr + "-01"을 파싱할 때 fullMonthDateFormatter를 사용
+                        .map(monthStr -> LocalDate.parse(monthStr + "-01", fullMonthDateFormatter).format(monthLabelFormatter))
+                        .collect(Collectors.toList()),
+                "data", monthlyDefectRates.values()
         ));
-        logger.debug("Monthly defect trend (counts): {}", monthlyDefectCounts);
+        logger.debug("Monthly defect trend (rates): {}", monthlyDefectRates);
 
 
         // 5. 당일 감지 상태 비율 (파이 차트)

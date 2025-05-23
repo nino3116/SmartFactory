@@ -1,154 +1,140 @@
-package com.project2.smartfactory.task;
+package com.project2.smartfactory.task; // DailyTaskProgress, DailyTaskProgressDto와 동일한 패키지 사용
 
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import lombok.RequiredArgsConstructor;
+import com.project2.smartfactory.task.DailyTaskProgressDto;
+import com.project2.smartfactory.task.DailyTaskProgress;
+import com.project2.smartfactory.task.DailyTaskProgressRepository; // 리포지토리 import
+import com.project2.smartfactory.defect.DetectionLogService;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * 당일 작업 진척 상황을 관리하는 REST 컨트롤러입니다.
+ * 총 작업량 설정 및 현재 진척 상황 조회를 제공합니다.
+ */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/progress")
 @RequiredArgsConstructor
-public class DailyTaskController { // 클래스 이름 변경
+@CrossOrigin(origins = {"http://localhost", "http://192.168.0.122", "http://192.168.0.124"}, maxAge = 3600)
+@Slf4j
+public class DailyTaskController {
 
     private final DailyTaskProgressRepository dailyTaskProgressRepository;
+    private final DetectionLogService detectionLogService;
 
-    private static final String ADMIN_USER_ID = "admin";
+    // 현재는 단일 사용자 'admin'을 가정합니다.
+    // 실제 애플리케이션에서는 사용자 인증을 통해 동적으로 userId를 가져와야 합니다.
+    private static final String DEFAULT_USER_ID = "admin";
 
     /**
-     * 당일의 총 작업량을 설정하고 저장하는 API 엔드포인트.
-     * 클라이언트에서 POST 요청으로 dailyTotalTasks 값을 전송합니다.
+     * 당일 총 작업량을 설정합니다.
+     * 기존에 해당 날짜와 사용자의 진척 상황이 있다면 총 작업량을 업데이트하고,
+     * 없다면 새로운 진척 상황 엔티티를 생성하여 저장합니다.
      *
-     * @param requestBody dailyTotalTasks 값을 포함하는 JSON 요청 본문
-     * @return 성공 또는 실패 메시지를 포함하는 응답
+     * @param requestDto 총 작업량 정보를 담은 DTO
+     * @return 설정된 총 작업량 정보가 포함된 응답 (DailyTaskProgressDto)
      */
-    @PostMapping("/settings/daily-total-tasks") // 엔드포인트 이름 변경
-    public ResponseEntity<Map<String, String>> setDailyTotalTasks(
-            @RequestBody DailyTaskProgressDto requestBody) { // DTO 타입 변경
-        Map<String, String> response = new HashMap<>();
+    @PostMapping("/set-total")
+    public ResponseEntity<DailyTaskProgressDto> setDailyTotalTasks(@RequestBody DailyTaskProgressDto requestDto) {
+        log.info("Setting daily total tasks for user '{}' to: {}", DEFAULT_USER_ID, requestDto.getDailyTotalTasks());
         LocalDate today = LocalDate.now();
 
-        if (requestBody.getDailyTotalTasks() < 0) {
-            response.put("message", "총 작업량은 0 이상이어야 합니다.");
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        // userId와 recordDate로 기존 진행 상황 조회
+        Optional<DailyTaskProgress> existingProgress = dailyTaskProgressRepository.findByUserIdAndRecordDate(DEFAULT_USER_ID, today);
+
+        DailyTaskProgress progress;
+        if (existingProgress.isPresent()) {
+            // 기존 진척 상황이 있다면 업데이트
+            progress = existingProgress.get();
+            progress.setDailyTotalTasks(requestDto.getDailyTotalTasks());
+            log.debug("Updating existing daily task progress for user '{}' on {}: new total tasks = {}", DEFAULT_USER_ID, today, requestDto.getDailyTotalTasks());
+        } else {
+            // 기존 진척 상황이 없다면 새로 생성
+            progress = new DailyTaskProgress();
+            progress.setUserId(DEFAULT_USER_ID);
+            progress.setRecordDate(today);
+            progress.setDailyTotalTasks(requestDto.getDailyTotalTasks());
+            progress.setCompletedTasks(0); // 초기값 0으로 설정
+            log.debug("Creating new daily task progress for user '{}' on {}: total tasks = {}", DEFAULT_USER_ID, today, requestDto.getDailyTotalTasks());
         }
+        
+        DailyTaskProgress savedProgress = dailyTaskProgressRepository.save(progress);
+        log.info("Daily total tasks saved successfully: {}", savedProgress.getDailyTotalTasks());
 
-        try {
-            // 오늘 날짜의 DailyTaskProgress 엔티티를 찾거나 새로 생성합니다.
-            DailyTaskProgress dailyProgress = dailyTaskProgressRepository.findByUserIdAndRecordDate(ADMIN_USER_ID, today)
-                    .orElse(new DailyTaskProgress(ADMIN_USER_ID, today, 0, 0)); // 없으면 새 엔티티 생성, 완료량은 0
-
-            dailyProgress.setDailyTotalTasks(requestBody.getDailyTotalTasks());
-            dailyTaskProgressRepository.save(dailyProgress); // 저장 또는 업데이트
-
-            response.put("message", "당일 총 작업량이 성공적으로 저장되었습니다.");
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (Exception e) {
-            System.err.println("당일 총 작업량 저장 중 오류 발생: " + e.getMessage());
-            response.put("message", "당일 총 작업량 저장에 실패했습니다.");
-            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        // 저장된 엔티티를 DTO로 변환하여 반환
+        DailyTaskProgressDto responseDto = new DailyTaskProgressDto();
+        responseDto.setRecordDate(savedProgress.getRecordDate());
+        responseDto.setDailyTotalTasks(savedProgress.getDailyTotalTasks());
+        responseDto.setCompletedTasks(savedProgress.getCompletedTasks()); // DB에 저장된 completedTasks 사용
+        
+        return ResponseEntity.ok(responseDto);
     }
 
     /**
-     * 당일의 총 작업량과 완료된 작업량을 조회하는 API 엔드포인트.
+     * 당일 공정 진척상황을 조회합니다.
+     * 완료된 작업 개수는 DetectionLogService에서 당일 감지된 총 개수를 가져와 동적으로 계산됩니다.
      *
-     * @return dailyTotalTasks와 completedTasks를 포함하는 응답
+     * @return 당일 공정 진척상황 정보가 포함된 응답 (DailyTaskProgressDto)
      */
-    @GetMapping("/progress/daily-current") // 엔드포인트 이름 변경
+    @GetMapping("/daily-current")
     public ResponseEntity<DailyTaskProgressDto> getDailyCurrentProgress() {
         LocalDate today = LocalDate.now();
+        // userId와 recordDate로 기존 진행 상황 조회
+        Optional<DailyTaskProgress> existingProgress = dailyTaskProgressRepository.findByUserIdAndRecordDate(DEFAULT_USER_ID, today);
 
-        // 오늘 날짜의 DailyTaskProgress 엔티티를 조회합니다.
-        Optional<DailyTaskProgress> dailyProgressOptional = dailyTaskProgressRepository.findByUserIdAndRecordDate(ADMIN_USER_ID, today);
-
-        if (dailyProgressOptional.isPresent()) {
-            DailyTaskProgress dailyProgress = dailyProgressOptional.get();
-            DailyTaskProgressDto responseDto = new DailyTaskProgressDto(
-                    dailyProgress.getRecordDate(), // 날짜 정보도 포함
-                    dailyProgress.getDailyTotalTasks(),
-                    dailyProgress.getCompletedTasks()
-            );
-            return new ResponseEntity<>(responseDto, HttpStatus.OK);
+        long dailyTotalTasks = 0L;
+        if (existingProgress.isPresent()) {
+            // 기존 진척 상황이 있다면 총 작업량 가져오기
+            dailyTotalTasks = existingProgress.get().getDailyTotalTasks();
+            log.debug("Retrieved existing daily total tasks for user '{}' on {}: {}", DEFAULT_USER_ID, today, dailyTotalTasks);
         } else {
-            // 해당 userId의 오늘 날짜 데이터가 없으면 기본값 (0, 0)을 반환합니다.
-            // 클라이언트가 이 정보를 바탕으로 초기 UI를 구성할 수 있습니다.
-            return new ResponseEntity<>(new DailyTaskProgressDto(today, 0, 0), HttpStatus.OK);
+            log.debug("No existing daily total tasks found for user '{}' on {}. Defaulting to 0.", DEFAULT_USER_ID, today);
         }
-    }
 
-    /**
-     * 당일 완료된 작업량을 1 증가시키는 API 엔드포인트.
-     * 이 엔드포인트는 파이썬 스크립트에서 불량 감지 완료 시 호출될 수 있습니다.
-     *
-     * @return 성공 또는 실패 메시지를 포함하는 응답
-     */
-    @PostMapping("/progress/increment")
-    public ResponseEntity<Map<String, String>> incrementCompletedTasks() {
-        Map<String, String> response = new HashMap<>();
-        LocalDate today = LocalDate.now(); // 오늘 날짜 가져오기
-
-        try {
-            // 오늘 날짜의 DailyTaskProgress 엔티티를 찾거나 새로 생성합니다.
-            // 만약 총 작업량이 설정되지 않았다면 0으로 초기화됩니다.
-            DailyTaskProgress dailyProgress = dailyTaskProgressRepository.findByUserIdAndRecordDate(ADMIN_USER_ID, today)
-                    .orElse(new DailyTaskProgress(ADMIN_USER_ID, today, 0, 0)); // 없으면 새로 생성
-
-            // 현재 완료된 작업량을 1 증가시킵니다.
-            dailyProgress.setCompletedTasks(dailyProgress.getCompletedTasks() + 1);
-            dailyTaskProgressRepository.save(dailyProgress);
-
-            response.put("message", "완료된 작업량이 성공적으로 증가되었습니다.");
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (Exception e) {
-            System.err.println("완료된 작업량 증가 중 오류 발생: " + e.getMessage());
-            response.put("message", "완료된 작업량 증가에 실패했습니다.");
-            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * 특정 기간 동안의 일자별 작업량 데이터를 조회하는 API 엔드포인트.
-     *
-     * @param startDate 조회 시작 날짜 (YYYY-MM-DD 형식)
-     * @param endDate 조회 종료 날짜 (YYYY-MM-DD 형식)
-     * @return 해당 기간의 일자별 작업량 리스트
-     */
-    @GetMapping("/progress/daily-range") // 엔드포인트 이름 변경
-    public ResponseEntity<List<DailyTaskProgress>> getDailyProgressRange(
-            @RequestParam("startDate") String startDate,
-            @RequestParam("endDate") String endDate) {
-        try {
-            LocalDate start = LocalDate.parse(startDate);
-            LocalDate end = LocalDate.parse(endDate);
-
-            // 시작 날짜가 종료 날짜보다 늦으면 오류
-            if (start.isAfter(end)) {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        // DetectionLogService에서 모든 차트 데이터를 가져옵니다.
+        // 이때, dailyTotalTasks 값을 전달하여 dailyTaskCompletion 차트 계산에 사용되도록 합니다.
+        Map<String, Object> allChartData = detectionLogService.getChartData((int) dailyTotalTasks);
+        
+        long completedTasksFromChart = 0L;
+        // 차트 데이터에서 "dailyTaskCompletion" 섹션의 "완료"된 작업 개수를 추출
+        if (allChartData.containsKey("dailyTaskCompletion")) {
+            Map<String, Object> dailyTaskCompletion = (Map<String, Object>) allChartData.get("dailyTaskCompletion");
+            if (dailyTaskCompletion.containsKey("datasets")) {
+                List<Map<String, Object>> datasets = (List<Map<String, Object>>) dailyTaskCompletion.get("datasets");
+                for (Map<String, Object> dataset : datasets) {
+                    if ("완료".equals(dataset.get("label"))) {
+                        List<Long> dataList = (List<Long>) dataset.get("data");
+                        if (!dataList.isEmpty()) {
+                            completedTasksFromChart = dataList.get(0); // "완료" 데이터셋의 첫 번째 값 (오늘 작업)
+                            break;
+                        }
+                    }
+                }
             }
-
-            List<DailyTaskProgress> dailyProgressList =
-                    dailyTaskProgressRepository.findByUserIdAndRecordDateBetweenOrderByRecordDateAsc(ADMIN_USER_ID, start, end);
-
-            return new ResponseEntity<>(dailyProgressList, HttpStatus.OK);
-        } catch (Exception e) {
-            System.err.println("일자별 작업량 조회 중 오류 발생: " + e.getMessage());
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+        log.debug("Todays completed tasks calculated from chart data: {}", completedTasksFromChart);
+
+        // DTO를 생성하여 반환
+        DailyTaskProgressDto responseDto = new DailyTaskProgressDto();
+        responseDto.setRecordDate(today);
+        responseDto.setDailyTotalTasks((int) dailyTotalTasks); // long을 int로 캐스팅
+        responseDto.setCompletedTasks((int) completedTasksFromChart); // long을 int로 캐스팅
+        
+        log.info("Returning daily progress: RecordDate={}, TotalTasks={}, CompletedTasks={}", 
+                 responseDto.getRecordDate(), responseDto.getDailyTotalTasks(), responseDto.getCompletedTasks());
+        return ResponseEntity.ok(responseDto);
     }
-
-
-
 }

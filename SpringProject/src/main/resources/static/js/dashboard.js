@@ -3,7 +3,7 @@
 // API 엔드포인트 URL (Spring Boot 서버의 IP와 포트, 컨트롤러 경로에 맞게 수정)
 const CHART_DATA_API_URL = "/api/charts/data"; // 백엔드에서 가공된 모든 차트 데이터 API 엔드포인트
 const LATEST_DEFECTS_API_URL = "/api/latest-defects"; // 최신 불량 정보 API 엔드포인트
-const SET_DAILY_TOTAL_TASKS_API_URL = "/api/settings/daily-total-tasks"; // 당일 총 작업량 설정 API
+const SET_DAILY_TOTAL_TASKS_API_URL = "/api/progress/set-total"; // 당일 총 작업량 설정 API
 const GET_DAILY_CURRENT_PROGRESS_API_URL = "/api/progress/daily-current"; // 당일 작업량 조회 API
 
 // Chart.js 인스턴스를 저장할 전역 변수
@@ -528,12 +528,12 @@ function updateMonthStatusChart(data) {
 	}
 
 	monthStatusChart = new Chart(ctx, {
-		type: "bar",
+		type: "line",
 		data: {
 			labels: data.labels,
 			datasets: [
 				{
-					label: "불량 개수",
+					label: "불량 률",
 					data: data.data,
 					backgroundColor: "rgba(255, 99, 132, 0.6)",
 					borderColor: "rgba(255, 99, 132, 1)",
@@ -544,7 +544,7 @@ function updateMonthStatusChart(data) {
 						anchor: "end",
 						align: "top",
 						formatter: function (value) {
-							return value > 0 ? value + "개" : "";
+							return value > 0 ? value + "%" : "";
 						},
 						font: { size: 12, weight: "bold" },
 					},
@@ -560,14 +560,14 @@ function updateMonthStatusChart(data) {
 				},
 				title: {
 					display: true,
-					text: "월간 불량 감지 추이 (개수)",
+					text: "월간 불량 감지 추이 (%)",
 				},
 				tooltip: {
 					callbacks: {
 						label: function (tooltipItem) {
 							const dataset = tooltipItem.dataset;
 							const currentValue = dataset.data[tooltipItem.dataIndex];
-							return `${tooltipItem.label}: ${currentValue} 개`;
+							return `${tooltipItem.label}: ${currentValue} %`;
 						},
 					},
 				},
@@ -581,7 +581,7 @@ function updateMonthStatusChart(data) {
 				y: {
 					beginAtZero: true,
 					stacked: false,
-					title: { display: true, text: "개수" },
+					title: { display: true, text: "%" },
 					ticks: {
 						callback: function (value) {
 							if (Number.isInteger(value)) {
@@ -688,8 +688,8 @@ function updateDayStatusChart(data) {
 	}
 
 	const backgroundColors = [
-		"#FF6384",
 		"#36A2EB",
+		"#FF6384",
 		"#FFCE56",
 		"#4BC0C0",
 		"#9966FF",
