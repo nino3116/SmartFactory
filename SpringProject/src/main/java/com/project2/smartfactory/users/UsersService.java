@@ -53,7 +53,7 @@ public class UsersService implements UserDetailsService {
     public void updateAdminPassword(Integer id, String newPassword) {
         Users adminUser = this.getAdminUser(id); 
 
-        // ✅ 새 비밀번호로 덮어쓰기
+        // 새 비밀번호로 덮어쓰기
         adminUser.setAdminPasswordHash(passwordEncoder.encode(newPassword));
         adminUser.setUpdateDate(LocalDateTime.now());
 

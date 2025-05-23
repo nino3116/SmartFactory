@@ -196,7 +196,7 @@ public class DetectionLogService {
 
                     // 불량 항목만 카운트
                     if ("Defective".equals(log.getStatus()) || "Substandard".equals(log.getStatus())) {
-                         monthlyDefectCounts.compute(monthKey, (k, v) -> (v == null ? 0L : v) + (log.getDefectCount() != null ? log.getDefectCount() : 0L));
+                        monthlyDefectCounts.compute(monthKey, (k, v) -> (v == null ? 0L : v) + (log.getDefectCount() != null ? log.getDefectCount() : 0L));
                     }
                     // 총 감지 항목 수 카운트 (정상, 불량, 미흡 모두 포함)
                     monthlyTotalCounts.compute(monthKey, (k, v) -> (v == null ? 0L : v) + 1L);
