@@ -28,21 +28,38 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         async function updateSystemStatus(){
-          await $.get('/api/status/system', function (data) {
+          var prev_status = systemStatus.textContent;
+          await $.get('/api/status/system', async function (data) {
             console.log(`${data}`);
-            var status = (data=="Unknown")?data:JSON.parse(data)['status'];
-            if (status === "running"){
-              isOn = true;
-            }else{
-              isOn = false;
-            }
+            var status = data;
             systemStatus.textContent = status;
-            systemStatus.classList.toggle("text-green-600", isOn);
-            systemStatus.classList.toggle("text-gray-600", !isOn);
-
             checkSystemStatus.textContent = status;
-            checkSystemStatus.classList.toggle("text-green-600", isOn);
-            checkSystemStatus.classList.toggle("text-gray-600", !isOn);
+
+            if(data == "Unknown" && prev_status != "Unknown"){
+              status = data;
+              await $.get('/ctrl/system/check/detect_error/'+status, function (data) {
+                console.log('/ctrl/system/check/detect_error/'+status);
+              }).then(() => fetchAndDisplayControlLogs());
+            }else{
+              status = (data=="Unknown")?data:JSON.parse(data)['status'];
+              if (status != prev_status){
+                await $.get('/ctrl/system/detect_change/'+prev_status+'/'+status, function (data) {
+                  console.log('/ctrl/system/detect_change/'+prev_status+'/'+status);
+                }).then(() => fetchAndDisplayControlLogs());
+              }
+
+              if (status === "running"){
+                isOn = true;
+              }else{
+                isOn = false;
+              }
+              systemStatus.classList.toggle("text-green-600", isOn);
+              systemStatus.classList.toggle("text-gray-600", !isOn);
+              checkSystemStatus.classList.toggle("text-green-600", isOn);
+              checkSystemStatus.classList.toggle("text-gray-600", !isOn);
+            }
+            
+            
           });
         }
 
@@ -79,30 +96,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // === 시스템 시작/중지 버튼 제어 ===
         startBtn.addEventListener("click", async () => {
-          var status = systemStatus.textContent.toLowerCase();
+          var status = systemStatus.textContent;
+          var result = "Unknown";
           await $.get('/api/control/system/start', function (data) {
             console.log(`${data}`);
           });
           await $.get('/api/status/system', function (data) {
-            console.log(`${data}`);
+            result = (data=="Unknown")?data:JSON.parse(data)['status'];
           });
-          await $.get('/ctrl/system/on/'+status, function (data) {
-            // console.log(`${data}`);
+          await $.get('/ctrl/system/on/'+status+'/'+result, function (data) {
+            console.log('/ctrl/system/on/'+status+'/'+result);
           }).then(() => fetchAndDisplayControlLogs());
           updateSystemStatus();
           // setActiveButton(startBtn, stopBtn);
         });
 
         stopBtn.addEventListener("click", async () => {
-          var status = systemStatus.textContent.toLowerCase();
+          var status = systemStatus.textContent;
+          var result = "Unknown";
           await $.get('/api/control/system/stop', function (data) {
             console.log(`${data}`);
           });
           await $.get('/api/status/system', function (data) {
-            console.log(`${data}`);
+            result = (data=="Unknown")?data:JSON.parse(data)['status'];
           });
-          await $.get('/ctrl/system/off/'+status, function (data) {
-            // console.log(`${data}`);
+          await $.get('/ctrl/system/off/'+status+'/'+result, function (data) {
+            console.log('/ctrl/system/off/'+status+'/'+result);
           }).then(() => fetchAndDisplayControlLogs());
           updateSystemStatus();
           // setInactiveButton(stopBtn, startBtn);
