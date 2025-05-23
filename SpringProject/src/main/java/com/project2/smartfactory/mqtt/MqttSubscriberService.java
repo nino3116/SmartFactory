@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project2.smartfactory.control_panel.ControlLog;
+import com.project2.smartfactory.control_panel.ControlLogRepository;
 import com.project2.smartfactory.defect.DefectInfo;
 import com.project2.smartfactory.defect.DetectionLogService; // DetectionLogService 임포트
 
@@ -51,8 +53,8 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
     private ObjectMapper objectMapper = new ObjectMapper(); // JSON 파싱을 위한 객체
 
     // 스크립트의 현재 상태를 저장할 변수 (기본값 설정)
-    private String currentScriptStatus = "Unknown";
-    private String currentSystemStatus = "Unknown";
+    private String currentScriptStatus = "Default";
+    private String currentSystemStatus = "Default";
 
     // 재연결 시도 관련 상수
     private static final int MAX_RECONNECT_ATTEMPTS = 5; // 최대 재연결 시도 횟수
@@ -60,10 +62,12 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
 
     // DetectionLogService 주입 (불량 상세 정보를 DB에 저장하기 위함)
     private final DetectionLogService detectionLogService;
+    private final ControlLogRepository controlLogRepository;
 
     // 생성자 주입을 통해 DetectionLogService를 받습니다.
-    public MqttSubscriberService(DetectionLogService detectionLogService) {
+    public MqttSubscriberService(DetectionLogService detectionLogService, ControlLogRepository controlLogRepository) {
         this.detectionLogService = detectionLogService;
+        this.controlLogRepository = controlLogRepository;
     }
 
     @PostConstruct // Spring 애플리케이션 시작 시 실행
@@ -194,10 +198,24 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
         // 토픽에 따라 메시지 처리 로직 분기
         if (topic.equals(scriptStatusTopic)) {
             // Python 스크립트 상태 메시지 처리
+            if(!currentScriptStatus.equals("Default") && payload!=currentScriptStatus){
+                ControlLog controlLog = new ControlLog("Script Check (server)", "Change Detected", currentScriptStatus + "→" + payload, "");
+                controlLogRepository.save(controlLog);
+            }else if(payload.equals("Unknown") && currentScriptStatus.equals("Unknown")){
+                ControlLog controlLog = new ControlLog("Script Check (server)", "Error Detected", payload, "상태 확인 불가");
+                controlLogRepository.save(controlLog);
+            }
             currentScriptStatus = payload;
             logger.info("Script Status: {}", currentScriptStatus);
         } else if (topic.equals(systemStatusTopic)) {
-            // Python 스크립트 상태 메시지 처리
+            // 시스템 상태 메시지 처리
+            if(!currentSystemStatus.equals("Default") && payload!=currentScriptStatus){
+                ControlLog controlLog = new ControlLog("System Check (server)", "Change Detected", currentScriptStatus + "→" + payload, "");
+                controlLogRepository.save(controlLog);
+            }else if(payload.equals("Unknown") && currentScriptStatus.equals("Unknown")){
+                ControlLog controlLog = new ControlLog("System Check (server)", "Error Detected", payload, "상태 확인 불가");
+                controlLogRepository.save(controlLog);
+            }
             currentSystemStatus = payload;
             logger.info("System Status: {}", currentSystemStatus);
         } else if (topic.equals(defectStatusTopic)) {
