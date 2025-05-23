@@ -2,7 +2,7 @@
 document.addEventListener("DOMContentLoaded", () => {
 	// --- 상수 정의 ---
 	// API 엔드포인트 URL (Spring Boot 서버의 IP와 포트, 컨트롤러 경로에 맞게 수정 필요)
-	const SPRING_BOOT_BASE_URL = "http://localhost:80"; // Spring Boot 기본 URL (예: "http://localhost:8080")
+	const SPRING_BOOT_BASE_URL = ""; // Spring Boot 기본 URL (예: "http://localhost:8080")
 	const LATEST_DEFECTS_API_URL = `${SPRING_BOOT_BASE_URL}/api/latest-defects`; // 최신 불량 정보 API 엔드포인트
 	const DETECTION_LOGS_API_URL = `${SPRING_BOOT_BASE_URL}/api/detection-logs`; // 감지 로그 API 엔드포인트
 	const SCRIPT_CONTROL_START_URL = `${SPRING_BOOT_BASE_URL}/api/control/start`; // 스크립트 시작 API 엔드포인트
@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	const SCRIPT_STATUS_API_URL = `${SPRING_BOOT_BASE_URL}/api/status/script`; // 스크립트 상태 조회 API 엔드포인트
 
 	// 스트림 이미지 URL (필요에 따라 수정)
-	const PRIMARY_STREAM_URL = "http://localhost:8080";
+	const PRIMARY_STREAM_URL = "http://192.168.0.122:8080";
 	const FALLBACK_STREAM_URL = "http://192.168.0.124:8000/stream.mjpg";
 
 	// 데이터 업데이트 주기 (밀리초) - S3 요청 줄이려면 이 값을 늘리세요.
@@ -333,13 +333,6 @@ document.addEventListener("DOMContentLoaded", () => {
 			// 감지 로그 데이터의 JSON 구조에 맞게 파싱 및 처리 (List<DetectionLog> 객체 예상)
 			const logs = await response.json();
 
-			// --- 디버그 로그: 데이터 가져온 직후 순서 확인 ---
-			//console.log("--- Original Logs Order (after fetch) ---");
-			//logs.forEach((log) =>
-			//	console.log(log.id, new Date(log.detectionTime).toLocaleString()),
-			//);
-			//console.log("-----------------------------------------");
-
 			// 가져온 로그 데이터를 전역 변수에 저장 (모달에서 사용)
 			// 원본 순서 그대로 저장
 			detectionLogsData = logs;
@@ -350,13 +343,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				// --- 서버에서 이미 최신순으로 보내준다고 가정하고 reverse() 제거 ---
 				// 만약 서버에서 오래된 순서로 보내준다면 이 부분을 다시 logs.slice().reverse()로 변경해야 합니다.
 				const orderedLogsForDisplay = logs; // <-- reverse() 제거
-
-				// --- 디버그 로그: 테이블 표시용 순서 확인 ---
-				//console.log("--- Logs Order for Display ---");
-				//orderedLogsForDisplay.forEach((log) =>
-				//	console.log(log.id, new Date(log.detectionTime).toLocaleString()),
-				//);
-				//console.log("-----------------------------------------");
 
 				orderedLogsForDisplay.forEach((log) => {
 					// <-- 테이블 표시용 배열 순회

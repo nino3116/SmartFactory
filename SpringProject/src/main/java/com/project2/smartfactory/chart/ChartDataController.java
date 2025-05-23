@@ -1,6 +1,7 @@
 package com.project2.smartfactory.chart;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/charts") // 차트 관련 API 엔드포인트 경로
 @RequiredArgsConstructor
+@CrossOrigin(origins = {"http://localhost", "http://192.168.0.122", "http://192.168.0.124"}, maxAge = 3600) // 컨트롤러의 모든 메서드에 적용
 public class ChartDataController { // 컨트롤러 이름을 ChartDataController로 변경하는 것이 더 명확합니다.
 
     private final DetectionLogService detectionLogService;

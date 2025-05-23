@@ -18,6 +18,7 @@ APPLE_DEFECT_SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "apple_defect
 # --- 전역 변수 ---
 # 실행 중인 apple_defect.py 프로세스를 저장할 변수
 apple_defect_process = None
+status_msg = "Unknown"  # 컨트롤러 상태 메시지
 
 # --- MQTT 콜백 함수 ---
 
@@ -25,12 +26,14 @@ apple_defect_process = None
 # 브로커 연결 시 호출
 def on_connect(client, userdata, flags, rc, properties):
     if rc == 0:
+        global status_msg
         print("MQTT 브로커 연결 성공")
         # 연결 성공 후 명령 토픽 구독
         client.subscribe(MQTT_TOPIC_COMMAND)
         print(f"토픽 구독: {MQTT_TOPIC_COMMAND}")
         # 컨트롤러 시작 상태 알림
-        publish_status("Controller Started")
+        status_msg = "Controller Started"
+        publish_status(status_msg)
     else:
         print(f"MQTT 브로커 연결 실패: {rc}")
         # 연결 실패 코드를 기반으로 추가 디버깅 정보 제공 가능
@@ -49,6 +52,7 @@ def on_connect(client, userdata, flags, rc, properties):
 # 메시지 수신 시 호출
 def on_message(client, userdata, msg):
     global apple_defect_process
+    global status_msg
     print(f"메시지 수신 - 토픽: {msg.topic}, 메시지: {msg.payload.decode()}")
 
     if msg.topic == MQTT_TOPIC_COMMAND:
@@ -71,20 +75,24 @@ def on_message(client, userdata, msg):
                     print(
                         f"{APPLE_DEFECT_SCRIPT_PATH} 실행됨 (PID: {apple_defect_process.pid})"
                     )
-                    publish_status("Apple Defect Script Started")
+                    status_msg = "Apple Defect Script Started"
+                    publish_status(status_msg)
                 except FileNotFoundError:
                     print(
                         f"오류: 스크립트 파일을 찾을 수 없습니다: {APPLE_DEFECT_SCRIPT_PATH}"
                     )
-                    publish_status("Error: Script File Not Found")
+                    status_msg = "Error: Script File Not Found"
+                    publish_status(status_msg)
                 except Exception as e:
                     print(f"오류: 스크립트 실행 중 예외 발생: {e}")
-                    publish_status(f"Error: Script Execution Failed - {e}")
+                    status_msg = f"Error: Script Execution Failed - {e}"
+                    publish_status(status_msg)
             else:
                 print(
                     f"{APPLE_DEFECT_SCRIPT_PATH} 이미 실행 중입니다 (PID: {apple_defect_process.pid})."
                 )
-                publish_status("Apple Defect Script Already Running")
+                status_msg = "Apple Defect Script Already Running"
+                publish_status(status_msg)
 
         elif command == "STOP":
             if apple_defect_process is not None and apple_defect_process.poll() is None:
@@ -99,7 +107,8 @@ def on_message(client, userdata, msg):
                     try:
                         apple_defect_process.wait(timeout=5)  # 5초 대기
                         print(f"{APPLE_DEFECT_SCRIPT_PATH} 정상적으로 종료됨.")
-                        publish_status("Apple Defect Script Stopped")
+                        status_msg = "Apple Defect Script Stopped"
+                        publish_status(status_msg)
                     except subprocess.TimeoutExpired:
                         # 5초 안에 종료되지 않으면 강제 종료
                         print(
@@ -107,7 +116,8 @@ def on_message(client, userdata, msg):
                         )
                         apple_defect_process.kill()
                         print(f"{APPLE_DEFECT_SCRIPT_PATH} 강제 종료됨.")
-                        publish_status("Apple Defect Script Force Stopped")
+                        status_msg = "Apple Defect Script Force Stopped"
+                        publish_status(status_msg)
                     finally:
                         apple_defect_process = None  # 프로세스 변수 초기화
 
@@ -116,15 +126,22 @@ def on_message(client, userdata, msg):
                         f"경고: PID {apple_defect_process.pid} 프로세스를 찾을 수 없습니다. 이미 종료되었을 수 있습니다."
                     )
                     apple_defect_process = None
-                    publish_status(
+                    status_msg = (
                         "Warning: Script Process Not Found (Possibly Already Stopped)"
                     )
+                    publish_status(status_msg)
                 except Exception as e:
                     print(f"오류: 스크립트 종료 중 예외 발생: {e}")
-                    publish_status(f"Error: Script Termination Failed - {e}")
+                    status_msg = f"Error: Script Termination Failed - {e}"
+                    publish_status(status_msg)
             else:
                 print(f"{APPLE_DEFECT_SCRIPT_PATH} 실행 중이 아닙니다.")
-                publish_status("Apple Defect Script Not Running")
+                status_msg = "Apple Defect Script Not Running"
+                publish_status(status_msg)
+        elif command == "STATUS_REQUEST":
+            print("상태 요청 수신")
+            publish_status(status_msg)
+            print(f"컨트롤러 상태 발행 {status_msg} to {MQTT_TOPIC_STATUS}")
 
         else:
             print(f"알 수 없는 명령: {command}")

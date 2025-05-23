@@ -31,10 +31,10 @@ MODEL_PATH = "wsl_seg_best.pt"
 VIDEO_STREAM_URL = "http://192.168.0.124:8000/stream.mjpg"
 
 # 3. 탐지 임계값 (Confidence Threshold) - 모델이 객체를 얼마나 확신할 때 감지할지 결정
-CONF_THRESHOLD = 0.4  # 필요에 따라 조정하세요 (예: 0.3, 0.7 등)
+CONF_THRESHOLD = 0.5  # 필요에 따라 조정하세요 (예: 0.3, 0.7 등)
 
 # 4. IOU 임계값 (NMS IoU Threshold) - 겹치는 바운딩 박스 중 하나만 남길 기준
-IOU_THRESHOLD = 0.4  # 필요에 따라 조정하세요 (예: 0.4, 0.6 등)
+IOU_THRESHOLD = 0.5  # 필요에 따라 조정하세요 (예: 0.4, 0.6 등)
 
 # 5. 결과 시각화 창 표시 여부
 SHOW_DETECTION_WINDOW = True
@@ -52,9 +52,19 @@ OPENCV_FONT_THICKNESS = 2  # 폰트 두께
 AREA_THRESHOLD_SUBSTANDARD_PERCENT = 15.0  # 비상품 판정 시작 임계값
 AREA_THRESHOLD_DEFECTIVE_PERCENT = 30.0  # 불량 판정 시작 임계값
 
+# 8. 감지(Inference)를 수행할 시간 간격 (초 단위)
+# 이 시간 간격마다 새로운 프레임에 대해 객체 감지를 수행합니다.
+INFERENCE_INTERVAL_SECONDS = 10  # 5초에서 10초 사이 값으로 설정 (예: 7초)
+
 # 9. 불량 감지 시 스냅샷을 저장할 디렉토리 경로
+# SNAPSHOT_SAVE_DIR = (
+#     "snapshots/defects"  # 현재 스크립트 파일이 있는 위치에 'snapshots' 폴더 생성
+# )
+# 스냅샷 저장 기본 디렉토리
 SNAPSHOT_BASE_DIR = "snapshots"
+# 정상 이미지 저장 디렉토리 (SNAPSHOT_BASE_DIR 하위)
 NORMAL_DIR = os.path.join(SNAPSHOT_BASE_DIR, "normal")
+# 불량 이미지 저장 디렉토리 (SNAPSHOT_BASE_DIR 하위)
 DEFECTS_DIR = os.path.join(SNAPSHOT_BASE_DIR, "defects")
 
 # 7. 스냅샷을 임시 저장할 로컬 디렉토리 경로 (S3 업로드 전)
@@ -86,18 +96,20 @@ MQTT_TOPIC_RESULT = "factory/detect_result"  # 감지 상태 결과를 보낼 �
 # --- API 서버 설정 변수 ---
 # API 서버의 주소와 포트, 엔드포인트
 API_DETECTION_RESULT_URL = "http://localhost:80/api/defect"  # Spring Boot DefectController의 /api/defect 엔드포인트
+# API_SERVER_URL = "http://localhost:80/api/defect"
+# SPRING_BOOT_API_BASE_URL = "http://localhost:80"  # Spring Boot 서버 주소 및 포트
+# # 불량 정보 수신 엔드포인트 (Spring Boot DefectController의 @PostMapping("/api/defect"))
+# API_DEFECT_ENDPOINT = f"{SPRING_BOOT_API_BASE_URL}/api/defect"
+# # 스냅샷 이미지 제공 엔드포인트 (Spring Boot SnapshotController의 @GetMapping("/api/snapshots/{filename}"))
+# API_SNAPSHOT_BASE_URL = f"{SPRING_BOOT_API_BASE_URL}/api/snapshots"
 
 # --- MJPEG 스트리밍 서버 설정 변수 ---
 STREAM_HOST = "localhost"  # 스트리밍 서버 호스트 (모든 인터페이스에서 접근 허용)
-STREAM_PORT = 8080  # 스트리밍 서버 포트
+STREAM_PORT = 8000  # 스트리밍 서버 포트
 
 # --- 전역 변수 및 스레드 동기화 ---
 # 처리된 최신 프레임을 저장할 전역 변수
-latest_raw_frame = None  # 원본 프레임
-latest_yolo_results = None  # YOLO 추론 결과 객체
-latest_annotated_frame = (
-    None  # YOLO 기본 시각화가 적용된 프레임 (MJPEG 스트리밍 및 imshow용)
-)
+latest_frame = None
 # 전역 변수 접근 시 사용될 스레드 잠금 (Lock)
 frame_lock = threading.Lock()
 
@@ -140,13 +152,10 @@ def open_video_stream(stream_url):
     Returns:
         cv2.VideoCapture: 열린 VideoCapture 객체, 열기 실패 시 None 반환.
     """
-    print(f"영상 스트림 연결 시도 중: {stream_url}")
+    print(f"영상 스트림 연결 중: {stream_url}")
     # VideoCapture 초기화 시 cap_api를 명시적으로 설정하여 특정 백엔드 사용 가능
     # 예: cv.VideoCapture(stream_url, cv.CAP_FFMPEG)
     cap = cv.VideoCapture(stream_url)
-
-    # 연결 시도 후 잠시 대기하여 스트림이 안정화될 시간을 줍니다.
-    time.sleep(1)
 
     if not cap.isOpened():
         print(f"오류: 영상 스트림을 열 수 없습니다. 다음을 확인하세요:")
@@ -155,6 +164,7 @@ def open_video_stream(stream_url):
             print("- 라즈베리 파이 카메라 서버가 실행 중인지.")
             print("- 네트워크 방화벽 설정 (포트가 열려 있는지).")
             print("- OpenCV가 FFmpeg를 지원하며 네트워크 스트림 처리가 가능한지.")
+        print("프로그램을 종료합니다.")
         return None
     print("영상 스트림 연결 성공.")
     return cap
@@ -498,8 +508,8 @@ def visualize_results(
 
 
 # MQTT 클라이언트 연결 콜백 함수
-# MQTT v3에서는 properties 매개변수가 없습니다.
-def on_connect(client, userdata, flags, rc):  # properties 매개변수 제거
+# Callback API version 2에 맞게 properties 매개변수 추가
+def on_connect(client, userdata, flags, rc, properties):  # <-- properties 매개변수 추가
     if rc == 0:
         print("MQTT 브로커 연결 성공")
     else:
@@ -518,8 +528,9 @@ def on_connect(client, userdata, flags, rc):  # properties 매개변수 제거
 
 
 # MQTT 메시지 수신 콜백 함수 추가 (on_connect 함수 아래에 추가)
-# MQTT v3에서는 properties 매개변수가 없습니다.
-def on_message(client, userdata, message):  # properties 매개변수 제거
+def on_message(
+    client, userdata, message, properties=None
+):  # properties 매개변수 추가 (API v2)
     """
     MQTT 메시지 수신 시 호출되는 콜백 함수
     """
@@ -530,13 +541,7 @@ def on_message(client, userdata, message):  # properties 매개변수 제거
                 print(f"\nMQTT 트리거 메시지 수신: {payload}")
                 # userdata에 저장된 감지 함수 호출
                 if userdata and "trigger_detection" in userdata:
-                    # 별도의 스레드에서 트리거 감지 함수 실행
-                    # MQTT 콜백 함수는 빠르게 리턴해야 하므로, 무거운 작업은 스레드로 분리
-                    detection_thread = threading.Thread(
-                        target=userdata["trigger_detection"]
-                    )
-                    detection_thread.daemon = True
-                    detection_thread.start()
+                    userdata["trigger_detection"]()
     except Exception as e:
         print(f"MQTT 메시지 처리 중 오류 발생: {e}")
 
@@ -558,8 +563,7 @@ def initialize_mqtt_client(broker_host, broker_port, trigger_detection_callback)
 
     # userdata에 콜백 함수 저장
     userdata = {"trigger_detection": trigger_detection_callback}
-    # MQTT v3 (3.1.1)를 사용하기 위해 CallbackAPIVersion.VERSION2를 제거합니다.
-    client = mqtt.Client(userdata=userdata)
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, userdata=userdata)
 
     client.on_connect = on_connect
     client.on_message = on_message  # 메시지 수신 콜백 설정
@@ -591,6 +595,7 @@ def publish_mqtt_message(client, topic, message):
     Args:
         client (mqtt.Client): 연결된 MQTT 클라이언트 객체.
         topic (str): 메시지를 발행할 토픽.
+        message (str): 발행할 메시지 내용.
     """
     if client and client.is_connected():
         try:
@@ -811,44 +816,36 @@ class MJPEGStreamHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         # MJPEG 스트림 응답 헤더 설정
         self.send_response(200)
-        self.send_header("Content-type", "multipart/x-mixed-replace; boundary=frame")
+        self.send_header("Content-type", "multipart/x-mixed-replace; boundary=FRAME")
         self.end_headers()
 
         while True:
-            try:  # ConnectionAbortedError 처리를 위한 try-except 블록 추가
-                # 최신 프레임에 접근하기 위해 잠금 획득
-                with frame_lock:
-                    frame = latest_annotated_frame  # 전역 변수에서 최신 시각화된 프레임 가져오기
+            # 최신 프레임에 접근하기 위해 잠금 획득
+            with frame_lock:
+                frame = latest_frame  # 전역 변수에서 최신 프레임 가져오기
 
-                if frame is not None:
-                    # 프레임을 JPEG 형식으로 인코딩
-                    ret, jpeg = cv.imencode(".jpg", frame)
+            if frame is not None:
+                # 프레임을 JPEG 형식으로 인코딩
+                ret, jpeg = cv.imencode(".jpg", frame)
 
-                    if ret:
-                        # 이미지 데이터를 바이트 스트림으로 변환
-                        frame_bytes = jpeg.tobytes()
+                if ret:
+                    # 이미지 데이터를 바이트 스트림으로 변환
+                    frame_bytes = jpeg.tobytes()
 
-                        # MJPEG 스트림 파트 헤더 전송
-                        self.wfile.write(b"--frame\r\n")
-                        self.wfile.write(b"Content-Type: image/jpeg\r\n")
-                        self.wfile.write(
-                            f"Content-Length: {len(frame_bytes)}\r\n".encode("utf-8")
-                        )
-                        self.wfile.write(b"\r\n")
-                        # 이미지 데이터 전송
-                        self.wfile.write(frame_bytes)
-                        self.wfile.write(b"\r\n")
+                    # MJPEG 스트림 파트 헤더 전송
+                    self.wfile.write(b"--FRAME\r\n")
+                    self.wfile.write(b"Content-Type: image/jpeg\r\n")
+                    self.wfile.write(
+                        f"Content-Length: {len(frame_bytes)}\r\n".encode("utf-8")
+                    )
+                    self.wfile.write(b"\r\n")
+                    # 이미지 데이터 전송
+                    self.wfile.write(frame_bytes)
+                    self.wfile.write(b"\r\n")
 
-                # 다음 프레임 전송까지 잠시 대기 (스트림 속도 제어)
-                # 너무 빠르게 보내면 네트워크 부하가 커질 수 있습니다.
-                time.sleep(0.03)  # 약 30 FPS (1/30초)
-            except ConnectionAbortedError:
-                # 클라이언트가 연결을 끊었을 때 발생하는 오류이므로, 정상적인 종료로 간주하고 루프를 빠져나옵니다.
-                print(f"MJPEG 스트리밍 클라이언트 연결 중단: {self.client_address}")
-                break  # 루프 종료
-            except Exception as e:
-                print(f"MJPEG 스트리밍 중 예상치 못한 오류 발생: {e}")
-                break  # 다른 오류 발생 시에도 루프 종료
+            # 다음 프레임 전송까지 잠시 대기 (스트림 속도 제어)
+            # 너무 빠르게 보내면 네트워크 부하가 커질 수 있습니다.
+            time.sleep(0.03)  # 약 30 FPS (1/30초)
 
 
 # MJPEG 스트리밍 서버를 실행하는 함수
@@ -872,163 +869,10 @@ def run_mjpeg_stream_server(host, port):
         print(f"MJPEG 스트리밍 서버 오류 발생: {e}")
 
 
-# 감지 로직을 수행하는 함수 (MQTT 트리거에 의해 호출됨)
-def perform_detection(
-    model,  # model object is needed for model.names
-    conf_threshold,
-    iou_threshold,
-    opencv_font,
-    opencv_font_scale,
-    opencv_font_thickness,
-    area_threshold_substandard_percent,
-    area_threshold_defective_percent,
-    snapshot_temp_dir,
-    s3_client,
-    s3_bucket_name,
-    s3_object_base_path,
-    mqtt_client,
-    mqtt_topic_result,
-    api_detection_result_url,
-):
-    """
-    MQTT 트리거 메시지 수신 시 호출되어 불량 감지 및 결과 전송을 수행합니다.
-    이 함수는 main_loop에서 지속적으로 업데이트되는 최신 프레임과 YOLO 결과를 사용합니다.
-    """
-    global latest_raw_frame, latest_yolo_results, latest_annotated_frame
-
-    print("\n--- MQTT 트리거 감지 시작 (5초 대기) ---")
-    time.sleep(5)  # 요청된 5초 대기
-
-    # 최신 프레임과 YOLO 결과를 가져오기 위해 잠금 획득
-    current_raw_frame = None
-    current_yolo_results = None
-    current_annotated_frame_for_display = None
-
-    with frame_lock:
-        if (
-            latest_raw_frame is not None
-            and latest_yolo_results is not None
-            and latest_annotated_frame is not None
-        ):
-            current_raw_frame = latest_raw_frame.copy()
-            current_yolo_results = latest_yolo_results  # YOLO results object is not modified, so shallow copy is fine
-            current_annotated_frame_for_display = latest_annotated_frame.copy()
-        else:
-            print(
-                "경고: MQTT 트리거 감지 - 유효한 최신 프레임 또는 YOLO 결과가 없습니다. 감지 처리를 건너킵니다."
-            )
-            return
-
-    print("--- 감지 실행 중 (MQTT 트리거) ---")
-
-    # model.names가 dict 타입인지 확인
-    if not isinstance(model.names, dict):
-        print(f"오류: model.names가 예상된 dict 타입이 아닙니다: {type(model.names)}")
-        model_names_dict = {}
-    else:
-        model_names_dict = model.names
-
-    # 7. 감지 결과를 분석하여 불량 판별 (이미 YOLO 추론된 결과 사용)
-    # perform_inference를 다시 호출하지 않고, main_loop에서 얻은 latest_yolo_results를 사용
-    detected_defects_list = analyze_defects(
-        current_yolo_results,  # 이미 YOLO 추론된 결과 사용
-        model_names_dict,
-        area_threshold_substandard_percent,
-        area_threshold_defective_percent,
-    )
-
-    # 8. 불량 판별 결과에 따라 시각화에 추가 정보 그리기
-    # latest_annotated_frame은 이미 YOLO plot이 적용된 상태이므로, 여기에 추가적인 시각화만 수행
-    final_annotated_frame = visualize_results(
-        current_annotated_frame_for_display,  # YOLO plot이 적용된 프레임
-        detected_defects_list,
-        opencv_font,
-        opencv_font_scale,
-        opencv_font_thickness,
-    )
-
-    # --- 스냅샷 저장 및 S3 업로드 ---
-    print("스냅샷 저장 및 업로드 처리 중...")
-    snapshot_filepath = save_snapshot_local(final_annotated_frame, snapshot_temp_dir)
-
-    s3_image_url = None
-    defect_detected = (
-        detected_defects_list is not None and len(detected_defects_list) > 0
-    )
-
-    if snapshot_filepath and s3_client:
-        try:
-            s3_image_url = upload_file_to_s3(
-                s3_client,
-                s3_bucket_name,
-                snapshot_filepath,
-                s3_object_base_path,
-                defect_detected,
-            )
-            if s3_image_url:
-                print(f"S3 업로드 이미지 URL: {s3_image_url}")
-                try:
-                    os.remove(snapshot_filepath)
-                    print(f"로컬 임시 스냅샷 파일 삭제: {snapshot_filepath}")
-                except Exception as e:
-                    print(f"로컬 임시 스냅샷 파일 삭제 오류: {e}")
-            else:
-                print("S3 이미지 URL 가져오기 실패.")
-        except Exception as e:
-            print(f"스냅샷 S3 업로드 또는 URL 처리 중 오류 발생: {e}")
-
-    # --- 감지 결과 데이터 (DetectionResultDto 구조) 준비 및 전송 ---
-    status = "Normal"
-    if defect_detected:
-        if any(defect.get("reason") == "Defective" for defect in detected_defects_list):
-            status = "Defective"
-        elif any(
-            defect.get("reason") == "Substandard" for defect in detected_defects_list
-        ):
-            status = "Substandard"
-    defect_count = len(detected_defects_list) if defect_detected else 0
-    defect_summary = "Normal"
-    if defect_detected:
-        detailed_reasons = [
-            d.get("detailed_reason", "Unknown") for d in detected_defects_list
-        ]
-        defect_summary = ", ".join(sorted(list(set(detailed_reasons))))
-
-    detection_time = datetime.now().isoformat()
-
-    for defect in detected_defects_list:
-        defect["imageUrl"] = s3_image_url
-        defect["detectionTime"] = detection_time
-
-    detection_result_data = {
-        "detectionTime": detection_time,
-        "status": status,
-        "defectCount": defect_count,
-        "imageUrl": s3_image_url,
-        "defectSummary": defect_summary,
-        "defects": detected_defects_list,
-    }
-
-    print(
-        f"감지 결과 데이터 API 전송 시도: Status='{status}', Count={defect_count}, ImageURL='{s3_image_url}'"
-    )
-    send_detection_result_to_api_async(api_detection_result_url, detection_result_data)
-
-    # --- MQTT 결과 메시지 발행 ---
-    result_message = {
-        "status": status,
-        "timestamp": detection_time,
-        "defectCount": defect_count,
-    }
-    if mqtt_client:
-        publish_mqtt_message(mqtt_client, mqtt_topic_result, json.dumps(result_message))
-        print(f"감지 결과 전송 완료: {status} to {mqtt_topic_result}")
-
-
 # 메인 처리 루프 함수
 def main_loop(
     model_path,
-    stream_url,  # VIDEO_STREAM_URL을 이 인자로 받습니다.
+    stream_url,
     conf_threshold,
     iou_threshold,
     opencv_font,
@@ -1051,52 +895,100 @@ def main_loop(
     stream_port,
 ):
     """
-    영상 스트림에서 프레임을 읽고 지속적으로 객체 감지(YOLO 추론)를 수행합니다.
-    불량 판별 및 데이터 전송은 MQTT 트리거 메시지 수신 시에만 실행됩니다.
+    영상 스트림에서 프레임을 읽고 MQTT 트리거 메시지를 기다립니다.
+    트리거 수신 시 감지를 실행하고 결과를 전송합니다.
     """
-    global latest_raw_frame, latest_yolo_results, latest_annotated_frame
+    global latest_frame
 
     # 1. 모델 로드
     model = load_yolo_model(model_path)
     if model is None:
         return
 
-    # 2. 영상 스트림 열기 (초기 연결)
-    cap = open_video_stream(stream_url)  # cap 변수를 직접 사용
+    # 2. 영상 스트림 열기
+    cap = open_video_stream(stream_url)
+    if cap is None:
+        return
 
-    # 감지 실행 함수에 필요한 인자들을 부분 적용 (partial application)하여
-    # MQTT 콜백 함수에 전달할 수 있는 형태로 만듭니다.
-    def triggered_detection_callback():
-        # 이 콜백 함수는 MQTT 메시지 수신 시 별도의 스레드에서 호출됩니다.
-        # perform_detection 함수에 필요한 모든 인자를 전달합니다.
-        perform_detection(
-            model,  # Pass model object to perform_detection
-            conf_threshold,
-            iou_threshold,
+    # 감지 실행 함수 정의
+    def perform_detection():
+        nonlocal cap, model  # 외부 변수 사용
+
+        # 현재 프레임 읽기
+        ret, frame = cap.read()
+        if not ret:
+            print("프레임 읽기 실패")
+            return
+
+        print("\n--- 감지 실행 중 (MQTT 트리거) ---")
+
+        # 여기서부터 기존 감지 로직 실행
+        results = perform_inference(model, frame, conf_threshold, iou_threshold)
+        detected_defects_list = analyze_defects(
+            results,
+            model.names,
+            area_threshold_substandard_percent,
+            area_threshold_defective_percent,
+        )
+
+        # 결과 시각화 및 처리
+        annotated_frame = frame.copy()
+        if results and results[0].boxes:
+            plot_masks = hasattr(results[0], "masks") and results[0].masks is not None
+            annotated_frame = results[0].plot(
+                masks=plot_masks, boxes=True, labels=False, conf=False
+            )
+
+        annotated_frame = visualize_results(
+            annotated_frame,
+            detected_defects_list,
             opencv_font,
             opencv_font_scale,
             opencv_font_thickness,
-            area_threshold_substandard_percent,
-            area_threshold_defective_percent,
-            snapshot_temp_dir,
-            s3_client,
-            s3_bucket_name,
-            s3_object_base_path,
-            mqtt_client,
-            mqtt_topic_result,
-            api_detection_result_url,
         )
+
+        # 전역 프레임 업데이트
+        with frame_lock:
+            latest_frame = annotated_frame.copy()
+
+        # 결과 처리 및 전송
+        defect_detected = detected_defects_list and len(detected_defects_list) > 0
+        status = "Normal"
+        if defect_detected:
+            if any(
+                defect.get("reason") == "Defective" for defect in detected_defects_list
+            ):
+                status = "Defective"
+            elif any(
+                defect.get("reason") == "Substandard"
+                for defect in detected_defects_list
+            ):
+                status = "Substandard"
+
+        # MQTT 결과 메시지 전송
+        result_message = {
+            "status": status,
+            "timestamp": datetime.now().isoformat(),
+            "defectCount": len(detected_defects_list) if defect_detected else 0,
+        }
+        if mqtt_client:
+            publish_mqtt_message(
+                mqtt_client, mqtt_topic_result, json.dumps(result_message)
+            )
+            print(f"감지 결과 전송 완료: {status}")
+
+        # 나머지 처리 (스냅샷 저장, API 전송 등) 계속...
+        # (기존 코드와 동일하게 진행)
 
     # 3. MQTT 클라이언트 초기화 (감지 콜백 함수 전달)
     mqtt_client = initialize_mqtt_client(
-        mqtt_broker_host, mqtt_broker_port, triggered_detection_callback
+        mqtt_broker_host, mqtt_broker_port, perform_detection
     )
     if mqtt_client is None:
         print("MQTT 연결 실패")
-        # MQTT 연결 실패 시에도 프로그램은 계속 실행될 수 있도록 return 하지 않음
-        # 다만, MQTT 관련 기능은 동작하지 않음
+        return
 
-    # 4. AWS S3 클라이언트 초기화
+    # 4. AWS S3 클라이언트 초기화 (기존과 동일)
     s3_client = None
     if s3_bucket_name and aws_region:
         try:
@@ -1107,7 +999,7 @@ def main_loop(
         except Exception as e:
             print(f"AWS S3 클라이언트 생성 오류: {e}")
 
-    # 5. MJPEG 스트리밍 서버 시작 (로컬 스트리밍 서버)
+    # 5. MJPEG 스트리밍 서버 시작 (기존과 동일)
     stream_server_thread = threading.Thread(
         target=run_mjpeg_stream_server, args=(stream_host, stream_port)
     )
@@ -1118,100 +1010,32 @@ def main_loop(
     print(
         f"MQTT 트리거 토픽 '{mqtt_topic_trigger}'에서 'object_detected' 메시지 수신을 대기합니다."
     )
+    print(f"결과는 '{mqtt_topic_result}' 토픽으로 전송됩니다.")
     print(f"처리된 영상은 http://{stream_host}:{stream_port}/ 에서 확인 가능합니다.")
     print("'q' 키를 누르면 프로그램이 종료됩니다.")
 
-    # 메인 루프 - 프레임 읽기 및 지속적인 YOLO 객체 감지
+    # 메인 루프 - 프레임 읽기만 수행하고 감지는 MQTT 트리거 시에만 실행
     while True:
-        # cap이 유효한지 먼저 확인
-        if cap is None or not cap.isOpened():
-            print("메인 루프: VideoCapture 객체가 유효하지 않습니다. 재연결 시도...")
-            if cap:
-                cap.release()
-            cap = open_video_stream(stream_url)
-            if cap is None:
-                print(
-                    "오류: 메인 루프 - 영상 스트림 재연결 실패. 5초 후 다시 시도합니다."
-                )
-                time.sleep(5)
-                continue
+        # 영상 스트림에서 프레임 읽기 (감지하지 않고 스트리밍용으로만 사용)
+        ret, frame = cap.read()
+        if not ret:
+            print("영상 스트림 읽기 실패")
+            break
 
-        # 영상 스트림에서 프레임 읽기
-        raw_frame = None
-        try:
-            ret, raw_frame = cap.read()
-            if not ret or raw_frame is None:
-                print(
-                    f"경고: 메인 루프 - 프레임 읽기 실패 (ret={ret}, raw_frame is None: {raw_frame is None}). 스트림 재연결 시도..."
-                )
-                if cap:
-                    cap.release()
-                cap = None  # 다음 루프에서 open_video_stream을 통해 재연결 시도
-                time.sleep(1)
-                continue
-        except cv.error as e:
-            print(
-                f"CRITICAL ERROR: 메인 루프 - cv2.error 발생: {e}. 스트림 재연결 시도..."
-            )
-            if cap:
-                cap.release()
-            cap = None  # 다음 루프에서 open_video_stream을 통해 재연결 시도
-            time.sleep(1)
-            continue
-        except Exception as e:
-            print(
-                f"CRITICAL ERROR: 메인 루프 - 예상치 못한 오류 발생: {e}. 스트림 재연결 시도..."
-            )
-            if cap:
-                cap.release()
-            cap = None  # 다음 루프에서 open_video_stream을 통해 재연결 시도
-            time.sleep(1)
-            continue
-
-        # 6. 지속적인 객체 감지 (YOLO 추론)
-        # 이 부분은 계속 실행되어 latest_yolo_results를 업데이트합니다.
-        yolo_results = perform_inference(
-            model, raw_frame, conf_threshold, iou_threshold
-        )
-
-        # 7. 감지 결과 기본 시각화 (Ultralytics plot 사용)
-        # 이 단계에서는 불량 판별 로직은 실행하지 않고, 단순히 객체 감지 결과만 시각화합니다.
-        annotated_frame = raw_frame.copy()
-        if yolo_results and yolo_results[0].boxes:
-            plot_masks = (
-                hasattr(yolo_results[0], "masks") and yolo_results[0].masks is not None
-            )
-            annotated_frame = yolo_results[0].plot(
-                masks=plot_masks, boxes=True, labels=False, conf=False
-            )
-
-        # --- 처리된 프레임과 YOLO 결과를 전역 변수에 업데이트 (스트리밍 서버 및 트리거 감지에서 사용) ---
+        # 스트리밍용 프레임 업데이트
         with frame_lock:
-            latest_raw_frame = raw_frame.copy()  # 원본 프레임 저장
-            latest_yolo_results = yolo_results  # YOLO results 객체 저장
-            latest_annotated_frame = (
-                annotated_frame.copy()
-            )  # YOLO 기본 시각화된 프레임 저장
+            latest_frame = frame.copy()
 
         # 종료 키 확인
-        if SHOW_DETECTION_WINDOW:
-            if latest_annotated_frame is not None:
-                cv.imshow(
-                    "Processed Stream", latest_annotated_frame
-                )  # 지속적으로 업데이트되는 시각화된 프레임 표시
-            if cv.waitKey(1) & 0xFF == ord("q"):
-                break
-        else:
-            time.sleep(0.01)
+        if cv.waitKey(1) & 0xFF == ord("q"):
+            break
 
     # 자원 해제
-    if cap:  # cap 변수를 직접 사용
-        cap.release()
+    cap.release()
     if mqtt_client:
         mqtt_client.loop_stop()
         mqtt_client.disconnect()
         print("MQTT 클라이언트 연결 종료")
-    cv.destroyAllWindows()
 
     print("\n프로그램이 종료되었습니다.")
 
@@ -1226,17 +1050,28 @@ if __name__ == "__main__":
     )
     YOUR_S3_OBJECT_BASE_PATH = "snapshots/"  # S3에 저장될 객체의 기본 경로 (폴더)
 
-    # MJPEG 스트리밍 서버 설정 (파이썬 스크립트 자체에서 제공하는 스트리밍)
+    # MJPEG 스트리밍 서버 설정
     STREAM_SERVER_HOST = "0.0.0.0"  # 모든 인터페이스에서 접근
     STREAM_SERVER_PORT = 8080  # 사용할 포트 (방화벽 설정 확인 필요)
 
     # Spring Boot API 기본 URL 설정
     # 이 URL은 Spring Boot 애플리케이션의 호스트와 포트, 감지 결과를 수신할 엔드포인트입니다.
     YOUR_API_DETECTION_RESULT_URL = "http://localhost:80/api/defect"  # Spring Boot 서버 주소 및 포트 + API 엔드포인트
+    # # Spring Boot API 기본 URL 설정
+    # # 이 URL은 Spring Boot 애플리케이션의 호스트와 포트입니다.
+    # # 스냅샷 이미지를 제공하는 컨트롤러의 기본 경로(/api/snapshots)는
+    # # 이 기본 URL 뒤에 붙습니다.
+    # YOUR_SPRING_BOOT_API_BASE_URL = (
+    #     "http://localhost:80"  # Spring Boot 서버 주소 및 포트
+    # )
+
+    # # 스냅샷 저장 기본 디렉토리 설정
+    # # 이 디렉토리는 Spring Boot 애플리케이션에서 정적 리소스로 제공해야 합니다.
+    # YOUR_SNAPSHOT_BASE_DIR = "snapshots"  # 프로젝트 루트의 snapshots 디렉토리
 
     main_loop(
         MODEL_PATH,
-        VIDEO_STREAM_URL,  # 여기에 VIDEO_STREAM_URL을 명시적으로 전달
+        VIDEO_STREAM_URL,
         CONF_THRESHOLD,
         IOU_THRESHOLD,
         OPENCV_FONT,

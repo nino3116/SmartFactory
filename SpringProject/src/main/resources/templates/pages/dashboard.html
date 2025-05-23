@@ -13,75 +13,75 @@
   </head>
   <body>
     <div layout:fragment="content">
-      <div class="flex justify-between mb-1 w-1/2">
-        <span class="text-base font-medium text-blue-700">공정별 진척상황</span>
-        <span class="text-sm font-medium text-blue-700">45%</span>
-      </div>
-      <div class="w-1/2 bg-gray-200 rounded-full h-4 mb-4">
-        <div class="bg-blue-600 h-4 rounded-full" style="width: 45%"></div>
-      </div>
-
-      <!-- 폼 데이터가 전송되기 전에 반드시 입력필드가 채워져야 함-->
-      <form class="max-w-1/2" method="post">
-        <label
-          for="phone-input"
-          class="block mb-2 text-md font-medium text-gray-900"
-          >총 감지해야 할 개수</label
-        >
-        <div class="relative">
-          <input
-            type="text"
-            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-1/2 ps-2 p-2.5"
-            placeholder="입력하세요"
-            required
-          />
+      <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">당일 공정 진척상황</h2>
+        <div class="flex justify-between mb-1">
+          <span class="text-base font-medium text-blue-700">진행률</span>
+          <span
+            id="daily-progress-percentage"
+            class="text-sm font-medium text-blue-700"
+            >0%</span
+          >
         </div>
-        <button
-          class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-md px-5 py-2.5 me-2 mb-2 mt-2"
-        >
-          전송
-        </button>
-      </form>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white rounded-lg shadow p-6">
-          <h2 class="text-lg font-semibold mb-4">당일 감지 상태 비율</h2>
+        <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+          <div
+            id="daily-progress-bar"
+            class="bg-blue-600 h-4 rounded-full"
+            style="width: 0%"></div>
+        </div>
 
+        <form class="max-w-md" onsubmit="event.preventDefault();">
+          <label
+            for="totalTasks"
+            class="block mb-2 text-md font-medium text-gray-900"
+            >당일 총 작업해야 할 개수</label
+          >
+          <div class="relative flex items-center">
+            <input
+              type="number"
+              id="totalTasks"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-2 p-2.5"
+              placeholder="총 작업량을 입력하세요"
+              min="0"
+              required />
+            <button
+              type="submit"
+              class="ml-3 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-md px-5 py-2.5">
+              설정
+            </button>
+          </div>
+        </form>
+
+        <div class="mt-6">
+          <canvas id="dailyTaskCompletionChart"></canvas>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-lg font-semibold mb-4">당일 불량 유형별 비율</h2>
           <canvas id="dayStatusChart"></canvas>
         </div>
 
         <div class="bg-white rounded-lg shadow p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold">당일 공정 진척상황</h2>
-            <div class="flex items-center">
-              <label for="totalTasks" class="mr-2 text-sm text-gray-700"
-                >총 작업량 입력:</label
-              >
-              <input
-                type="number"
-                id="totalTasks"
-                class="border rounded px-3 py-1 w-24 text-sm"
-                placeholder="500"
-              />
-            </div>
-          </div>
-
-          <canvas id="dailyTaskCompletionChart"></canvas>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
           <h2 class="text-lg font-semibold mb-4">전체 감지 상태 비율</h2>
-
           <canvas id="detectionStatusChart"></canvas>
         </div>
 
         <div class="bg-white rounded-lg shadow p-6">
-          <h2 class="text-lg font-semibold mb-4">주간 감지 상태 (최근 7일)</h2>
+          <h2 class="text-lg font-semibold mb-4">주간 작업 현황 (최근 7일)</h2>
           <canvas id="weekStatusChart"></canvas>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-lg font-semibold mb-4">
+            월간 작업 현황 (최근 12개월)
+          </h2>
+          <canvas id="monthStatusChart"></canvas>
         </div>
 
         <div class="bg-white rounded-lg shadow p-6 col-span-1 md:col-span-2">
           <h2 class="text-lg font-semibold mb-4">
-            연간 불량 감지 추이 (최근 12개월)
+            연간 불량률 추이 (최근 5년)
           </h2>
           <canvas id="yearStatusChart"></canvas>
         </div>
@@ -99,8 +99,12 @@
             <tr>
               <th
                 scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                감지 시간
+              </th>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 클래스
               </th>
               <th
@@ -138,9 +142,9 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <tr>
               <td
-                colspan="6"
-                class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500"
-              >
+                colspan="7"
+                class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+
                 불량 정보 로딩 중...
               </td>
             </tr>
@@ -154,8 +158,11 @@
         src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"
       ></script>
       <script
-        src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"
-      ></script>
+        src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+      <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+      <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data.min.js"></script>
       <script src="/js/dashboard.js"></script>
     </th:block>
   </body>

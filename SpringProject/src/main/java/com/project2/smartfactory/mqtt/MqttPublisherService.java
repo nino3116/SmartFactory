@@ -86,7 +86,7 @@ public class MqttPublisherService {
         if (mqttClient == null || !mqttClient.isConnected()) {
             System.err.println("MQTT 클라이언트가 연결되지 않았습니다. 메시지를 발행할 수 없습니다.");
             // 필요에 따라 예외를 던지거나 다른 방식으로 오류 처리
-            return;
+            this.init();;
         }
 
         try {
