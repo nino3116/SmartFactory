@@ -7,14 +7,11 @@ package com.project2.smartfactory.defect;
 // 예: import com.project2.smartfactory.defect.repository.DetectionLogRepository;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId; // ZoneId는 이제 필요 없을 수 있습니다.
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.slf4j.Logger; // 로깅을 위한 임포트
 import org.slf4j.LoggerFactory; // 로깅을 위한 임포트

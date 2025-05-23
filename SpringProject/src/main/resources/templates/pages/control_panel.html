@@ -72,9 +72,9 @@
 
           <div
           class="info-card w-full md:w-1/2 flex-grow flex-shrink-0 md:flex-shrink">
-          <h3 class="text-xl font-semibold text-gray-700 mb-4">
-            스크립트 제어
-          </h3>
+            <h3 class="text-xl font-semibold text-green-700 mb-4 border-b pb-2">
+              스크립트 제어
+            </h3>
           <div class="script-control-panel">
             <p class="mb-4">
               현재 상태: <span id="script-status">로딩 중...</span>
@@ -109,6 +109,13 @@
                 >스크립트 상태:
                 <span id="check-script-status" class="font-bold text-gray-500"
                   >Now Loading</span
+                ></span>
+            </div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-gray-700"
+                >카메라 스트림 상태:
+                <span id="stream-status-message" class="stream-status status-loading"
+                  >스트림 연결 중...</span
                 ></span>
             </div>
           </div>

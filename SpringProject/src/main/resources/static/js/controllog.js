@@ -6,6 +6,12 @@ document.addEventListener("DOMContentLoaded", () => {
 	const SCRIPT_CONTROL_START_URL = `${SPRING_BOOT_BASE_URL}/api/control/start`; // 스크립트 시작 API 엔드포인트
 	const SCRIPT_CONTROL_STOP_URL = `${SPRING_BOOT_BASE_URL}/api/control/stop`; // 스크립트 중지 API 엔드포인트
 	const SCRIPT_STATUS_API_URL = `${SPRING_BOOT_BASE_URL}/api/status/script`; // 스크립트 상태 조회 API 엔드포인트
+  const STREAM_STATUS_API_URL = `${SPRING_BOOT_BASE_URL}/status/image_stream`; // 이미지 스트림 상태 조회 API 엔드포인트
+
+  // 스트림 이미지 URL (필요에 따라 수정)
+	const PRIMARY_STREAM_URL = "http://localhost:8080";
+	const FALLBACK_STREAM_URL = "http://192.168.0.124:8000/stream.mjpg";
+  
 
   const STATUS_UPDATE_INTERVAL = 5000; // 스크립트 상태는 자주 확인해도 부담 적음
   const LOGS_UPDATE_INTERVAL = 5000;
@@ -17,10 +23,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // === 상태 표시 엘리먼트와 버튼 그룹 ===
   const systemStatus = document.getElementById("system-status");
   const checkSystemStatus = document.getElementById("check-system-status");
-  const checkscriptStatus = document.getElementById("check-script-status");
+  const checkScriptStatus = document.getElementById("check-script-status");
+  const checkStreamStatus = document.getElementById("stream-status-message");
   const scriptStatusSpan = document.getElementById("script-status");
 	const startScriptBtn = document.getElementById("start-script-btn");
 	const stopScriptBtn = document.getElementById("stop-script-btn");
+  
   // const sensorStatus = document.getElementById("sensor-status");
   // const buzzerStatus = document.getElementById("buzzer-status");
 
@@ -41,8 +49,6 @@ document.addEventListener("DOMContentLoaded", () => {
     await $.get('/api/status/system', async function (data) {
       console.log(`${data}`);
       var status = data;
-      systemStatus.textContent = status;
-      checkSystemStatus.textContent = status;
 
       if(data == "Unknown" && prev_status != "Unknown"){
         status = data;
@@ -68,7 +74,8 @@ document.addEventListener("DOMContentLoaded", () => {
         checkSystemStatus.classList.toggle("text-gray-600", !isOn);
       }
       
-      
+      systemStatus.textContent = status;
+      checkSystemStatus.textContent = status;
     });
   }
 
@@ -116,8 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await $.get('/ctrl/system/on/'+status+'/'+result, function (data) {
       console.log('/ctrl/system/on/'+status+'/'+result);
     }).then(() => fetchAndDisplayControlLogs());
-    updateSystemStatus();
-    // setActiveButton(startBtn, stopBtn);
+    fetchAndDisplaySystemStatus();
   });
 
   stopBtn.addEventListener("click", async () => {
@@ -132,8 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await $.get('/ctrl/system/off/'+status+'/'+result, function (data) {
       console.log('/ctrl/system/off/'+status+'/'+result);
     }).then(() => fetchAndDisplayControlLogs());
-    updateSystemStatus();
-    // setInactiveButton(stopBtn, startBtn);
+    fetchAndDisplaySystemStatus();
   });
 
   // === 센서/부저 제어 버튼 제어 ===
@@ -160,14 +165,14 @@ document.addEventListener("DOMContentLoaded", () => {
 	function updateScriptStatus(statusText, stateClass) {
 		if (scriptStatusSpan) {
 			scriptStatusSpan.textContent = statusText;
-      checkscriptStatus.textContent = statusText;
+      checkScriptStatus.textContent = statusText;
 			// 기존 상태 클래스 제거
 			scriptStatusSpan.classList.remove(
 				"status-loading",
 				"status-success",
 				"status-error",
 			);
-      checkscriptStatus.classList.remove(
+      checkScriptStatus.classList.remove(
 				"status-loading",
 				"status-success",
 				"status-error",
@@ -175,21 +180,39 @@ document.addEventListener("DOMContentLoaded", () => {
 			// 새 상태 클래스 추가 (stateClass 값에 따라)
 			if (stateClass === "loading") {
 				scriptStatusSpan.classList.add("status-loading");
-        checkscriptStatus.classList.add("status-loading");
+        checkScriptStatus.classList.add("status-loading");
 			} else if (stateClass === "success") {
 				scriptStatusSpan.classList.add("status-success");
-        checkscriptStatus.classList.add("status-loading");
+        checkScriptStatus.classList.add("status-success");
 			} else if (stateClass === "error") {
 				scriptStatusSpan.classList.add("status-error");
-        checkscriptStatus.classList.add("status-loading");
+        checkScriptStatus.classList.add("status-error");
 			} else {
 				// 기본 상태 (stateClass가 없을 경우)
 				scriptStatusSpan.classList.add("status-loading"); // 기본적으로 로딩 상태로 표시
-        checkscriptStatus.classList.add("status-loading");
+        checkScriptStatus.classList.add("status-loading");
 			}
 		} else {
 			console.error("Error: 스크립트 상태 표시 요소를 찾을 수 없습니다.");
 		}
+	}
+
+  // 카메라 스트림 상태를 확인하고 표시하는 함수
+  async function fetchAndDisplayStreamStatus() {
+		if (!checkStreamStatus) return;
+
+    const response = await fetch(STREAM_STATUS_API_URL);
+    // console.log(response);
+    const status = await response.text();
+    console.log(status);
+		checkStreamStatus.textContent = status;
+    if(status=="ALIVE"){
+      checkStreamStatus.classList.remove("status-error");
+      checkStreamStatus.classList.add("status-success");
+    }else if(status=="ERROR"){
+      checkStreamStatus.classList.remove("status-success");
+      checkStreamStatus.classList.add("status-error");
+    }
 	}
 
 	// 스크립트 상태를 가져와서 표시하는 함수 (Fetch API 사용)
@@ -216,7 +239,9 @@ document.addEventListener("DOMContentLoaded", () => {
 				stateClass = "error";
 			} else if (status.includes("로딩") || status.includes("Loading")) {
 				stateClass = "loading";
-			}
+			} else {
+        stateClass = "success";
+      }
 
 			updateScriptStatus(status, stateClass); // 가져온 상태와 클래스로 업데이트
 		} catch (error) {
@@ -446,6 +471,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	fetchAndDisplayControlLogs();
   fetchAndDisplaySystemStatus();
   fetchAndDisplayScriptStatus();
+  fetchAndDisplayStreamStatus();
   
   // 주기적으로 데이터 업데이트 설정 - S3 요청을 줄이려면 이 간격을 늘리세요.
   setInterval(fetchAndDisplayControlLogs, LOGS_UPDATE_INTERVAL);

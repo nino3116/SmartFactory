@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class ControlPanelController {
   
-  
   @GetMapping("/control_panel")
   public String ControlPanel (Model model){
 
@@ -15,4 +14,6 @@ public class ControlPanelController {
     model.addAttribute("activebutton", "control_panel");
     return "pages/control_panel";
   }
+
+  
 }
