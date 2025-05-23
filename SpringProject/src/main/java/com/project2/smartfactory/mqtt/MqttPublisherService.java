@@ -57,8 +57,8 @@ public class MqttPublisherService {
             // 오류 발생 시 클라이언트 객체를 null로 설정하거나 상태를 표시하여 발행 시 오류 처리
             mqttClient = null; // 연결 실패 시 클라이언트를 null로 설정
         } catch (Exception e) {
-             System.err.println("MQTT 클라이언트 초기화 중 예상치 못한 오류 발생: " + e.getMessage());
-             mqttClient = null;
+            System.err.println("MQTT 클라이언트 초기화 중 예상치 못한 오류 발생: " + e.getMessage());
+            mqttClient = null;
         }
     }
 
@@ -107,7 +107,7 @@ public class MqttPublisherService {
             System.err.println("cause " + me.getCause());
             System.err.println("excep " + me);
         } catch (Exception e) {
-             System.err.println("MQTT 메시지 발행 중 예상치 못한 오류 발생: " + e.getMessage());
+        System.err.println("MQTT 메시지 발행 중 예상치 못한 오류 발생: " + e.getMessage());
         }
     }
 
