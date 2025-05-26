@@ -33,49 +33,49 @@ public class ControlLogController {
 
   @GetMapping("/system/{action}/{status}/{result}")
   String getControlSystem(@PathVariable("action") String action, @PathVariable("status") String status, @PathVariable("result") String result,  Model model){
-    String controlType = "";
-    String controlData = "";
-    String controlResultStatus = "";
-    String controlMemo = "";
+    // String controlType = "";
+    // String controlData = "";
+    // String controlResultStatus = "";
+    // String controlMemo = "";
     
-    if(result.equals("Unknown")){
-      controlMemo = "상태 확인 불가";
-    }
+    // if(result.equals("Unknown")){
+    //   controlMemo = "상태 확인 불가";
+    // }
 
-    if(action.equals("check")){
-      controlType = "System Check";
+    // if(action.equals("check")){
+    //   controlType = "System Check";
 
-      if(status.equals("detect_error")){
-        controlData = "Error Detected";
-        controlResultStatus = result;
-      }else{
-        controlData = "Something Wrong";
-      }
-    }else if(action.equals("detect_change")){
-      controlType = "System Check";
-      controlData = "Change Detected";
-      controlResultStatus = status + "→" + result;
-    }else{
-      controlType = "User Request";
-      controlData = "System "+action;
-      if(result.equals(status)){
-        controlResultStatus = "변화 없음("+result+")";
-      }else{
-        controlResultStatus = status + "→" + result;
-      }
+    //   if(status.equals("detect_error")){
+    //     controlData = "Error Detected";
+    //     controlResultStatus = result;
+    //   }else{
+    //     controlData = "Something Wrong";
+    //   }
+    // }else if(action.equals("detect_change")){
+    //   controlType = "System Check";
+    //   controlData = "Change Detected";
+    //   controlResultStatus = status + "→" + result;
+    // }else{
+    //   controlType = "User Request";
+    //   controlData = "System "+action;
+    //   if(result.equals(status)){
+    //     controlResultStatus = "변화 없음("+result+")";
+    //   }else{
+    //     controlResultStatus = status + "→" + result;
+    //   }
 
-      if((action.equals("on") && status.equals("running"))||(action.equals("off") && status.equals("stopped"))){
-        controlMemo += "기존 상태로 요청";
-      }else if((action.equals("on")&&result.equals("running"))||(action.equals("off")&&result.equals("off"))){
-        controlMemo += "정상 작동";
-      }else{
-        controlMemo += (controlMemo.equals(""))?"":" / ";
-        controlMemo += "오작동: 상태 확인 요망";
-      }
-    }
+    //   if((action.equals("on") && status.equals("running"))||(action.equals("off") && status.equals("stopped"))){
+    //     controlMemo += "기존 상태로 요청";
+    //   }else if((action.equals("on")&&result.equals("running"))||(action.equals("off")&&result.equals("off"))){
+    //     controlMemo += "정상 작동";
+    //   }else{
+    //     controlMemo += (controlMemo.equals(""))?"":" / ";
+    //     controlMemo += "오작동: 상태 확인 요망";
+    //   }
+    // }
 
-    ControlLog controlLog = new ControlLog(controlType, controlData, controlResultStatus, controlMemo);
-    controlLogRepository.save(controlLog);
+    // ControlLog controlLog = new ControlLog(controlType, controlData, controlResultStatus, controlMemo);
+    // controlLogRepository.save(controlLog);
     return "pages/control_panel";
   }
 

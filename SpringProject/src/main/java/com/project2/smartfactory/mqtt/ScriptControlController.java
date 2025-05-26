@@ -33,6 +33,7 @@ public class ScriptControlController {
         try {
             // MQTT Publisher 서비스를 사용하여 명령 토픽으로 "START" 메시지 발행
             mqttPublisherService.publishMessage(commandTopic, "START", 2, false); // QoS 1, Retained false
+            mqttSubscriberService.userRequest("Script", "on");
             return ResponseEntity.ok("스크립트 시작 명령 발행 성공");
         } catch (Exception e) {
             System.err.println("스크립트 시작 명령 발행 중 오류: " + e.getMessage());
@@ -51,6 +52,7 @@ public class ScriptControlController {
          try {
             // MQTT Publisher 서비스를 사용하여 명령 토픽으로 "STOP" 메시지 발행
             mqttPublisherService.publishMessage(commandTopic, "STOP", 2, false); // QoS 1, Retained false
+            mqttSubscriberService.userRequest("Script", "off");
             return ResponseEntity.ok("스크립트 중지 명령 발행 성공");
         } catch (Exception e) {
             System.err.println("스크립트 중지 명령 발행 중 오류: " + e.getMessage());

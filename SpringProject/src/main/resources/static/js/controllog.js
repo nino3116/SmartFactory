@@ -45,8 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function fetchAndDisplaySystemStatus(){
-    var prev_status = systemStatus.textContent;
-    await $.get('/api/status/system', async function (data) {
+    $.get('/api/status/system', async function (data) {
       console.log(`${data}`);
 
       if (data.substr(0,2)=="<!"){
@@ -54,29 +53,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       var status = data;
 
-      if(data == "Unknown" && prev_status != "Unknown"){
-        status = data;
-        await $.get('/ctrl/system/check/detect_error/'+status, function (data) {
-          console.log('/ctrl/system/check/detect_error/'+status);
-        }).then(() => fetchAndDisplayControlLogs());
+      if (status === "running"){
+        isOn = true;
       }else{
-        status = (data=="Unknown")?data:JSON.parse(data)['status'];
-        if (status != prev_status && !prev_status.includes("Loading")){
-          await $.get('/ctrl/system/detect_change/'+prev_status+'/'+status, function (data) {
-            console.log('/ctrl/system/detect_change/'+prev_status+'/'+status);
-          }).then(() => fetchAndDisplayControlLogs());
-        }
-
-        if (status === "running"){
-          isOn = true;
-        }else{
-          isOn = false;
-        }
-        systemStatus.classList.toggle("text-green-600", isOn);
-        systemStatus.classList.toggle("text-gray-600", !isOn);
-        checkSystemStatus.classList.toggle("text-green-600", isOn);
-        checkSystemStatus.classList.toggle("text-gray-600", !isOn);
+        isOn = false;
       }
+      systemStatus.classList.toggle("text-green-600", isOn);
+      systemStatus.classList.toggle("text-gray-600", !isOn);
+      checkSystemStatus.classList.toggle("text-green-600", isOn);
+      checkSystemStatus.classList.toggle("text-gray-600", !isOn);
       
       systemStatus.textContent = status;
       checkSystemStatus.textContent = status;
@@ -115,36 +100,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // === 시스템 시작/중지 버튼 제어 ===
+  function updateSystemStatus(text){
+    systemStatus.textContent = text;
+  }
+
   startBtn.addEventListener("click", async () => {
-    var status = systemStatus.textContent;
-    var result = "Unknown";
+    await updateSystemStatus("시스템 시작 요청 중...");
     await $.get('/api/control/system/start', function (data) {
       console.log(`${data}`);
-    });
-    await setTimeout(500);
-    await $.get('/api/status/system', function (data) {
-      result = (data=="Unknown")?data:JSON.parse(data)['status'];
-    });
-    await $.get('/ctrl/system/on/'+status+'/'+result, function (data) {
-      console.log('/ctrl/system/on/'+status+'/'+result);
-    }).then(() => fetchAndDisplayControlLogs());
-    fetchAndDisplaySystemStatus();
+    })
+    await sleep(300).then(fetchAndDisplaySystemStatus());
+    await fetchAndDisplayControlLogs();
   });
 
   stopBtn.addEventListener("click", async () => {
-    var status = systemStatus.textContent;
-    var result = "Unknown";
+    await updateSystemStatus("시스템 중지 요청 중...");
     await $.get('/api/control/system/stop', function (data) {
       console.log(`${data}`);
-    });
-    await setTimeout(500);
-    await $.get('/api/status/system', function (data) {
-      result = (data=="Unknown")?data:JSON.parse(data)['status'];
-    });
-    await $.get('/ctrl/system/off/'+status+'/'+result, function (data) {
-      console.log('/ctrl/system/off/'+status+'/'+result);
-    }).then(() => fetchAndDisplayControlLogs());
-    fetchAndDisplaySystemStatus();
+    })
+    await sleep(300).then(fetchAndDisplaySystemStatus());
+    await fetchAndDisplayControlLogs();
   });
 
   // === 센서/부저 제어 버튼 제어 ===

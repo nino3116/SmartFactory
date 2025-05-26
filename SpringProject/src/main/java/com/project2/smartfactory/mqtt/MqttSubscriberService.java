@@ -2,6 +2,7 @@ package com.project2.smartfactory.mqtt;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -16,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project2.smartfactory.control_panel.ControlLog;
 import com.project2.smartfactory.control_panel.ControlLogRepository;
@@ -55,6 +57,10 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
     // 스크립트의 현재 상태를 저장할 변수 (기본값 설정)
     private String currentScriptStatus = "Default";
     private String currentSystemStatus = "Default";
+    private boolean[] userRequestScript = {false, false};
+    private boolean[] userRequestSystem = {false, false};
+    private int[] userRequestScriptCnt = {0, 0};
+    private int[] userRequestSystemCnt = {0, 0};
 
     // 재연결 시도 관련 상수
     private static final int MAX_RECONNECT_ATTEMPTS = 5; // 최대 재연결 시도 횟수
@@ -75,6 +81,26 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
         connectAndSubscribe();
         this.getCurrentScriptStatus();
         this.getCurrentSystemStatus();
+    }
+
+    /**
+     * User Request 처리
+     */
+
+    public void userRequest(String to, String command){
+        if(to.equals("System")){
+            if(command.equals("on")){
+                userRequestSystem[0] = true;
+            }else if(command.equals("off")){
+                userRequestSystem[1] = true;
+            }
+        }else if(to.equals("Script")){
+            if(command.equals("on")){
+                userRequestScript[0] = true;
+            }else if(command.equals("off")){
+                userRequestScript[1] = true;
+            }
+        }
     }
 
     /**
@@ -195,25 +221,110 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
         String payload = new String(message.getPayload());
         logger.debug("Message Arrived - Topic: {}, Payload: {}", topic, payload);
 
+        String controlType = "";
+        String controlData = "";
+        String controlResult = "";
+        String controlMemo = "";
+        boolean log_flag = false;
+
         // 토픽에 따라 메시지 처리 로직 분기
         if (topic.equals(scriptStatusTopic)) {
             // Python 스크립트 상태 메시지 처리
-            if(!currentScriptStatus.equals("Default") && payload!=currentScriptStatus){
-                ControlLog controlLog = new ControlLog("Script Check (server)", "Change Detected", currentScriptStatus + "→" + payload, "");
-                controlLogRepository.save(controlLog);
-            }else if(payload.equals("Unknown") && currentScriptStatus.equals("Unknown")){
-                ControlLog controlLog = new ControlLog("Script Check (server)", "Error Detected", payload, "상태 확인 불가");
+            if(userRequestScript[0] == true){
+                controlType="User Request";
+                controlData="Script On";
+                userRequestScript[0] = false;
+                log_flag=true;
+                if(currentScriptStatus.contains("Running") || currentScriptStatus.contains("Started")){
+                    if(userRequestScriptCnt[0]>=2){
+                        controlMemo = "같은 상태로 요청";
+                        userRequestScriptCnt[0] = 0;
+                    }else{
+                        log_flag = false;
+                        userRequestScriptCnt[0]++;
+                    }
+                }
+            }else if(userRequestScript[1] == true){
+                controlType="User Request";
+                controlData="Script Off";
+                if(currentScriptStatus.contains("Stopped")){
+                    if(userRequestScriptCnt[1]>=2){
+                        controlMemo = "같은 상태로 요청";
+                        userRequestScriptCnt[1] = 0;
+                    }else{
+                        log_flag = false;
+                        userRequestScriptCnt[1]++;
+                    }
+                }
+                userRequestScript[1] = false;
+                log_flag=true;
+            }else{
+                controlType = "Script Check";
+                if(!currentScriptStatus.equals("Default") && !payload.equals(currentScriptStatus)){
+                    if(payload.contains("Already") && (currentScriptStatus.contains("Started") || currentScriptStatus.contains("Running"))){
+                        log_flag = false;
+                    }else{
+                        controlData = "Change Detected";
+                    }
+                }else if(payload.equals("Unknown") && currentScriptStatus.equals("Unknown")){
+                    controlData = "Error Detected";
+                    controlResult = payload;
+                    controlMemo="상태 확인 불가";
+                }
+            }
+            if(log_flag){
+                ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentSystemStatus+"→"+payload:controlResult), controlMemo);
                 controlLogRepository.save(controlLog);
             }
             currentScriptStatus = payload;
             logger.info("Script Status: {}", currentScriptStatus);
         } else if (topic.equals(systemStatusTopic)) {
             // 시스템 상태 메시지 처리
-            if(!currentSystemStatus.equals("Default") && payload!=currentScriptStatus){
-                ControlLog controlLog = new ControlLog("System Check (server)", "Change Detected", currentScriptStatus + "→" + payload, "");
-                controlLogRepository.save(controlLog);
-            }else if(payload.equals("Unknown") && currentScriptStatus.equals("Unknown")){
-                ControlLog controlLog = new ControlLog("System Check (server)", "Error Detected", payload, "상태 확인 불가");
+            Map<String, String> obj = objectMapper.readValue(payload, new TypeReference<Map<String, String>>() {});
+            payload = obj.get("status");
+
+            if(userRequestSystem[0] == true){
+                controlType="User Request";
+                controlData="System On";
+                if(currentSystemStatus.equals("running")){
+                    if(userRequestSystemCnt[0]>=2){
+                        controlMemo = "같은 상태로 요청";
+                        userRequestSystemCnt[0] = 0;
+                    }else{
+                        log_flag = false;
+                        userRequestSystemCnt[0]++;
+                    }
+                }
+                userRequestSystem[0] = false;
+                log_flag=true;
+            }else if(userRequestSystem[1] == true){
+                controlType="User Request";
+                controlData="System Off";
+                if(currentSystemStatus.equals("stopped")){
+                    if(userRequestSystemCnt[1]>=2){
+                        controlMemo = "같은 상태로 요청";
+                        userRequestSystemCnt[1] = 0;
+                    }else{
+                        log_flag = false;
+                        userRequestSystemCnt[1]++;
+                    }
+                }
+                userRequestSystem[1] = false;
+                log_flag=true;
+            }else{
+                controlType="System Check";
+                if(!currentSystemStatus.equals("Default") && !payload.equals(currentSystemStatus)){
+                    controlData="Change Detected";
+                    log_flag=true;
+                }else if(payload.equals("Unknown") && !currentSystemStatus.equals("Unknown")){
+                    controlData="Error Detected";
+                    controlResult=payload;
+                    controlMemo="상태 확인 불가";
+                    log_flag=true;
+                }
+            }
+            if(log_flag){
+                ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentSystemStatus+"→"+payload:controlResult), controlMemo);
                 controlLogRepository.save(controlLog);
             }
             currentSystemStatus = payload;
