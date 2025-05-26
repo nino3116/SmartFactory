@@ -888,6 +888,7 @@ def perform_detection(
     s3_object_base_path,
     mqtt_client,
     mqtt_topic_result,
+    mqtt_topic_details,
     api_detection_result_url,
 ):
     """
@@ -1022,6 +1023,9 @@ def perform_detection(
     }
     if mqtt_client:
         publish_mqtt_message(mqtt_client, mqtt_topic_result, json.dumps(result_message))
+        publish_mqtt_message(
+            mqtt_client, mqtt_topic_details, json.dumps(detection_result_data)
+        )
         print(f"감지 결과 전송 완료: {status} to {mqtt_topic_result}")
 
 
@@ -1084,6 +1088,7 @@ def main_loop(
             s3_object_base_path,
             mqtt_client,
             mqtt_topic_result,
+            mqtt_topic_details,
             api_detection_result_url,
         )
 
