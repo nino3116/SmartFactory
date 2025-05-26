@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 
+
 @RestController
 @RequiredArgsConstructor
 @CrossOrigin(origins = {"http://localhost", "http://192.168.0.122", "http://192.168.0.124"}, maxAge = 3600) // 컨트롤러의 모든 메서드에 적용
@@ -67,6 +68,7 @@ public class ScriptControlController {
      */
     @GetMapping("/status/script")
     public ResponseEntity<String> getScriptStatus() {
+    
         System.out.println("웹 요청: 스크립트 상태 조회 수신");
         // MQTT Status Subscriber로부터 현재 상태 가져와서 반환
         String status = mqttSubscriberService.getCurrentScriptStatus();
