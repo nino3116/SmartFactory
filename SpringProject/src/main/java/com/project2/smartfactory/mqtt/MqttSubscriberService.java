@@ -59,7 +59,6 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
     private String currentSystemStatus = "Default";
     private boolean[] userRequestScript = {false, false};
     private boolean[] userRequestSystem = {false, false};
-    private int[] userRequestScriptCnt = {0, 0};
     private int[] userRequestSystemCnt = {0, 0};
 
     // 재연결 시도 관련 상수
@@ -230,31 +229,25 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
         // 토픽에 따라 메시지 처리 로직 분기
         if (topic.equals(scriptStatusTopic)) {
             // Python 스크립트 상태 메시지 처리
+            payload = payload.replace("Apple Defect Script ","");
+
             if(userRequestScript[0] == true){
                 controlType="User Request";
                 controlData="Script On";
                 userRequestScript[0] = false;
                 log_flag=true;
-                if(currentScriptStatus.contains("Running") || currentScriptStatus.contains("Started")){
-                    if(userRequestScriptCnt[0]>=2){
-                        controlMemo = "같은 상태로 요청";
-                        userRequestScriptCnt[0] = 0;
+                if(payload.contains("Already Running")){
+                    if(currentScriptStatus.equals("Default")){
+                        controlMemo = "작동 중이었으나 표기 오류";
                     }else{
-                        log_flag = false;
-                        userRequestScriptCnt[0]++;
+                        controlMemo = "같은 상태로 요청";
                     }
                 }
             }else if(userRequestScript[1] == true){
                 controlType="User Request";
                 controlData="Script Off";
-                if(currentScriptStatus.contains("Stopped")){
-                    if(userRequestScriptCnt[1]>=2){
-                        controlMemo = "같은 상태로 요청";
-                        userRequestScriptCnt[1] = 0;
-                    }else{
-                        log_flag = false;
-                        userRequestScriptCnt[1]++;
-                    }
+                if(payload.contains("Not Running")){
+                    controlMemo = "같은 상태로 요청";
                 }
                 userRequestScript[1] = false;
                 log_flag=true;
@@ -273,7 +266,7 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
                 }
             }
             if(log_flag){
-                ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentSystemStatus+"→"+payload:controlResult), controlMemo);
+                ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentScriptStatus+"→"+payload:controlResult), controlMemo);
                 controlLogRepository.save(controlLog);
             }
             currentScriptStatus = payload;
