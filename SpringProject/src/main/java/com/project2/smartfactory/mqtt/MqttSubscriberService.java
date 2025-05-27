@@ -4,13 +4,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.project2.smartfactory.defect.DefectInfo;
-import com.project2.smartfactory.defect.DetectionLogService; // DetectionLogService 임포트 (필요에 따라 유지 또는 제거)
-
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -19,7 +12,6 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,13 +22,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project2.smartfactory.control_panel.ControlLog;
 import com.project2.smartfactory.control_panel.ControlLogRepository;
 import com.project2.smartfactory.defect.DefectInfo;
-import com.project2.smartfactory.defect.DetectionLogService; // DetectionLogService 임포트
+import com.project2.smartfactory.defect.DetectionLogService; // DetectionLogService 임포트 (필요에 따라 유지 또는 제거)
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 
 @Service // Spring Bean으로 등록
 @RequiredArgsConstructor
@@ -81,12 +71,6 @@ public class MqttSubscriberService implements MqttCallback {
     private final DetectionLogService detectionLogService;
     private final ControlLogRepository controlLogRepository;
 
-    // 생성자 주입을 통해 DetectionLogService를 받습니다.
-    public MqttSubscriberService(DetectionLogService detectionLogService, ControlLogRepository controlLogRepository) {
-        this.detectionLogService = detectionLogService;
-        this.controlLogRepository = controlLogRepository;
-    }
-
     @PostConstruct // Spring 애플리케이션 시작 시 실행
     public void init() {
         connectAndSubscribe();
@@ -112,9 +96,6 @@ public class MqttSubscriberService implements MqttCallback {
                 userRequestScript[1] = true;
             }
         }
-    @PostConstruct // Spring 애플리케이션 시작 시 실행
-    public void init() {
-        connectAndSubscribe();
     }
 
     /**
