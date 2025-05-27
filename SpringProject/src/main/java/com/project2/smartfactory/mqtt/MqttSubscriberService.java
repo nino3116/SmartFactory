@@ -1,5 +1,9 @@
 package com.project2.smartfactory.mqtt;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project2.smartfactory.defect.DefectInfo;
 import com.project2.smartfactory.defect.DetectionLogService; // DetectionLogService 임포트 (필요에 따라 유지 또는 제거)
@@ -18,13 +22,21 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project2.smartfactory.control_panel.ControlLog;
+import com.project2.smartfactory.control_panel.ControlLogRepository;
+import com.project2.smartfactory.defect.DefectInfo;
+import com.project2.smartfactory.defect.DetectionLogService; // DetectionLogService 임포트
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 @Service // Spring Bean으로 등록
 @RequiredArgsConstructor
@@ -48,17 +60,58 @@ public class MqttSubscriberService implements MqttCallback {
     @Value("${mqtt.topic.script.status}") // Python 스크립트 상태 토픽
     private String scriptStatusTopic;
 
+    @Value("${mqtt.topic.system.status}") // 시스템 상태 토픽
+    private String systemStatusTopic;
+
     private MqttClient mqttClient;
     private ObjectMapper objectMapper = new ObjectMapper(); // JSON 파싱을 위한 객체
 
     // 스크립트의 현재 상태를 저장할 변수 (기본값 설정)
-    private String currentScriptStatus = "Unknown";
+    private String currentScriptStatus = "Default";
+    private String currentSystemStatus = "Default";
+    private boolean[] userRequestScript = {false, false};
+    private boolean[] userRequestSystem = {false, false};
+    private int[] userRequestSystemCnt = {0, 0};
 
     // 재연결 시도 관련 상수
     private static final int MAX_RECONNECT_ATTEMPTS = 5; // 최대 재연결 시도 횟수
     private static final long RECONNECT_DELAY_SECONDS = 5; // 재연결 시도 간 지연 시간 (초)
 
+    // DetectionLogService 주입 (불량 상세 정보를 DB에 저장하기 위함)
+    private final DetectionLogService detectionLogService;
+    private final ControlLogRepository controlLogRepository;
 
+    // 생성자 주입을 통해 DetectionLogService를 받습니다.
+    public MqttSubscriberService(DetectionLogService detectionLogService, ControlLogRepository controlLogRepository) {
+        this.detectionLogService = detectionLogService;
+        this.controlLogRepository = controlLogRepository;
+    }
+
+    @PostConstruct // Spring 애플리케이션 시작 시 실행
+    public void init() {
+        connectAndSubscribe();
+        this.getCurrentScriptStatus();
+        this.getCurrentSystemStatus();
+    }
+
+    /**
+     * User Request 처리
+     */
+
+    public void userRequest(String to, String command){
+        if(to.equals("System")){
+            if(command.equals("on")){
+                userRequestSystem[0] = true;
+            }else if(command.equals("off")){
+                userRequestSystem[1] = true;
+            }
+        }else if(to.equals("Script")){
+            if(command.equals("on")){
+                userRequestScript[0] = true;
+            }else if(command.equals("off")){
+                userRequestScript[1] = true;
+            }
+        }
     @PostConstruct // Spring 애플리케이션 시작 시 실행
     public void init() {
         connectAndSubscribe();
@@ -86,8 +139,8 @@ public class MqttSubscriberService implements MqttCallback {
             logger.info("Connected to MQTT Broker");
 
             // 모든 토픽을 한 번에 구독
-            String[] topics = {defectStatusTopic, defectDetailsTopic, scriptStatusTopic};
-            int[] qos = {1, 1, 1}; // 각 토픽에 대한 QoS 레벨 (예: 1)
+            String[] topics = {defectStatusTopic, defectDetailsTopic, scriptStatusTopic, systemStatusTopic};
+            int[] qos = {1, 1, 1, 1}; // 각 토픽에 대한 QoS 레벨 (예: 1)
             mqttClient.subscribe(topics, qos);
 
             logger.info("Subscribed to topics: {}, {}, {}", defectStatusTopic, defectDetailsTopic, scriptStatusTopic);
@@ -124,6 +177,15 @@ public class MqttSubscriberService implements MqttCallback {
             return currentScriptStatus;
         } else {
             return "MQTT Disconnected / " + currentScriptStatus; // 연결 끊김 상태도 함께 표시
+        }
+    }
+
+    public String getCurrentSystemStatus() {
+        // MQTT 클라이언트의 연결 상태에 따라 메시지를 보강
+        if (mqttClient != null && mqttClient.isConnected()) {
+            return currentSystemStatus;
+        } else {
+            return "MQTT Disconnected / " + currentSystemStatus; // 연결 끊김 상태도 함께 표시
         }
     }
 
@@ -173,11 +235,109 @@ public class MqttSubscriberService implements MqttCallback {
         String payload = new String(message.getPayload());
         logger.debug("Message Arrived - Topic: {}, Payload: {}", topic, payload);
 
+        String controlType = "";
+        String controlData = "";
+        String controlResult = "";
+        String controlMemo = "";
+        boolean log_flag = false;
+
         // 토픽에 따라 메시지 처리 로직 분기
         if (topic.equals(scriptStatusTopic)) {
             // Python 스크립트 상태 메시지 처리
+            payload = payload.replace("Apple Defect Script ","");
+
+            if(userRequestScript[0] == true){
+                controlType="User Request";
+                controlData="Script On";
+                userRequestScript[0] = false;
+                log_flag=true;
+                if(payload.contains("Already Running")){
+                    if(currentScriptStatus.equals("Default")){
+                        controlMemo = "작동 중이었으나 표기 오류";
+                    }else{
+                        controlMemo = "같은 상태로 요청";
+                    }
+                }
+            }else if(userRequestScript[1] == true){
+                controlType="User Request";
+                controlData="Script Off";
+                if(payload.contains("Not Running")){
+                    controlMemo = "같은 상태로 요청";
+                }
+                userRequestScript[1] = false;
+                log_flag=true;
+            }else{
+                controlType = "Script Check";
+                if(!currentScriptStatus.equals("Default") && !payload.equals(currentScriptStatus)){
+                    if(payload.contains("Already") && (currentScriptStatus.contains("Started") || currentScriptStatus.contains("Running"))){
+                        log_flag = false;
+                    }else{
+                        controlData = "Change Detected";
+                    }
+                }else if(payload.equals("Unknown") && currentScriptStatus.equals("Unknown")){
+                    controlData = "Error Detected";
+                    controlResult = payload;
+                    controlMemo="상태 확인 불가";
+                }
+            }
+            if(log_flag){
+                ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentScriptStatus+"→"+payload:controlResult), controlMemo);
+                controlLogRepository.save(controlLog);
+            }
             currentScriptStatus = payload;
             logger.info("Script Status: {}", currentScriptStatus);
+        } else if (topic.equals(systemStatusTopic)) {
+            // 시스템 상태 메시지 처리
+            Map<String, String> obj = objectMapper.readValue(payload, new TypeReference<Map<String, String>>() {});
+            payload = obj.get("status");
+
+            if(userRequestSystem[0] == true){
+                controlType="User Request";
+                controlData="System On";
+                if(currentSystemStatus.equals("running")){
+                    if(userRequestSystemCnt[0]>=2){
+                        controlMemo = "같은 상태로 요청";
+                        userRequestSystemCnt[0] = 0;
+                    }else{
+                        log_flag = false;
+                        userRequestSystemCnt[0]++;
+                    }
+                }
+                userRequestSystem[0] = false;
+                log_flag=true;
+            }else if(userRequestSystem[1] == true){
+                controlType="User Request";
+                controlData="System Off";
+                if(currentSystemStatus.equals("stopped")){
+                    if(userRequestSystemCnt[1]>=2){
+                        controlMemo = "같은 상태로 요청";
+                        userRequestSystemCnt[1] = 0;
+                    }else{
+                        log_flag = false;
+                        userRequestSystemCnt[1]++;
+                    }
+                }
+                userRequestSystem[1] = false;
+                log_flag=true;
+            }else{
+                controlType="System Check";
+                if(!currentSystemStatus.equals("Default") && !payload.equals(currentSystemStatus)){
+                    controlData="Change Detected";
+                    log_flag=true;
+                }else if(payload.equals("Unknown") && !currentSystemStatus.equals("Unknown")){
+                    controlData="Error Detected";
+                    controlResult=payload;
+                    controlMemo="상태 확인 불가";
+                    log_flag=true;
+                }
+            }
+            if(log_flag){
+                ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentSystemStatus+"→"+payload:controlResult), controlMemo);
+                controlLogRepository.save(controlLog);
+            }
+            currentSystemStatus = payload;
+            logger.info("System Status: {}", currentSystemStatus);
+          
         } else if (topic.equals(defectStatusTopic)) {
             // 불량 감지 상태 메시지 처리 (예: UI 업데이트, 로그 기록 등)
             logger.info("Defect Status: {}", payload);

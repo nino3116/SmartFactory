@@ -24,6 +24,11 @@ public class MqttPublisherService {
 
     private MqttClient mqttClient;
 
+    @Value("${mqtt.topic.system.command}")
+    private String systemCommandTopic;
+    @Value("${mqtt.topic.script.command}")
+    private String scriptCommandTopic;
+
 
     // 서비스 초기화 시 MQTT 클라이언트 연결
     @PostConstruct
@@ -46,6 +51,9 @@ public class MqttPublisherService {
             System.out.println("MQTT 브로커 연결 시도: " + brokerUrl);
             mqttClient.connect(connOpts);
             System.out.println("MQTT 브로커 연결 성공");
+
+            this.publishMessage(systemCommandTopic, "status_request", 2, false);
+            this.publishMessage(scriptCommandTopic, "status_request", 2, false);
 
         } catch (MqttException me) {
             System.err.println("MQTT 연결 오류: " + me.getMessage());
@@ -86,7 +94,7 @@ public class MqttPublisherService {
         if (mqttClient == null || !mqttClient.isConnected()) {
             System.err.println("MQTT 클라이언트가 연결되지 않았습니다. 메시지를 발행할 수 없습니다.");
             // 필요에 따라 예외를 던지거나 다른 방식으로 오류 처리
-            this.init();;
+            this.init();
         }
 
         try {
