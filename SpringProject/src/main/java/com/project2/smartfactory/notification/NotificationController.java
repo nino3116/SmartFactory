@@ -50,7 +50,7 @@ public class NotificationController {
                     .name("initialCount") // 클라이언트에서 'initialCount' 이벤트로 수신
                     .data(notificationService.getUnreadNotificationCount()));
         } catch (IOException e) {
-            logger.error("SSE initialCount 이벤트 전송 중 오류 발생: {}", e.getMessage());
+            logger.error("Error while sending SSE initialCount : {}", e.getMessage());
             emitter.completeWithError(e); // 전송 중 오류 발생 시 Emitter 완료 처리
         }
 
@@ -65,7 +65,7 @@ public class NotificationController {
      */
     @GetMapping("/unread-count")
     public ResponseEntity<Long> getUnreadNotificationCount() {
-        logger.info("읽지 않은 알림 개수 API 요청 수신.");
+        logger.info("UnreadNotificationCount API Requested.");
         long count = notificationService.getUnreadNotificationCount();
         return ResponseEntity.ok(count); // HTTP 200 OK와 함께 개수 반환
     }
@@ -78,7 +78,7 @@ public class NotificationController {
      */
     @GetMapping("/recent")
     public ResponseEntity<List<Notification>> getRecentNotifications() {
-        logger.info("최근 알림 목록 API 요청 수신.");
+        logger.info("RecentNotifications API Requested.");
         List<Notification> notifications = notificationService.getRecentNotifications();
         return ResponseEntity.ok(notifications); // HTTP 200 OK와 함께 목록 반환
     }
@@ -91,7 +91,7 @@ public class NotificationController {
      */
     @PostMapping("/mark-as-read")
     public ResponseEntity<Void> markAllAsRead() {
-        logger.info("모든 알림 읽음 처리 API 요청 수신.");
+        logger.info("MarkAllNotificationAsRead API Requested.");
         notificationService.markAllNotificationsAsRead();
         return ResponseEntity.ok().build(); // HTTP 200 OK 응답
     }
@@ -104,7 +104,7 @@ public class NotificationController {
      */
     @PostMapping("/hide/{id}")
     public ResponseEntity<Void> hideNotification(@PathVariable Long id) {
-        logger.info("알림 숨김 처리 API 요청 수신: ID={}", id);
+        logger.info("API Request received for hiding: ID={}", id);
         notificationService.hideNotification(id);
         return ResponseEntity.ok().build(); // HTTP 200 OK 응답
     }

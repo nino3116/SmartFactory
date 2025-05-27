@@ -48,6 +48,7 @@ public class SecurityConfig {
                 .ignoringRequestMatchers(new AntPathRequestMatcher("/api/control/**"))
                 .ignoringRequestMatchers(new AntPathRequestMatcher("/api/progress/set-total", "POST"))
                 .ignoringRequestMatchers(new AntPathRequestMatcher("/api/notifications/**", "POST"))
+                .ignoringRequestMatchers(new AntPathRequestMatcher("/control/system/**", "POST"))
             );
         return http.build();
     }

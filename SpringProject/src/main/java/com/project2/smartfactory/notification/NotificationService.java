@@ -95,7 +95,7 @@ public class NotificationService {
     @Transactional(readOnly = true) // 읽기 전용 트랜잭션
     public long getUnreadNotificationCount() {
         long count = notificationRepository.countByIsReadFalseAndDisplayTrue(); // 읽지 않았고 표시할 알림 개수 조회
-        logger.debug("읽지 않은 알림 개수 (표시할 알림만): {}", count);
+        logger.debug("Unread notifications count (to display): {}", count);
         return count;
     }
 
@@ -110,7 +110,7 @@ public class NotificationService {
         unreadNotifications.forEach(n -> n.setIsRead(true));
         notificationRepository.saveAll(unreadNotifications); // 변경된 알림들을 한 번에 저장
 
-        logger.info("모든 표시된 알림이 읽음 상태로 표시되었습니다.");
+        logger.info("All displayed notifications are set to read.");
         // 모든 알림을 읽음으로 표시했으므로, 클라이언트의 뱃지 카운트를 0으로 업데이트하기 위해
         // SSE로 'initialCount' 이벤트를 다시 보낼 수 있습니다.
         emitters.forEach((id, emitter) -> {
