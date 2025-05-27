@@ -13,12 +13,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class ControlPanelController {
- private static final String RASPBERRY_PI_IP = "192.168.0.125"; // 라즈베리 파이 IP 주소
+    private static final String RASPBERRY_PI_IP = "192.168.0.125"; // 라즈베리 파이 IP 주소
     private static final String RASPBERRY_PI_USER = "nino"; // 라즈베리 파이 사용자 이름
     private static final String PYTHON_SCRIPT_PATH = "/home/nino/projects/gpio.py"; // Python 스크립트 경로
 
-    @GetMapping("/control_panel")
-    public String ControlPanel(Model model) {
+  @GetMapping("/control_panel")
+    public String ControlPanel (Model model){
+        
+
         model.addAttribute("title", "Control Panel");
         model.addAttribute("activebutton", "control_panel");
         return "pages/control_panel"; // 템플릿 경로 반환
@@ -38,14 +40,14 @@ public class ControlPanelController {
     public ResponseEntity<String> controlBuzzer(@RequestParam("action") String action) {
         return sendCommandToRaspberryPi("buzzer", action);
     }
-
+  
     private ResponseEntity<String> sendCommandToRaspberryPi(String target, String action) {
         try {
             // 1. SSH 명령 생성
             String command = String.format("ssh %s@%s python %s %s %s",
                     RASPBERRY_PI_USER, RASPBERRY_PI_IP, PYTHON_SCRIPT_PATH, target, action);
             System.out.println("명령 실행중: " + command); // 로그 출력
-
+  
             // 2. ProcessBuilder를 사용하여 프로세스 실행
             String[] cmdArray = {"ssh", RASPBERRY_PI_USER + "@" + RASPBERRY_PI_IP, "python", PYTHON_SCRIPT_PATH, target, action};
             ProcessBuilder processBuilder = new ProcessBuilder(cmdArray);
