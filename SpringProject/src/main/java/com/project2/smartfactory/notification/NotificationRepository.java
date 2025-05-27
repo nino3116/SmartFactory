@@ -1,4 +1,3 @@
-// src/main/java/com/project2/smartfactory/notification/NotificationRepository.java
 package com.project2.smartfactory.notification;
 
 import java.util.List;

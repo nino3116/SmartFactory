@@ -1,4 +1,3 @@
-// src/main/java/com/project2/smartfactory/notification/NotificationController.java
 package com.project2.smartfactory.notification;
 
 import lombok.RequiredArgsConstructor;
