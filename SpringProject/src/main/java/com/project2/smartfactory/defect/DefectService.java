@@ -50,10 +50,10 @@ public class DefectService {
             // 감지 시간은 DTO에서 받아오거나, 여기서 새로 설정할 수 있습니다.
             // 파이썬에서 시간을 보내준다면 DTO에서 받아오는 것이 좋습니다.
             if (detectionResultDto.getDetectionTime() != null) {
-                 logEntry.setDetectionTime(detectionResultDto.getDetectionTime());
+                logEntry.setDetectionTime(detectionResultDto.getDetectionTime());
             } else {
                  // DTO에 시간이 없다면 현재 시간 설정
-                 logEntry.setDetectionTime(LocalDateTime.now());
+                logEntry.setDetectionTime(LocalDateTime.now());
             }
 
             detectionLogRepository.save(logEntry);
@@ -98,8 +98,8 @@ public class DefectService {
                  // 불량 상세 정보는 저장하지 않습니다.
                  // 최신 불량 정보 리스트는 이전 불량 정보를 유지하거나 비울 수 있습니다.
                  // 여기서는 Normal 상태가 감지되면 최신 불량 정보 리스트를 비우도록 합니다.
-                 latestDefects.clear();
-                 System.out.println("불량 감지되지 않음. 불량 상세 정보 저장 스킵.");
+                latestDefects.clear();
+                System.out.println("불량 감지되지 않음. 불량 상세 정보 저장 스킵.");
             }
 
 

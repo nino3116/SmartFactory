@@ -4,6 +4,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project2.smartfactory.defect.DefectInfo;
+import com.project2.smartfactory.defect.DetectionLogService; // DetectionLogService 임포트 (필요에 따라 유지 또는 제거)
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -12,6 +19,7 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,19 +32,23 @@ import com.project2.smartfactory.control_panel.ControlLogRepository;
 import com.project2.smartfactory.defect.DefectInfo;
 import com.project2.smartfactory.defect.DetectionLogService; // DetectionLogService 임포트
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 @Service // Spring Bean으로 등록
-public class MqttSubscriberService implements MqttCallback { // 클래스 이름을 MqttSubscriberService로 변경
+@RequiredArgsConstructor
+public class MqttSubscriberService implements MqttCallback {
 
-    private static final Logger logger = LoggerFactory.getLogger(MqttSubscriberService.class); // 로거 인스턴스 생성
+    private static final Logger logger = LoggerFactory.getLogger(MqttSubscriberService.class);
 
     // application.properties 또는 application.yml 파일에서 설정 값을 주입받습니다.
     @Value("${mqtt.broker.url}")
     private String brokerUrl;
 
-    @Value("${mqtt.client.id.subscriber") // 통합된 클라이언트 ID (고유해야 함)
+    @Value("${mqtt.client.id.subscriber}") // 통합된 클라이언트 ID (고유해야 함)
     private String clientId;
 
     @Value("${mqtt.topic.status}") // 불량 감지 상태 토픽
@@ -100,6 +112,9 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
                 userRequestScript[1] = true;
             }
         }
+    @PostConstruct // Spring 애플리케이션 시작 시 실행
+    public void init() {
+        connectAndSubscribe();
     }
 
     /**
@@ -322,22 +337,24 @@ public class MqttSubscriberService implements MqttCallback { // 클래스 이름
             }
             currentSystemStatus = payload;
             logger.info("System Status: {}", currentSystemStatus);
+          
         } else if (topic.equals(defectStatusTopic)) {
             // 불량 감지 상태 메시지 처리 (예: UI 업데이트, 로그 기록 등)
             logger.info("Defect Status: {}", payload);
         } else if (topic.equals(defectDetailsTopic)) {
             // 불량 상세 정보 메시지 처리 (JSON 파싱)
             try {
-                // JSON 문자열을 List<DefectInfo> 객체로 파싱
+                // JSON 문자열을 List<DefectInfo> 객체로 파싱합니다.
+                // 이 데이터는 DefectController의 /api/defect 엔드포인트로 HTTP POST 요청을 통해 이미 DB에 저장됩니다.
+                // 따라서 MqttSubscriberService에서는 별도의 DB 저장 로직이 필요하지 않습니다.
                 List<DefectInfo> defectDetails = Arrays.asList(objectMapper.readValue(payload, DefectInfo[].class));
 
-                logger.info("Defect Details Received. Saving to DB...");
-                // DetectionLogService를 사용하여 DB에 저장
-                // detectionLogService.saveDetectionLogs(defectDetails); // TODO: 이 메서드는 DetectionLogService에 구현되어야 합니다.
-                // 현재 DetectionLogService에는 saveDetectionLogs 메서드가 없습니다.
-                // 필요하다면 DetectionLogService에 List<DefectInfo>를 받아 처리하는 메서드를 추가해야 합니다.
-                // 예: detectionLogService.saveDetectionLogs(defectDetails);
-                logger.info("Successfully processed {} defect details.", defectDetails.size());
+                logger.info("Defect Details Received via MQTT. This data is expected to be saved via HTTP POST endpoint.");
+                logger.info("Received {} defect details for logging/monitoring purposes.", defectDetails.size());
+
+                // 필요하다면, 여기서 수신된 상세 정보를 다른 비즈니스 로직에 전달하거나
+                // 웹소켓을 통해 프론트엔드로 실시간 업데이트를 보내는 등의 추가 처리를 할 수 있습니다.
+                // 예: messagingTemplate.convertAndSend("/topic/defect-updates", defectDetails);
 
             } catch (Exception e) {
                 logger.error("불량 상세 정보 JSON 파싱 중 오류 발생: {}", e.getMessage(), e);

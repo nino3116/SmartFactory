@@ -24,6 +24,7 @@ public class SecurityConfig {
                 //.requestMatchers(new AntPathRequestMatcher("/ui/**")).permitAll()
                 // AntPathRequstMatcher 는 개별적으로만 사용이 가능함
                 .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers("/control/**").permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/admin/login")).permitAll() // 로그인 페이지 허용
                 .requestMatchers(new AntPathRequestMatcher("/admin/logout")).permitAll() // 로그아웃 허용
                 .anyRequest().authenticated()
@@ -46,6 +47,7 @@ public class SecurityConfig {
                 .ignoringRequestMatchers(new AntPathRequestMatcher("/api/defect", "POST"))
                 // /api/control/** (POST)에 대해 CSRF 보호 비활성화 추가
                 .ignoringRequestMatchers(new AntPathRequestMatcher("/api/control/**"))
+                .ignoringRequestMatchers(new AntPathRequestMatcher("/api/progress/set-total", "POST"))
             );
         return http.build();
     }

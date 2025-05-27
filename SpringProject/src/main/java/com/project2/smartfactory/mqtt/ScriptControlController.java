@@ -2,6 +2,7 @@ package com.project2.smartfactory.mqtt;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
+@CrossOrigin(origins = {"http://localhost", "http://192.168.0.122", "http://192.168.0.124"}, maxAge = 3600) // 컨트롤러의 모든 메서드에 적용
 @RequestMapping("/api")
 public class ScriptControlController {
 
@@ -49,7 +51,7 @@ public class ScriptControlController {
     @PostMapping("/control/stop")
     public ResponseEntity<String> stopScript() {
         System.out.println("웹 요청: 스크립트 중지 명령 수신");
-         try {
+        try {
             // MQTT Publisher 서비스를 사용하여 명령 토픽으로 "STOP" 메시지 발행
             mqttPublisherService.publishMessage(commandTopic, "STOP", 2, false); // QoS 1, Retained false
             mqttSubscriberService.userRequest("Script", "off");
@@ -70,7 +72,7 @@ public class ScriptControlController {
         // System.out.println("웹 요청: 스크립트 상태 조회 수신");
         // MQTT Status Subscriber로부터 현재 상태 가져와서 반환
         String status = mqttSubscriberService.getCurrentScriptStatus();
-        // System.out.println("현재 스크립트 상태: " + status);
+        System.out.println("현재 스크립트 상태: " + status);
         return ResponseEntity.ok(status);
 
     }
