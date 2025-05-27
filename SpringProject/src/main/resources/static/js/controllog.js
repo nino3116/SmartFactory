@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await $.get('/api/control/system/start', function (data) {
       console.log(`${data}`);
     })
-    await sleep(300).then(fetchAndDisplaySystemStatus());
+    await fetchAndDisplaySystemStatus();
     await fetchAndDisplayControlLogs();
   });
 
@@ -118,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await $.get('/api/control/system/stop', function (data) {
       console.log(`${data}`);
     })
-    await sleep(300).then(fetchAndDisplaySystemStatus());
+    await fetchAndDisplaySystemStatus();
     await fetchAndDisplayControlLogs();
   });
 

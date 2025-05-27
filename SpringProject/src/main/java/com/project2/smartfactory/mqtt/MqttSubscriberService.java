@@ -157,7 +157,7 @@ public class MqttSubscriberService implements MqttCallback {
         if (mqttClient != null && mqttClient.isConnected()) {
             return currentScriptStatus;
         } else {
-            return "MQTT Disconnected / " + currentScriptStatus; // 연결 끊김 상태도 함께 표시
+            return "MQTT Disconnected / Script"; // 연결 끊김 상태도 함께 표시
         }
     }
 
@@ -166,7 +166,7 @@ public class MqttSubscriberService implements MqttCallback {
         if (mqttClient != null && mqttClient.isConnected()) {
             return currentSystemStatus;
         } else {
-            return "MQTT Disconnected / " + currentSystemStatus; // 연결 끊김 상태도 함께 표시
+            return "MQTT Disconnected / System"; // 연결 끊김 상태도 함께 표시
         }
     }
 

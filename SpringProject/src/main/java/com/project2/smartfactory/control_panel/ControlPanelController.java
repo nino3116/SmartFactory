@@ -27,7 +27,6 @@ public class ControlPanelController {
     }
     @PostMapping("/control/system")
     public ResponseEntity<String> controlSystem(@RequestParam("action") String action) {
-        
         return sendCommandToRaspberryPi("system", action);
     }
     
