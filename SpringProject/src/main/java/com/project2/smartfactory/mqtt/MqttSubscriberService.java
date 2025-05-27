@@ -1,8 +1,10 @@
 // src/main/java/com/project2/smartfactory/mqtt/MqttSubscriberService.java
 package com.project2.smartfactory.mqtt;
 
+import com.fasterxml.jackson.databind.JsonNode; // JsonNode 임포트 추가
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.project2.smartfactory.defect.DefectInfo;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.project2.smartfactory.defect.DefectDetectionDetailsDto; // 새로 추가된 DTO 임포트
 import com.project2.smartfactory.notification.NotificationService;
 import com.project2.smartfactory.notification.Notification; // NotificationType Enum을 사용하기 위해 다시 임포트
 
@@ -27,7 +29,7 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeUnit; // TimeUnit 임포트 추가
 
 @Service // Spring Bean으로 등록
 @RequiredArgsConstructor
@@ -46,13 +48,16 @@ public class MqttSubscriberService implements MqttCallback {
     private String defectStatusTopic;
 
     @Value("${mqtt.topic.details}") // 불량 감지 상세 정보 토픽
-    private String defectdDetailsTopic;
+    private String defectDetailsTopic;
 
     @Value("${mqtt.topic.script.status}") // Python 스크립트 상태 토픽
     private String scriptStatusTopic;
 
     @Value("${mqtt.topic.conveyor.status}")   // 컨베이어벨트 동작 시스템 상태 토픽
     private String conveyorStatusTopic;
+
+    @Value("${mqtt.topic.detect.result}") // factory/detect_result 토픽
+    private String detectResultTopic;
 
     private MqttClient mqttClient;
     private ObjectMapper objectMapper = new ObjectMapper(); // JSON 파싱을 위한 객체
@@ -69,6 +74,10 @@ public class MqttSubscriberService implements MqttCallback {
      */
     @PostConstruct
     public void init() {
+        // ObjectMapper에 JavaTimeModule을 등록하여 LocalDateTime 파싱을 지원합니다.
+        objectMapper.registerModule(new JavaTimeModule());
+        // 만약 DefectInfo 객체도 LocalDateTime을 사용한다면, DefectInfo를 파싱하는 ObjectMapper에도 동일하게 적용해야 합니다.
+        // 현재는 DefectInfo에 LocalDateTime 필드가 없는 것으로 보이지만, 추후 추가될 경우를 대비하여 명시합니다.
         try {
             mqttClient = new MqttClient(brokerUrl, clientId, new MemoryPersistence());
             mqttClient.setCallback(this); // 콜백 설정
@@ -85,11 +94,12 @@ public class MqttSubscriberService implements MqttCallback {
             // 새로운 토픽들 구독
             mqttClient.subscribe(scriptStatusTopic, 1); // 감지 모듈 상태 토픽 구독
             mqttClient.subscribe(conveyorStatusTopic, 1); // 컨베이어 벨트 상태 토픽 구독
-            mqttClient.subscribe(defectdDetailsTopic, 1); // 불량 감지 상세 정보 토픽 구독
-            logger.info("Connected to MQTT broker and subscribed to topics: [{}, {}, {}]", scriptStatusTopic, conveyorStatusTopic, defectdDetailsTopic);
+            mqttClient.subscribe(defectDetailsTopic, 1); // 불량 감지 상세 정보 토픽 구독
+            mqttClient.subscribe(detectResultTopic, 1); // factory/detect_result 토픽 구독 추가
+            logger.info("Connected to MQTT broker and subscribed to topics: [{}, {}, {}, {}]", scriptStatusTopic, conveyorStatusTopic, defectDetailsTopic, detectResultTopic);
 
-            // MQTT 연결 성공 알림
-            notificationService.saveNotification(Notification.NotificationType.MQTT_CLIENT, "MQTT 연결", "MQTT 브로커에 성공적으로 연결되었습니다.");
+            // MQTT 연결 성공 알림 (필요하다면 주석 해제)
+            // notificationService.saveNotification(Notification.NotificationType.MQTT_CLIENT, "MQTT 연결", "MQTT 브로커에 성공적으로 연결되었습니다.");
 
         } catch (MqttException me) {
             logger.error("MQTT Connection Error: {}", me.getMessage(), me);
@@ -111,11 +121,11 @@ public class MqttSubscriberService implements MqttCallback {
         if (mqttClient != null && mqttClient.isConnected()) {
             try {
                 mqttClient.disconnect(5000); // 5초 대기 후 연결 해제
-                logger.info("MQTT 브로커 연결 해제 (Subscriber)");
-                // MQTT 연결 해제 알림
+                logger.info("MQTT Disconnected (Subscriber)");
+                // MQTT 연결 해제 알림 (필요하다면 주석 해제)
                 notificationService.saveNotification(Notification.NotificationType.MQTT_CLIENT, "MQTT 연결 해제", "MQTT 브로커 연결이 해제되었습니다.");
             } catch (MqttException me) {
-                logger.error("MQTT 연결 해제 오류: {}", me.getMessage(), me);
+                logger.error("MQTT Error while disconnecting: {}", me.getMessage(), me);
                 // MQTT 연결 해제 오류 알림
                 notificationService.saveNotification(Notification.NotificationType.ERROR, "MQTT 연결 해제 오류", "MQTT 브로커 연결 해제 중 오류 발생: " + me.getMessage());
             }
@@ -152,56 +162,92 @@ public class MqttSubscriberService implements MqttCallback {
             if (payload.contains("Already") && payload.contains("Script")) {
                 notificationService.saveNotification(Notification.NotificationType.DEFECT_MODULE, "불량 감지 모듈", "불량 감지 모듈이 이미 실행중입니다.");
             } else if (payload.contains("Stop") && payload.contains("Force")) {
-                notificationService.saveNotification(Notification.NotificationType.DEFECT_MODULE, "불량 감지 모듈", "불량 감지 모듈이 강제정지되었습니다.");
-            } else {
+                notificationService.saveNotification(Notification.NotificationType.DEFECT_MODULE, "불량 감지 모듈", "불량 감지 모듈이 강제중지되었습니다.");
+            } else if (!payload.contains("Script Started") && !payload.contains("Script Stopped")){
                 logger.warn("Unknown defect module status message: {}", payload);
                 notificationService.saveNotification(Notification.NotificationType.WARNING, "불량 감지 모듈", "알 수 없는 불량 감지 모듈 상태 메시지: " + payload);
             }
         } else if (topic.equals(conveyorStatusTopic)) {
             // 컨베이어 벨트 상태 토픽 처리 (control_panel/system_status)
-            if (payload.contains("running")) {
-                notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 벨트 동작이 시작되었습니다.");
-            } else if (payload.contains("stopped")) {
-                notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 벨트 동작이 정지되었습니다.");
-            } else {
+            if (payload.contains("running") && payload.contains("already")) {
+                notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 벨트가 이미 가동 중입니다.");
+            } else if (payload.contains("error")) {
+                notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 작동중 오류가 발생했습니다. \n " + payload);
+            } else if (!payload.contains("running") && !payload.contains("stopped")){
                 logger.warn("Unknown conveyor belt status message: {}", payload);
                 notificationService.saveNotification(Notification.NotificationType.WARNING, "컨베이어 벨트", "알 수 없는 컨베이어 벨트 상태 메시지: " + payload);
             }
-        } else if (topic.equals(defectdDetailsTopic)) {
-            // 불량 감지 상세 정보 토픽 처리
+        } else if (topic.equals(detectResultTopic)) { // factory/detect_result 토픽 처리
             try {
-                List<DefectInfo> defectDetails = Arrays.asList(objectMapper.readValue(payload, DefectInfo[].class));
+                JsonNode jsonNode = objectMapper.readTree(payload);
+                String status = jsonNode.has("status") ? jsonNode.get("status").asText() : "UNKNOWN";
+                String timestamp = jsonNode.has("timestamp") ? jsonNode.get("timestamp").asText() : "UNKNOWN";
+                int defectCount = jsonNode.has("defectCount") ? jsonNode.get("defectCount").asInt() : 0;
 
-                logger.info("불량 상세 정보 수신됨:");
-                if (defectDetails.isEmpty()) {
-                    // 불량 정보가 비어있다면 정상 감지로 간주하고 알림 저장
-                    notificationService.saveNotification(Notification.NotificationType.SUCCESS, "정상 감지", "생산 라인에서 정상 제품이 감지되었습니다.");
-                } else {
-                    for (DefectInfo defect : defectDetails) {
-                        logger.info(" - 클래스: {}, 원인: {}, 상세 원인: {}, 신뢰도: {}, 박스 위치: {}",
-                                defect.getClazz(),
-                                defect.getReason(),
-                                defect.getDetailedReason(),
-                                defect.getConfidence(),
-                                defect.getBox()
-                        );
-                        // 불량 정보를 알림으로 저장
-                        String notificationMessage = String.format(
-                            "불량 유형: %s, 원인: %s, 상세 원인: %s, 신뢰도: %.2f%%",
-                            defect.getClazz(),
-                            defect.getReason(),
-                            defect.getDetailedReason(),
-                            defect.getConfidence() * 100 // 백분율로 표시
-                        );
-                        notificationService.saveNotification(Notification.NotificationType.DEFECT_DETECTED, "불량 감지", notificationMessage);
-                    }
+                logger.info("Defect Detection Message Arrived: Status={}, DefectCount={}, Timestamp={}", status, defectCount, timestamp);
+
+                if ("Defective".equalsIgnoreCase(status)) {
+                    String notificationMessage = String.format(
+                        "불량 제품이 감지되었습니다. 불량 개수: %d개, 감지 시간: %s",
+                        defectCount,
+                        timestamp
+                    );
+                    notificationService.saveNotification(Notification.NotificationType.DEFECT_DETECTED, "불량 감지 결과", notificationMessage);
+                } else if ("Substandard".equalsIgnoreCase(status)) {
+                    String notificationMessage = String.format(
+                        "비상품 제품이 감지되었습니다. 감지 시간: %s",
+                        defectCount,
+                        timestamp
+                    );
+                    notificationService.saveNotification(Notification.NotificationType.SUCCESS, "정상 감지 결과", notificationMessage);
+                } else if (!"Normal".equalsIgnoreCase(status)) {
+                    logger.warn("Unknown defect detection status: {}", status);
+                    notificationService.saveNotification(Notification.NotificationType.WARNING, "알 수 없는 감지 결과", "알 수 없는 감지 결과 상태: " + status);
                 }
+
             } catch (Exception e) {
-                logger.error("불량 상세 정보 JSON 파싱 중 오류 발생: {}", e.getMessage(), e);
+                logger.error("Error while parsing defect detecion JSON data: {}", e.getMessage(), e);
+                notificationService.saveNotification(Notification.NotificationType.ERROR, "JSON 파싱 오류", "불량 감지 결과 JSON 파싱 중 오류 발생: " + e.getMessage());
+            }
+        } else if (topic.equals(defectDetailsTopic)) { // defect_detection/details 토픽 처리
+            try {
+                // 전체 페이로드를 DefectDetectionDetailsDto 객체로 파싱
+                DefectDetectionDetailsDto detailsDto = objectMapper.readValue(payload, DefectDetectionDetailsDto.class);
+
+                logger.info("Defect detail message arrived (DTO parsing): Status={}, DefectCount={}, DefectSummary={}",
+                            detailsDto.getStatus(), detailsDto.getDefectCount(), detailsDto.getDefectSummary());
+
+                // defect_detection/details 토픽의 페이로드에 defects 리스트가 없는 경우를 고려하여
+                // defectSummary와 defectCount를 활용한 알림 생성
+                String notificationTitle = "불량 상세 정보";
+                String notificationMessage = String.format(
+                    "상태: %s, 감지 불량 개수: %d개, 요약: %s",
+                    detailsDto.getStatus(),
+                    detailsDto.getDefectCount(),
+                    detailsDto.getDefectSummary() != null && !detailsDto.getDefectSummary().isEmpty() ? detailsDto.getDefectSummary() : "상세 불량 정보 없음"
+                );
+
+                // 알림 메시지가 너무 길어지지 않도록 길이 제한 (예: 500자)
+                if (notificationMessage.length() > 500) {
+                    notificationMessage = notificationMessage.substring(0, 497) + "...";
+                }
+
+                notificationService.saveNotification(Notification.NotificationType.DEFECT_DETECTED, notificationTitle, notificationMessage);
+
+                // 만약 향후 defects 리스트가 다시 추가될 경우를 대비한 로깅 (현재 페이로드에는 없음)
+                // if (detailsDto.getDefects() != null && !detailsDto.getDefects().isEmpty()) {
+                //     logger.debug("Defects 리스트에 상세 불량 정보가 포함되어 있습니다. (이 알림은 현재 페이로드 구조와 다름)");
+                //     for (DefectInfo defect : detailsDto.getDefects()) {
+                //         logger.debug(" - 상세 불량: {} (원인: {})", defect.getClazz(), defect.getDetailedReason());
+                //     }
+                // }
+
+            } catch (Exception e) {
+                logger.error("Error while parsing defect detail JSON data: {}", e.getMessage(), e);
                 notificationService.saveNotification(Notification.NotificationType.ERROR, "JSON 파싱 오류", "불량 상세 정보 JSON 파싱 중 오류 발생: " + e.getMessage());
             }
         } else {
-            logger.warn("알 수 없는 토픽에서 메시지 수신: 토픽={}, 메시지={}", topic, payload);
+            logger.warn("Message arrived from unknown topic : Topic={}, Message={}", topic, payload);
             notificationService.saveNotification(Notification.NotificationType.WARNING, "알 수 없는 토픽", "알 수 없는 토픽에서 메시지 수신: " + topic);
         }
     }

@@ -63,7 +63,7 @@ public class NotificationService {
                 .title(title)
                 .message(message)
                 .timestamp(LocalDateTime.now()) // 현재 시각
-                .read(false) // 새로 추가된 알림은 읽지 않은 상태
+                .isRead(false) // 새로 추가된 알림은 읽지 않은 상태
                 .display(true) // 새로 추가된 알림은 표시 상태
                 .build();
 
@@ -94,7 +94,7 @@ public class NotificationService {
      */
     @Transactional(readOnly = true) // 읽기 전용 트랜잭션
     public long getUnreadNotificationCount() {
-        long count = notificationRepository.countByReadFalseAndDisplayTrue(); // 읽지 않았고 표시할 알림 개수 조회
+        long count = notificationRepository.countByIsReadFalseAndDisplayTrue(); // 읽지 않았고 표시할 알림 개수 조회
         logger.debug("읽지 않은 알림 개수 (표시할 알림만): {}", count);
         return count;
     }
@@ -106,8 +106,8 @@ public class NotificationService {
     @Transactional // 트랜잭션 관리
     public void markAllNotificationsAsRead() {
         // display가 true인 읽지 않은 알림을 가져와 읽음 상태로 변경 후 저장합니다.
-        List<Notification> unreadNotifications = notificationRepository.findByReadFalseAndDisplayTrue();
-        unreadNotifications.forEach(n -> n.setRead(true));
+        List<Notification> unreadNotifications = notificationRepository.findByIsReadFalseAndDisplayTrue();
+        unreadNotifications.forEach(n -> n.setIsRead(true));
         notificationRepository.saveAll(unreadNotifications); // 변경된 알림들을 한 번에 저장
 
         logger.info("모든 표시된 알림이 읽음 상태로 표시되었습니다.");

@@ -35,12 +35,12 @@ public class Notification {
     private NotificationType type; // 알림 유형
     @Column(name = "title", nullable = false)
     private String title; // 알림 제목
-    @Column(name = "message", nullable = false)
+    @Column(name = "message", nullable = false, length = 1000)
     private String message; // 알림 메시지
     @Column(name = "timestamp", nullable = false)
     private LocalDateTime timestamp; // 알림 발생 시각
-    @Column(name = "read", nullable = false)
-    private Boolean read; // 알림 읽음 여부
+    @Column(name = "isRead", nullable = false)
+    private Boolean isRead; // 알림 읽음 여부
     @Column(name = "icon_class")
     private String iconClass; // 알림 아이콘의 Tailwind CSS 클래스
     @Column(name = "svg_path")

@@ -27,7 +27,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
      *
      * @return 읽지 않은 알림 개수
      */
-    long countByReadFalseAndDisplayTrue(); // 읽지 않았고 표시할 알림 개수
+    long countByIsReadFalseAndDisplayTrue(); // 읽지 않았고 표시할 알림 개수
 
     /**
      * 읽지 않은 알림 목록을 반환합니다.
@@ -35,7 +35,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
      *
      * @return 읽지 않은 알림 목록
      */
-    List<Notification> findByReadFalseAndDisplayTrue(); // 읽지 않았고 표시할 알림 목록
+    List<Notification> findByIsReadFalseAndDisplayTrue(); // 읽지 않았고 표시할 알림 목록
 
     /**
      * 특정 ID의 알림을 조회합니다.
