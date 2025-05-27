@@ -507,7 +507,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	// --- MJPEG 스트림 로딩 함수 ---
 
 	// MJPEG 스트림 이미지 로딩 처리
-	function setupMjpegStream() {
+	async function setupMjpegStream() {
 		if (!mjpegStreamImg || !streamStatusMessage) {
 			console.error(
 				"Error: 스트림 이미지 또는 상태 메시지 요소를 찾을 수 없습니다.",

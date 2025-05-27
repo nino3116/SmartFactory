@@ -21,7 +21,6 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(new AntPathRequestMatcher("/api/defect", "POST")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/latest-defects", "GET")).permitAll()
-                //.requestMatchers(new AntPathRequestMatcher("/ui/**")).permitAll()
                 // AntPathRequstMatcher 는 개별적으로만 사용이 가능함
                 .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                 .requestMatchers("/control/**").permitAll()
@@ -48,6 +47,8 @@ public class SecurityConfig {
                 // /api/control/** (POST)에 대해 CSRF 보호 비활성화 추가
                 .ignoringRequestMatchers(new AntPathRequestMatcher("/api/control/**"))
                 .ignoringRequestMatchers(new AntPathRequestMatcher("/api/progress/set-total", "POST"))
+                .ignoringRequestMatchers(new AntPathRequestMatcher("/api/notifications/**", "POST"))
+                .ignoringRequestMatchers(new AntPathRequestMatcher("/control/system/**", "POST"))
             );
         return http.build();
     }
