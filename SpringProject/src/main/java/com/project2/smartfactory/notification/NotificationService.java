@@ -67,7 +67,7 @@ public class NotificationService {
                 .build();
 
         Notification savedNotification = notificationRepository.save(newNotification); // 데이터베이스에 저장
-        logger.info("새로운 알림이 데이터베이스에 저장되었습니다: Type={}, Title='{}', ID={}", type, title, savedNotification.getId());
+        logger.info("New notification is saved to DB: Type={}, Title='{}', ID={}", type, title, savedNotification.getId());
         sendNotificationToClients(savedNotification); // 모든 연결된 클라이언트에 알림 푸시
         return savedNotification;
     }
@@ -80,7 +80,7 @@ public class NotificationService {
      */
     @Transactional(readOnly = true) // 읽기 전용 트랜잭션
     public List<Notification> getRecentNotifications() {
-        logger.info("데이터베이스에서 최신 알림 목록을 조회합니다 (표시할 알림만).");
+        logger.info("Get recent notifications from DB (to display).");
         // NotificationRepository에 정의된 메서드를 사용하여 display=true인 최신 알림을 가져옵니다.
         return notificationRepository.findTop20ByDisplayTrueOrderByTimestampDesc();
     }
@@ -138,10 +138,10 @@ public class NotificationService {
             Notification notification = notificationOptional.get();
             notification.setDisplay(false); // 표시 상태를 false로 변경
             notificationRepository.save(notification); // 데이터베이스에 업데이트
-            logger.info("알림 ID {}가 알림 목록에서 숨겨졌습니다.", notificationId);
+            logger.info("Notification ID {} is hidden from list.", notificationId);
             return Optional.of(notification);
         }
-        logger.warn("알림 ID {}를 찾을 수 없어 숨김 처리할 수 없습니다.", notificationId);
+        logger.warn("Cannot hide Notification ID {} (Not Found).", notificationId);
         return Optional.empty();
     }
 
