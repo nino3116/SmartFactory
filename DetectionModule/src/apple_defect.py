@@ -37,7 +37,7 @@ CONF_THRESHOLD = 0.4  # 필요에 따라 조정하세요 (예: 0.3, 0.7 등)
 IOU_THRESHOLD = 0.4  # 필요에 따라 조정하세요 (예: 0.4, 0.6 등)
 
 # 5. 결과 시각화 창 표시 여부
-SHOW_DETECTION_WINDOW = True
+SHOW_DETECTION_WINDOW = False
 
 # 6. OpenCV 텍스트 그리기 설정 (영문)
 OPENCV_FONT = cv.FONT_HERSHEY_SIMPLEX  # 사용할 폰트 종류
@@ -888,6 +888,7 @@ def perform_detection(
     s3_object_base_path,
     mqtt_client,
     mqtt_topic_result,
+    mqtt_topic_details,
     api_detection_result_url,
 ):
     """
@@ -1008,6 +1009,12 @@ def perform_detection(
         "defectSummary": defect_summary,
         "defects": detected_defects_list,
     }
+    detection_result_data_notification = {
+        "detectionTime": detection_time,
+        "status": status,
+        "defectCount": defect_count,
+        "defectSummary": defect_summary,
+    }
 
     print(
         f"감지 결과 데이터 API 전송 시도: Status='{status}', Count={defect_count}, ImageURL='{s3_image_url}'"
@@ -1022,6 +1029,11 @@ def perform_detection(
     }
     if mqtt_client:
         publish_mqtt_message(mqtt_client, mqtt_topic_result, json.dumps(result_message))
+        publish_mqtt_message(
+            mqtt_client,
+            mqtt_topic_details,
+            json.dumps(detection_result_data_notification),
+        )
         print(f"감지 결과 전송 완료: {status} to {mqtt_topic_result}")
 
 
@@ -1084,6 +1096,7 @@ def main_loop(
             s3_object_base_path,
             mqtt_client,
             mqtt_topic_result,
+            mqtt_topic_details,
             api_detection_result_url,
         )
 

@@ -1,0 +1,9 @@
+#notification-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.hide-notification-btn {
+  width: 20px;
+  height: 20px;
+}

@@ -75,7 +75,7 @@ def on_message(client, userdata, msg):
                     print(
                         f"{APPLE_DEFECT_SCRIPT_PATH} 실행됨 (PID: {apple_defect_process.pid})"
                     )
-                    status_msg = "Apple Defect Script Started"
+                    status_msg = "Script Started"
                     publish_status(status_msg)
                 except FileNotFoundError:
                     print(
@@ -91,7 +91,7 @@ def on_message(client, userdata, msg):
                 print(
                     f"{APPLE_DEFECT_SCRIPT_PATH} 이미 실행 중입니다 (PID: {apple_defect_process.pid})."
                 )
-                status_msg = "Apple Defect Script Already Running"
+                status_msg = "Script Already Running"
                 publish_status(status_msg)
 
         elif command == "STOP":
@@ -107,7 +107,7 @@ def on_message(client, userdata, msg):
                     try:
                         apple_defect_process.wait(timeout=5)  # 5초 대기
                         print(f"{APPLE_DEFECT_SCRIPT_PATH} 정상적으로 종료됨.")
-                        status_msg = "Apple Defect Script Stopped"
+                        status_msg = "Script Stopped"
                         publish_status(status_msg)
                     except subprocess.TimeoutExpired:
                         # 5초 안에 종료되지 않으면 강제 종료
@@ -116,7 +116,7 @@ def on_message(client, userdata, msg):
                         )
                         apple_defect_process.kill()
                         print(f"{APPLE_DEFECT_SCRIPT_PATH} 강제 종료됨.")
-                        status_msg = "Apple Defect Script Force Stopped"
+                        status_msg = "Script Force Stopped"
                         publish_status(status_msg)
                     finally:
                         apple_defect_process = None  # 프로세스 변수 초기화
@@ -136,7 +136,7 @@ def on_message(client, userdata, msg):
                     publish_status(status_msg)
             else:
                 print(f"{APPLE_DEFECT_SCRIPT_PATH} 실행 중이 아닙니다.")
-                status_msg = "Apple Defect Script Not Running"
+                status_msg = "Script Not Running"
                 publish_status(status_msg)
         elif command == "STATUS_REQUEST":
             print("상태 요청 수신")
