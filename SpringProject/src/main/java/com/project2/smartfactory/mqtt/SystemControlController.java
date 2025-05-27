@@ -78,4 +78,12 @@ public class SystemControlController {
         // System.out.println("현재 시스템 상태: " + status);
         return ResponseEntity.ok(status);
     }
+
+    @GetMapping("/status/system_request")
+    public ResponseEntity<String> requestSystemStatus() {
+        // System.out.println("MQTT 요청: 시스템 상태 조회 요청");
+        mqttPublisherService.publishMessage(commandTopic, "status_request", 2, false);
+        // System.out.println("현재 시스템 상태: " + status);
+        return ResponseEntity.ok("request system status");
+    }
 }

@@ -44,6 +44,23 @@ document.addEventListener("DOMContentLoaded", () => {
     el.classList.toggle("text-gray-600", !isOn);
   }
 
+  function requestSystemAndScriptStatus(){
+    $.get('/api/status/system_request', async function (data) {
+      if(systemStatus.textContent == "Default"){
+        checkSystemStatus.textContent = "Loading...";
+        systemStatus.textContent = "Loading...";
+        console.log("으아아");
+      }
+    });
+    $.get('/api/status/script_request', async function (data) {
+      if(scriptStatusSpan.textContent == "Default"){
+        checkScriptStatus.textContent = "Loading...";
+        scriptStatusSpan.textContent = "Loading...";
+        console.log("으아아아");
+      }
+    });
+  }
+
   async function fetchAndDisplaySystemStatus(){
     $.get('/api/status/system', async function (data) {
       console.log(`${data}`);
@@ -458,10 +475,13 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchAndDisplaySystemStatus();
   fetchAndDisplayScriptStatus();
   fetchAndDisplayStreamStatus();
+  requestSystemAndScriptStatus();
   
   // 주기적으로 데이터 업데이트 설정 - S3 요청을 줄이려면 이 간격을 늘리세요.
   setInterval(fetchAndDisplayControlLogs, LOGS_UPDATE_INTERVAL);
-  setInterval(fetchAndDisplaySystemStatus, LOGS_UPDATE_INTERVAL);
+  setInterval(fetchAndDisplaySystemStatus, STATUS_UPDATE_INTERVAL);
   setInterval(fetchAndDisplayScriptStatus, STATUS_UPDATE_INTERVAL);
+  setInterval(fetchAndDisplayStreamStatus, STATUS_UPDATE_INTERVAL);
+  setInterval(requestSystemAndScriptStatus, STATUS_UPDATE_INTERVAL);
 
 }); // DOMContentLoaded 끝

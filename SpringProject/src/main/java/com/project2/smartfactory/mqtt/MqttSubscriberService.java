@@ -269,8 +269,19 @@ public class MqttSubscriberService implements MqttCallback {
             logger.info("Script Status: {}", currentScriptStatus);
         } else if (topic.equals(systemStatusTopic)) {
             // 시스템 상태 메시지 처리
-            Map<String, String> obj = objectMapper.readValue(payload, new TypeReference<Map<String, String>>() {});
-            payload = obj.get("status");
+            try{
+                Map<String, String> obj = objectMapper.readValue(payload, new TypeReference<Map<String, String>>() {});
+                payload = obj.get("status");
+            }catch(Exception e){
+                System.out.println("msg:"+payload);
+                if(payload.contains("error")){
+                    payload = "error";
+                }else if(payload.contains("already") || payload.contains("running")){
+                    payload = "running";
+                }else if(payload.contains("stopped")){
+                    payload = "stopped";
+                }
+            }
 
             if(userRequestSystem[0] == true){
                 controlType="User Request";
@@ -309,6 +320,11 @@ public class MqttSubscriberService implements MqttCallback {
                     controlData="Error Detected";
                     controlResult=payload;
                     controlMemo="상태 확인 불가";
+                    log_flag=true;
+                }else if(payload.contains("error")){
+                    controlData="Error Detected";
+                    controlResult="ERROR";
+                    controlMemo="에러 발생";
                     log_flag=true;
                 }
             }

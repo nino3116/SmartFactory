@@ -76,4 +76,12 @@ public class ScriptControlController {
         return ResponseEntity.ok(status);
 
     }
+
+    @GetMapping("/status/script_request")
+    public ResponseEntity<String> requestScriptStatus() {
+        // System.out.println("웹 요청: 스크립트 상태 조회 수신");
+        // MQTT Status Subscriber로부터 현재 상태 가져와서 반환
+        mqttPublisherService.publishMessage(commandTopic, "status_request", 2, false);
+        return ResponseEntity.ok("script status request");
+    }
 }
