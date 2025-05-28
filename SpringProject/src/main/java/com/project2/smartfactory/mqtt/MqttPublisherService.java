@@ -42,7 +42,10 @@ public class MqttPublisherService {
 
             // 연결 옵션 설정
             MqttConnectOptions connOpts = new MqttConnectOptions();
-            connOpts.setCleanSession(true); // 클린 세션 사용 (클라이언트 연결 종료 시 구독 정보 및 메시지 삭제)
+            connOpts.setCleanSession(false); // 클린 세션 사용 (클라이언트 연결 종료 시 구독 정보 및 메시지 삭제)
+            connOpts.setAutomaticReconnect(true);
+            connOpts.setMaxReconnectDelay(5000); // 최대 재연결 지연 시간 5초
+            connOpts.setKeepAliveInterval(300);    // Keep Alive 간격 300초
             // 필요에 따라 사용자 이름, 비밀번호, Last Will and Testament(LWT) 등 추가 설정 가능
             // connOpts.setUserName("username");
             // connOpts.setPassword("password".toCharArray());

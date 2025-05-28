@@ -35,6 +35,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MqttSubscriberService implements MqttCallback {
 
+    private final MqttPublisherService mqttPublisherService;
+
     private static final Logger logger = LoggerFactory.getLogger(MqttSubscriberService.class);
 
     // application.properties 또는 application.yml 파일에서 설정 값을 주입받습니다.
@@ -111,9 +113,10 @@ public class MqttSubscriberService implements MqttCallback {
             mqttClient.setCallback(this); // 콜백 설정
 
             MqttConnectOptions connectOptions = new MqttConnectOptions();
-            connectOptions.setCleanSession(true); // 세션 클린 (false로 하면 끊겼다 다시 연결 시 이전 메시지 수신 가능)
+            connectOptions.setCleanSession(false); // 세션 클린 (false로 하면 끊겼다 다시 연결 시 이전 메시지 수신 가능)
             connectOptions.setAutomaticReconnect(true); // 자동 재연결 활성화
             connectOptions.setMaxReconnectDelay(5000); // 최대 재연결 지연 시간 5초
+            connectOptions.setKeepAliveInterval(300);    // Keep Alive 간격 300초
 
             logger.info("Trying to Connect MQTT Broker: {}", brokerUrl);
             mqttClient.connect(connectOptions);
@@ -216,117 +219,155 @@ public class MqttSubscriberService implements MqttCallback {
         boolean log_flag = false;
 
         if (topic.equals(scriptStatusTopic)) {
-            // Python 스크립트 상태 메시지 처리
-            payload = payload.replace("Apple Defect Script ","");
+            // Python 스크립트 상태 메시지 처리 (apple_defect/controller_status)
+            try {
+                JsonNode jsonNode = objectMapper.readTree(payload); // JSON 문자열을 JsonNode로 파싱
+                String status = jsonNode.has("status") ? jsonNode.get("status").asText() : "UNKNOWN"; // "status" 필드 추출
+                String msgContent = jsonNode.has("message") ? jsonNode.get("message").asText() : ""; // "message" 필드 추출
+                // String timestamp = jsonNode.has("timestamp") ? jsonNode.get("timestamp").asText() : ""; // "timestamp" 필드 (필요시 사용)
 
-            if(userRequestScript[0] == true){
-                controlType="User Request";
-                controlData="Script On";
-                userRequestScript[0] = false;
-                log_flag=true;
-                if(payload.contains("Already Running")){
-                    if(currentScriptStatus.equals("Default")){
-                        controlMemo = "작동 중이었으나 표기 오류";
-                    }else{
+                // 실제 payload 변수는 더 이상 사용되지 않지만, 기존 로직과의 일관성을 위해 status 값을 할당
+                // 이 payload는 ControlLog 저장에 사용되므로, JSON 전체를 저장하는 것이 더 유용할 수 있습니다.
+                // 여기서는 status 값만 할당하여 기존 ControlLog 로직을 최소한으로 변경합니다.
+                payload = status; 
+
+                // 사용자 요청 처리 로직은 그대로 유지 (status와 msgContent 활용)
+                if(userRequestScript[0] == true){
+                    controlType="User Request";
+                    controlData="Script On";
+                    userRequestScript[0] = false;
+                    log_flag=true;
+                    if(status.equalsIgnoreCase("Already Running") || status.equalsIgnoreCase("Running") || status.equalsIgnoreCase("Started")){
                         controlMemo = "같은 상태로 요청";
+                    } else if (status.equalsIgnoreCase("Started")) {
+                        controlMemo = "요청에 의해 스크립트 시작됨";
                     }
-                }
-            }else if(userRequestScript[1] == true){
-                controlType="User Request";
-                controlData="Script Off";
-                if(payload.contains("Not Running")){
-                    controlMemo = "같은 상태로 요청";
-                }
-                userRequestScript[1] = false;
-                log_flag=true;
-            }else{
-                controlType = "Script Check";
-                if(!currentScriptStatus.equals("Default") && !payload.equals(currentScriptStatus)){
-                    if(payload.contains("Already") && (currentScriptStatus.contains("Started") || currentScriptStatus.contains("Running"))){
-                        log_flag = false;
-                    }else{
+                }else if(userRequestScript[1] == true){
+                    controlType="User Request";
+                    controlData="Script Off";
+                    if(status.equalsIgnoreCase("Not Running") || status.equalsIgnoreCase("Stopped") || status.equalsIgnoreCase("Stopped (Forced)")){
+                        controlMemo = "같은 상태로 요청";
+                    } else if (status.equalsIgnoreCase("Stopped") || status.equalsIgnoreCase("Stopped (Forced)")) {
+                        controlMemo = "요청에 의해 스크립트 중지됨";
+                    }
+                    userRequestScript[1] = false;
+                    log_flag=true;
+                }else{
+                    controlType = "Script Check";
+                    if(!currentScriptStatus.equals("Default") && !currentScriptStatus.equals("Initialized") && !status.equals(currentScriptStatus)){
                         controlData = "Change Detected";
+                        log_flag = true;
+                    }else if(status.equalsIgnoreCase("Unknown") && !currentScriptStatus.equalsIgnoreCase("Unknown")){
+                        controlData = "Error Detected";
+                        controlResult = status;
+                        controlMemo="상태 확인 불가";
+                        log_flag = true;
                     }
-                }else if(payload.equals("Unknown") && currentScriptStatus.equals("Unknown")){
-                    controlData = "Error Detected";
-                    controlResult = payload;
-                    controlMemo="상태 확인 불가";
                 }
-            }
-            if(log_flag){
-                ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentScriptStatus+"→"+payload:controlResult), controlMemo);
-                controlLogRepository.save(controlLog);
-            }
-            // 감지 모듈 상태 토픽 처리 (apple_defect/controller_status)
-            currentScriptStatus = payload; // 스크립트 상태 업데이트
-            if (payload.contains("Already") && payload.contains("Script")) {
-                notificationService.saveNotification(Notification.NotificationType.DEFECT_MODULE, "불량 감지 모듈", "불량 감지 모듈이 이미 실행중입니다.");
-            } else if (payload.contains("Stop") && payload.contains("Force")) {
-                notificationService.saveNotification(Notification.NotificationType.DEFECT_MODULE, "불량 감지 모듈", "불량 감지 모듈이 강제중지되었습니다.");
-            } else if (!payload.contains("Script Started") && !payload.contains("Script Stopped")){
-                logger.warn("Unknown defect module status message: {}", payload);
-                notificationService.saveNotification(Notification.NotificationType.WARNING, "불량 감지 모듈", "알 수 없는 불량 감지 모듈 상태 메시지: " + payload);
+
+                if(log_flag){
+                    // ControlLog에 JSON 메시지 전체를 저장하거나, 필요한 필드만 추출하여 저장할 수 있습니다.
+                    // 여기서는 status를 기반으로 controlResult를 업데이트하고, message를 controlMemo에 활용합니다.
+                    ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentScriptStatus+"→"+status:controlResult), msgContent);
+                    controlLogRepository.save(controlLog);
+                }
+                currentScriptStatus = status; // 스크립트 상태 업데이트
+                logger.info("Script Status: {}, Message: {}", currentScriptStatus, msgContent);
+                
+                // 알림 로직 (status와 msgContent 활용)
+                if (status.equalsIgnoreCase("Already Running")) {
+                    notificationService.saveNotification(Notification.NotificationType.DEFECT_MODULE, "불량 감지 모듈", "불량 감지 모듈이 이미 실행중입니다.");
+                } else if (status.equalsIgnoreCase("Stopped (Forced)")) {
+                    notificationService.saveNotification(Notification.NotificationType.DEFECT_MODULE, "불량 감지 모듈", "불량 감지 모듈이 강제 중지되었습니다.");
+                } else if (status.equalsIgnoreCase("Not Running")) {
+                    notificationService.saveNotification(Notification.NotificationType.DEFECT_MODULE, "불량 감지 모듈", "불량 감지 모듈이 실행중이 아니거나 이미 중지되었습니다.");
+                } else if (status.equalsIgnoreCase("Error")) {
+                    notificationService.saveNotification(Notification.NotificationType.ERROR, "불량 감지 모듈 오류", "불량 감지 모듈 오류 발생: " + msgContent);
+                } else if (status.equalsIgnoreCase("Initialized")) {
+                    notificationService.saveNotification(Notification.NotificationType.INFO, "불량 감지 모듈", "불량 감지 모듈 제어 시스템 연결됨.");
+                } else if (status.equalsIgnoreCase("Unknown Command")) {
+                    notificationService.saveNotification(Notification.NotificationType.WARNING, "불량 감지 모듈", "알 수 없는 제어 명령 수신: " + msgContent);
+                } else if (status.equalsIgnoreCase("Warning")) {
+                    notificationService.saveNotification(Notification.NotificationType.WARNING, "불량 감지 모듈 경고", "불량 감지 모듈 경고: " + msgContent);
+                }
+                else if (!status.equalsIgnoreCase("Stopped") && !status.equalsIgnoreCase("Started")) {
+                    logger.warn("Unknown defect module status: {}", status);
+                    notificationService.saveNotification(Notification.NotificationType.WARNING, "불량 감지 모듈", "알 수 없는 불량 감지 모듈 상태: " + status + " (" + msgContent + ")");
+                }
+
+            } catch (Exception e) {
+                logger.error("Error parsing script status JSON: {}", e.getMessage(), e);
+                notificationService.saveNotification(Notification.NotificationType.ERROR, "JSON 파싱 오류", "스크립트 상태 JSON 파싱 중 오류 발생: " + e.getMessage());
             }
         } else if (topic.equals(systemStatusTopic)) {
-            // 시스템 상태 메시지 처리
-            Map<String, String> obj = objectMapper.readValue(payload, new TypeReference<Map<String, String>>() {});
-            payload = obj.get("status");
+            // 시스템 상태 메시지 처리 (control_panel/system_status)
+            try {
+                JsonNode jsonNode = objectMapper.readTree(payload); // JSON 문자열을 JsonNode로 파싱
+                String status = jsonNode.has("status") ? jsonNode.get("status").asText() : "UNKNOWN"; // "status" 필드 추출
+                // 다른 필드 (예: pid)도 필요하다면 여기서 추출 가능:
+                // Integer pid = jsonNode.has("pid") && !jsonNode.get("pid").isNull() ? jsonNode.get("pid").asInt() : null;
 
-            if(userRequestSystem[0] == true){
-                controlType="User Request";
-                controlData="System On";
-                if(currentSystemStatus.equals("running")){
-                    if(userRequestSystemCnt[0]>=2){
-                        controlMemo = "같은 상태로 요청";
-                        userRequestSystemCnt[0] = 0;
-                    }else{
-                        log_flag = false;
-                        userRequestSystemCnt[0]++;
+                payload = status; // payload 변수에 status 값 할당
+
+                if(userRequestSystem[0] == true){
+                    controlType="User Request";
+                    controlData="System On";
+                    if(currentSystemStatus.equals("running")){
+                        if(userRequestSystemCnt[0]>=2){
+                            controlMemo = "같은 상태로 요청";
+                            userRequestSystemCnt[0] = 0;
+                        }else{
+                            log_flag = false;
+                            userRequestSystemCnt[0]++;
+                        }
+                    }
+                    userRequestSystem[0] = false;
+                    log_flag=true;
+                }else if(userRequestSystem[1] == true){
+                    controlType="User Request";
+                    controlData="System Off";
+                    if(currentSystemStatus.equals("stopped")){
+                        if(userRequestSystemCnt[1]>=2){
+                            controlMemo = "같은 상태로 요청";
+                            userRequestSystemCnt[1] = 0;
+                        }else{
+                            log_flag = false;
+                            userRequestSystemCnt[1]++;
+                        }
+                    }
+                    userRequestSystem[1] = false;
+                    log_flag=true;
+                }else{
+                    controlType="System Check";
+                    if(!currentSystemStatus.equals("Default") && !payload.equals(currentSystemStatus)){
+                        controlData="Change Detected";
+                        log_flag=true;
+                    }else if(payload.equals("Unknown") && !currentSystemStatus.equals("Unknown")){
+                        controlData="Error Detected";
+                        controlResult=payload;
+                        controlMemo="상태 확인 불가";
+                        log_flag=true;
                     }
                 }
-                userRequestSystem[0] = false;
-                log_flag=true;
-            }else if(userRequestSystem[1] == true){
-                controlType="User Request";
-                controlData="System Off";
-                if(currentSystemStatus.equals("stopped")){
-                    if(userRequestSystemCnt[1]>=2){
-                        controlMemo = "같은 상태로 요청";
-                        userRequestSystemCnt[1] = 0;
-                    }else{
-                        log_flag = false;
-                        userRequestSystemCnt[1]++;
-                    }
+                if(log_flag){
+                    ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentSystemStatus+"→"+payload:controlResult), controlMemo);
+                    controlLogRepository.save(controlLog);
                 }
-                userRequestSystem[1] = false;
-                log_flag=true;
-            }else{
-                controlType="System Check";
-                if(!currentSystemStatus.equals("Default") && !payload.equals(currentSystemStatus)){
-                    controlData="Change Detected";
-                    log_flag=true;
-                }else if(payload.equals("Unknown") && !currentSystemStatus.equals("Unknown")){
-                    controlData="Error Detected";
-                    controlResult=payload;
-                    controlMemo="상태 확인 불가";
-                    log_flag=true;
+                currentSystemStatus = payload;
+                logger.info("System Status: {}", currentSystemStatus);
+              
+                // 컨베이어 벨트 상태 토픽 처리 (control_panel/system_status)
+                if ("running".equalsIgnoreCase(status)) { // "running" 상태 확인
+                    notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 벨트가 가동 중입니다.");
+                } else if ("stopped".equalsIgnoreCase(status)) { // "stopped" 상태 확인
+                    notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 벨트가 중지되었습니다.");
+                } else {
+                    logger.warn("Unknown conveyor belt status message: {}", status);
+                    notificationService.saveNotification(Notification.NotificationType.WARNING, "컨베이어 벨트", "알 수 없는 컨베이어 벨트 상태 메시지: " + status);
                 }
-            }
-            if(log_flag){
-                ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentSystemStatus+"→"+payload:controlResult), controlMemo);
-                controlLogRepository.save(controlLog);
-            }
-            currentSystemStatus = payload;
-            logger.info("System Status: {}", currentSystemStatus);
-          
-            // 컨베이어 벨트 상태 토픽 처리 (control_panel/system_status)
-            if (payload.contains("running") && payload.contains("already")) {
-                notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 벨트가 이미 가동 중입니다.");
-            } else if (payload.contains("error")) {
-                notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 작동중 오류가 발생했습니다. \n " + payload);
-            } else if (!payload.contains("running") && !payload.contains("stopped")){
-                logger.warn("Unknown conveyor belt status message: {}", payload);
-                notificationService.saveNotification(Notification.NotificationType.WARNING, "컨베이어 벨트", "알 수 없는 컨베이어 벨트 상태 메시지: " + payload);
+            } catch (Exception e) {
+                logger.error("Error parsing system status JSON: {}", e.getMessage(), e);
+                notificationService.saveNotification(Notification.NotificationType.ERROR, "JSON 파싱 오류", "시스템 상태 JSON 파싱 중 오류 발생: " + e.getMessage());
             }
         } else if (topic.equals(detectResultTopic)) { // factory/detect_result 토픽 처리
             try {
