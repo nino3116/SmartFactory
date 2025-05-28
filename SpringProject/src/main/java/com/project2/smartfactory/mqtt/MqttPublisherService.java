@@ -54,7 +54,6 @@ public class MqttPublisherService {
             System.out.println("MQTT 브로커 연결 시도: " + brokerUrl);
             mqttClient.connect(connOpts);
             System.out.println("MQTT 브로커 연결 성공");
-
             this.publishMessage(systemCommandTopic, "status_request", 2, false);
             this.publishMessage(scriptCommandTopic, "status_request", 2, false);
 

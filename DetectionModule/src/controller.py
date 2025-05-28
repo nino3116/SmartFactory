@@ -151,7 +151,7 @@ def on_message(client, userdata, msg):
                     apple_defect_process is not None
                     and apple_defect_process.poll() is None
                 )
-                else "Not Running"
+                else "Stopped"
             )
             publish_status(current_script_status, "컨트롤러 상태 요청에 응답합니다.")
         else:

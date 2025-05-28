@@ -154,7 +154,7 @@ public class MqttSubscriberService implements MqttCallback {
                 mqttClient.disconnect(5000); // 5초 대기 후 연결 해제
                 logger.info("MQTT Disconnected (Subscriber)");
                 // MQTT 연결 해제 알림 (필요하다면 주석 해제)
-                notificationService.saveNotification(Notification.NotificationType.MQTT_CLIENT, "MQTT 연결 해제", "MQTT 브로커 연결이 해제되었습니다.");
+                // notificationService.saveNotification(Notification.NotificationType.MQTT_CLIENT, "MQTT 연결 해제", "MQTT 브로커 연결이 해제되었습니다.");
             } catch (MqttException me) {
                 logger.error("MQTT Error while disconnecting: {}", me.getMessage(), me);
                 // MQTT 연결 해제 오류 알림
@@ -290,7 +290,7 @@ public class MqttSubscriberService implements MqttCallback {
                 } else if (status.equalsIgnoreCase("Warning")) {
                     notificationService.saveNotification(Notification.NotificationType.WARNING, "불량 감지 모듈 경고", "불량 감지 모듈 경고: " + msgContent);
                 }
-                else if (!status.equalsIgnoreCase("Stopped") && !status.equalsIgnoreCase("Started")) {
+                else if (!status.equalsIgnoreCase("Stopped") && !status.equalsIgnoreCase("Started") && !status.equalsIgnoreCase("Running")) {
                     logger.warn("Unknown defect module status: {}", status);
                     notificationService.saveNotification(Notification.NotificationType.WARNING, "불량 감지 모듈", "알 수 없는 불량 감지 모듈 상태: " + status + " (" + msgContent + ")");
                 }
@@ -353,15 +353,16 @@ public class MqttSubscriberService implements MqttCallback {
                     ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentSystemStatus+"→"+payload:controlResult), controlMemo);
                     controlLogRepository.save(controlLog);
                 }
-                currentSystemStatus = payload;
+                currentSystemStatus = status;
                 logger.info("System Status: {}", currentSystemStatus);
               
                 // 컨베이어 벨트 상태 토픽 처리 (control_panel/system_status)
-                if ("running".equalsIgnoreCase(status)) { // "running" 상태 확인
-                    notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 벨트가 가동 중입니다.");
-                } else if ("stopped".equalsIgnoreCase(status)) { // "stopped" 상태 확인
-                    notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 벨트가 중지되었습니다.");
-                } else {
+                // if (status.equalsIgnoreCase("running")) { // "running" 상태 확인
+                //     notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 벨트가 가동 중입니다.");
+                // } else if (status.equalsIgnoreCase("stopped")) { // "stopped" 상태 확인
+                //     notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 벨트가 중지되었습니다.");
+                // } else
+                if (!status.equalsIgnoreCase("running") && !status.equalsIgnoreCase("stopped")) {
                     logger.warn("Unknown conveyor belt status message: {}", status);
                     notificationService.saveNotification(Notification.NotificationType.WARNING, "컨베이어 벨트", "알 수 없는 컨베이어 벨트 상태 메시지: " + status);
                 }
@@ -423,8 +424,9 @@ public class MqttSubscriberService implements MqttCallback {
                 if (notificationMessage.length() > 500) {
                     notificationMessage = notificationMessage.substring(0, 497) + "...";
                 }
-
-                notificationService.saveNotification(Notification.NotificationType.DEFECT_DETECTED, notificationTitle, notificationMessage);
+                if (!detailsDto.getStatus().equalsIgnoreCase("Normal")) {
+                    notificationService.saveNotification(Notification.NotificationType.DEFECT_DETECTED, notificationTitle, notificationMessage);
+                }
 
                 // 만약 향후 defects 리스트가 다시 추가될 경우를 대비한 로깅 (현재 페이로드에는 없음)
                 // if (detailsDto.getDefects() != null && !detailsDto.getDefects().isEmpty()) {
