@@ -72,6 +72,7 @@ public class ScriptControlController {
     public ResponseEntity<String> getScriptStatus() {
         // System.out.println("웹 요청: 스크립트 상태 조회 수신");
         // MQTT Status Subscriber로부터 현재 상태 가져와서 반환
+        mqttPublisherService.publishMessage(commandTopic, "STATUS_REQUEST", 2, false);
         String status = mqttSubscriberService.getCurrentScriptStatus();
         System.out.println("현재 스크립트 상태: " + status);
         return ResponseEntity.ok(status);
