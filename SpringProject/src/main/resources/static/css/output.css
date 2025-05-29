@@ -1523,18 +1523,6 @@ input:checked + .toggle-bg {
   stroke: var(--color-gray-700) !important;
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
 .visible {
   visibility: visible;
 }
@@ -1583,6 +1571,14 @@ input:checked + .toggle-bg {
   top: -0.5rem;
 }
 
+.-right-2 {
+  right: -0.5rem;
+}
+
+.-top-2 {
+  top: -0.5rem;
+}
+
 .bottom-0 {
   bottom: 0px;
 }
@@ -1601,10 +1597,6 @@ input:checked + .toggle-bg {
 
 .right-0 {
   right: 0px;
-}
-
-.right-2 {
-  right: 0.5rem;
 }
 
 .right-6 {
@@ -1674,6 +1666,10 @@ input:checked + .toggle-bg {
 
 .mb-8 {
   margin-bottom: 2rem;
+}
+
+.me-2 {
+  margin-inline-end: 0.5rem;
 }
 
 .mr-2 {
@@ -2225,6 +2221,11 @@ input:checked + .toggle-bg {
   padding-right: 0.5rem;
 }
 
+.px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
 .px-4 {
   padding-left: 1rem;
   padding-right: 1rem;
@@ -2585,10 +2586,6 @@ input:checked + .toggle-bg {
 .hover\:bg-yellow-500:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(234 179 8 / var(--tw-bg-opacity));
-}
-
-.hover\:bg-opacity-70:hover {
-  --tw-bg-opacity: 0.7;
 }
 
 .hover\:text-blue-600:hover {

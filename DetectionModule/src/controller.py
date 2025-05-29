@@ -12,14 +12,11 @@ MQTT_TOPIC_COMMAND = "apple_defect/command"  # 명령을 받을 토픽 (예: "ST
 MQTT_TOPIC_STATUS = "apple_defect/controller_status"  # 컨트롤러 상태를 알릴 토픽
 
 # 제어할 파이썬 스크립트 경로
-# controller.py와 apple_defect.py가 같은 디렉토리에 있다고 가정합니다.
-# 만약 다른 위치에 있다면 절대 경로를 사용하거나 경로를 조정하세요.
 APPLE_DEFECT_SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "apple_defect.py")
 
 # --- 전역 변수 ---
 # 실행 중인 apple_defect.py 프로세스를 저장할 변수
 apple_defect_process = None
-# status_msg = "Unknown"  # 컨트롤러 상태 메시지 (이제 JSON으로 대체되므로 직접 사용하지 않습니다.)
 
 # --- MQTT 클라이언트 인스턴스 ---
 mqtt_client = None  # 전역 MQTT 클라이언트 변수 초기화
