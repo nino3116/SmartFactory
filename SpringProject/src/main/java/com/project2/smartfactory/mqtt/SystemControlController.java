@@ -33,9 +33,8 @@ public class SystemControlController {
         System.out.println("웹 요청: 시스템 시작 명령 수신");
         try {
             // MQTT Publisher 서비스를 사용하여 명령 토픽으로 "START" 메시지 발행
-            mqttPublisherService.publishMessage(commandTopic, "START", 2, false); // QoS 1, Retained false
-            mqttSubscriberService.userRequest("System", "on");
-            mqttPublisherService.publishMessage(commandTopic, "status_request", 2, false);
+            mqttPublisherService.publishMessage(commandTopic, mqttSubscriberService.userRequest("System", "on"), 2, false); // QoS 1, Retained false
+            // mqttPublisherService.publishMessage(commandTopic, "status_request", 2, false);
             
             return ResponseEntity.ok("시스템 시작 명령 발행 성공");
         } catch (Exception e) {
@@ -54,9 +53,8 @@ public class SystemControlController {
         System.out.println("웹 요청: 시스템 중지 명령 수신");
          try {
             // MQTT Publisher 서비스를 사용하여 명령 토픽으로 "STOP" 메시지 발행
-            mqttPublisherService.publishMessage(commandTopic, "STOP", 2, false); // QoS 1, Retained false
-            mqttSubscriberService.userRequest("System", "off");
-            mqttPublisherService.publishMessage(commandTopic, "status_request", 2, false);
+            mqttPublisherService.publishMessage(commandTopic, mqttSubscriberService.userRequest("System", "off"), 2, false); // QoS 1, Retained false
+            // mqttPublisherService.publishMessage(commandTopic, "status_request", 2, false);
 
             return ResponseEntity.ok("시스템 중지 명령 발행 성공");
         } catch (Exception e) {

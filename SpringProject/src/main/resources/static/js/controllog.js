@@ -37,20 +37,18 @@ document.addEventListener("DOMContentLoaded", () => {
 	const toggleButtons = document.querySelectorAll(".toggle-button");
 
   function requestSystemAndScriptStatus(){
-    $.get('/api/status/system_request', async function (data) {
-      if(systemStatus.textContent == "Default"){
+    if(systemStatus.textContent == "Default"){
+      $.get('/api/status/system_request', async function (data) {
         checkSystemStatus.textContent = "Loading...";
         systemStatus.textContent = "Loading...";
-        console.log("으아아");
-      }
-    });
+      });
+    }
+    if(scriptStatusSpan.textContent == "Default"){
     $.get('/api/status/script_request', async function (data) {
-      if(scriptStatusSpan.textContent == "Default"){
         checkScriptStatus.textContent = "Loading...";
         scriptStatusSpan.textContent = "Loading...";
-        console.log("으아아아");
-      }
     });
+    }
   }
 
 	async function fetchAndDisplaySystemStatus() {
@@ -483,17 +481,17 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	// 초기 데이터 로딩
+  requestSystemAndScriptStatus();
 	fetchAndDisplayControlLogs();
   fetchAndDisplaySystemStatus();
   fetchAndDisplayScriptStatus();
   fetchAndDisplayStreamStatus();
-  requestSystemAndScriptStatus();
   
   // 주기적으로 데이터 업데이트 설정 - S3 요청을 줄이려면 이 간격을 늘리세요.
+  setInterval(requestSystemAndScriptStatus, STATUS_UPDATE_INTERVAL);
   setInterval(fetchAndDisplayControlLogs, LOGS_UPDATE_INTERVAL);
   setInterval(fetchAndDisplaySystemStatus, STATUS_UPDATE_INTERVAL);
   setInterval(fetchAndDisplayScriptStatus, STATUS_UPDATE_INTERVAL);
   setInterval(fetchAndDisplayStreamStatus, STATUS_UPDATE_INTERVAL);
-  setInterval(requestSystemAndScriptStatus, STATUS_UPDATE_INTERVAL);
 
 }); // DOMContentLoaded 끝

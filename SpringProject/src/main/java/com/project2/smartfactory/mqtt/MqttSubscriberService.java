@@ -1,19 +1,8 @@
 // src/main/java/com/project2/smartfactory/mqtt/MqttSubscriberService.java
 package com.project2.smartfactory.mqtt;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode; // JsonNode 임포트 추가
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.project2.smartfactory.control_panel.ControlLog;
-import com.project2.smartfactory.control_panel.ControlLogRepository;
-import com.project2.smartfactory.defect.DefectDetectionDetailsDto; // 새로 추가된 DTO 임포트
-import com.project2.smartfactory.notification.NotificationService;
-import com.project2.smartfactory.notification.Notification; // NotificationType Enum을 사용하기 위해 다시 임포트
-
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -27,8 +16,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode; // JsonNode 임포트 추가
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.project2.smartfactory.control_panel.ControlLog;
+import com.project2.smartfactory.control_panel.ControlLogRepository;
+import com.project2.smartfactory.defect.DefectDetectionDetailsDto; // 새로 추가된 DTO 임포트
+import com.project2.smartfactory.notification.Notification; // NotificationType Enum을 사용하기 위해 다시 임포트
+import com.project2.smartfactory.notification.NotificationService;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 
 
 @Service // Spring Bean으로 등록
@@ -80,12 +80,14 @@ public class MqttSubscriberService implements MqttCallback {
      * User Request 처리
      */
 
-    public void userRequest(String to, String command){
+    String userRequest(String to, String command){
         if(to.equals("System")){
             if(command.equals("on")){
                 userRequestSystem[0] = true;
+                return "START";
             }else if(command.equals("off")){
                 userRequestSystem[1] = true;
+                return "STOP";
             }
         }else if(to.equals("Script")){
             if(command.equals("on")){
@@ -94,6 +96,7 @@ public class MqttSubscriberService implements MqttCallback {
                 userRequestScript[1] = true;
             }
         }
+        return "";
     }
 
     /**
@@ -272,17 +275,20 @@ public class MqttSubscriberService implements MqttCallback {
             try{
                 Map<String, String> obj = objectMapper.readValue(payload, new TypeReference<Map<String, String>>() {});
                 payload = obj.get("status");
+                System.out.println("<obj> msg:"+payload);
             }catch(Exception e){
-                System.out.println("msg:"+payload);
+                System.out.println("<string> msg:"+payload);
                 if(payload.contains("error")){
                     payload = "error";
-                }else if(payload.contains("already") || payload.contains("running")){
-                    payload = "running";
                 }else if(payload.contains("stopped")){
                     payload = "stopped";
+                }else if(payload.contains("already") || (payload.contains("running") && !payload.contains("not running"))){
+                    payload = "running";
                 }
             }
-
+            System.out.println(""+ currentSystemStatus);
+            System.out.println(""+ userRequestSystem[0] + userRequestSystem[1]);
+            System.out.println(""+ userRequestSystemCnt[0] + userRequestSystemCnt[1]);
             if(userRequestSystem[0] == true){
                 controlType="User Request";
                 controlData="System On";
@@ -290,13 +296,14 @@ public class MqttSubscriberService implements MqttCallback {
                     if(userRequestSystemCnt[0]>=2){
                         controlMemo = "같은 상태로 요청";
                         userRequestSystemCnt[0] = 0;
+                        log_flag=true;
                     }else{
                         log_flag = false;
                         userRequestSystemCnt[0]++;
+                        System.out.println("같은 상태로 요청("+userRequestSystemCnt[0]+")");
                     }
                 }
                 userRequestSystem[0] = false;
-                log_flag=true;
             }else if(userRequestSystem[1] == true){
                 controlType="User Request";
                 controlData="System Off";
@@ -304,13 +311,14 @@ public class MqttSubscriberService implements MqttCallback {
                     if(userRequestSystemCnt[1]>=2){
                         controlMemo = "같은 상태로 요청";
                         userRequestSystemCnt[1] = 0;
+                        log_flag=true;
                     }else{
                         log_flag = false;
                         userRequestSystemCnt[1]++;
+                        System.out.println("같은 상태로 요청("+userRequestSystemCnt[1]+")");
                     }
                 }
                 userRequestSystem[1] = false;
-                log_flag=true;
             }else{
                 controlType="System Check";
                 if(!currentSystemStatus.equals("Default") && !payload.equals(currentSystemStatus)){
