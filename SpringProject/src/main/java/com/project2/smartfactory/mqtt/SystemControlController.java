@@ -1,5 +1,4 @@
 package com.project2.smartfactory.mqtt;
-import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -81,5 +80,13 @@ public class SystemControlController {
         String status = mqttSubscriberService.getCurrentSystemStatus();
         System.out.println("현재 시스템 상태: " + status);
         return ResponseEntity.ok(status);
+    }
+
+    @GetMapping("/status/system_request")
+    public ResponseEntity<String> requestSystemStatus() {
+        // System.out.println("MQTT 요청: 시스템 상태 조회 요청");
+        mqttPublisherService.publishMessage(commandTopic, "status_request", 2, false);
+        // System.out.println("현재 시스템 상태: " + status);
+        return ResponseEntity.ok("request system status");
     }
 }
