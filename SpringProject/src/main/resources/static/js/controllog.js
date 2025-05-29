@@ -35,44 +35,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	const toggleButtons = document.querySelectorAll(".toggle-button");
 
-  function requestSystemAndScriptStatus(){
-    if(systemStatus.textContent == "Default"){
-      $.get('/api/status/system_request', async function (data) {
-        checkSystemStatus.textContent = "Loading...";
-        systemStatus.textContent = "Loading...";
-      });
-    }
-    if(scriptStatusSpan.textContent == "Default"){
-    $.get('/api/status/script_request', async function (data) {
-        checkScriptStatus.textContent = "Loading...";
-        scriptStatusSpan.textContent = "Loading...";
-    });
-    }
-  }
-
-	async function fetchAndDisplaySystemStatus() {
-		$.get("/api/status/system", async function (data) {
-			console.log(`${data}`);
-
-			if (data.substr(0, 2) == "<!") {
-				window.location.reload(true);
-			}
-			var status = data;
-
-			if (status === "running") {
-				isOn = true;
-			} else {
-				isOn = false;
-			}
-			systemStatus.classList.toggle("text-green-600", isOn);
-			systemStatus.classList.toggle("text-gray-600", !isOn);
-			checkSystemStatus.classList.toggle("text-green-600", isOn);
-			checkSystemStatus.classList.toggle("text-gray-600", !isOn);
-
-			systemStatus.textContent = status;
-			checkSystemStatus.textContent = status;
-		});
-	}
+	// === 유틸: 상태 텍스트 + 색상 클래스 변경 (공통 함수) ===
+	// 이 함수는 이제 updateSystemStatus와 updateScriptStatus 내부에서 더 세밀하게 관리됩니다.
+	// async function updateStatus(el, isOn) {
+	// 	el.textContent = isOn ? "ON" : "OFF";
+	// 	el.classList.toggle("text-green-600", isOn);
+	// 	el.classList.toggle("text-gray-600", !isOn);
+	// }
 
 	// === 유틸: 버튼 색상 상태 변경 (하이라이트) ===
 	function setActiveButton(activeBtn, inactiveBtn) {
@@ -89,24 +58,6 @@ document.addEventListener("DOMContentLoaded", () => {
 			"font-bold",
 		);
 	}
-
-  startBtn.addEventListener("click", async () => {
-    await updateSystemStatus("시스템 시작 요청 중...");
-    await $.get('/api/control/system/start', function (data) {
-      console.log(`${data}`);
-    })
-    await fetchAndDisplaySystemStatus();
-    await fetchAndDisplayControlLogs();
-  });
-
-  stopBtn.addEventListener("click", async () => {
-    await updateSystemStatus("시스템 중지 요청 중...");
-    await $.get('/api/control/system/stop', function (data) {
-      console.log(`${data}`);
-    })
-    await fetchAndDisplaySystemStatus();
-    await fetchAndDisplayControlLogs();
-  });
 
 	function setInactiveButton(activeBtn, inactiveBtn) {
 		activeBtn.classList.add(
@@ -565,17 +516,14 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	// 초기 데이터 로딩
-  requestSystemAndScriptStatus();
 	fetchAndDisplayControlLogs();
-  fetchAndDisplaySystemStatus();
-  fetchAndDisplayScriptStatus();
-  fetchAndDisplayStreamStatus();
-  
-  // 주기적으로 데이터 업데이트 설정 - S3 요청을 줄이려면 이 간격을 늘리세요.
-  setInterval(requestSystemAndScriptStatus, STATUS_UPDATE_INTERVAL);
-  setInterval(fetchAndDisplayControlLogs, LOGS_UPDATE_INTERVAL);
-  setInterval(fetchAndDisplaySystemStatus, STATUS_UPDATE_INTERVAL);
-  setInterval(fetchAndDisplayScriptStatus, STATUS_UPDATE_INTERVAL);
-  setInterval(fetchAndDisplayStreamStatus, STATUS_UPDATE_INTERVAL);
+	fetchAndDisplaySystemStatus(); // 시스템 상태 초기 로딩
+	fetchAndDisplayScriptStatus(); // 스크립트 상태 초기 로딩
+	fetchAndDisplayStreamStatus(); // 스트림 상태 초기 로딩
 
+	// 주기적으로 데이터 업데이트 설정
+	setInterval(fetchAndDisplayControlLogs, LOGS_UPDATE_INTERVAL);
+	setInterval(fetchAndDisplaySystemStatus, STATUS_UPDATE_INTERVAL); // 시스템 상태 주기적 업데이트
+	setInterval(fetchAndDisplayScriptStatus, STATUS_UPDATE_INTERVAL); // 스크립트 상태 주기적 업데이트
+	setInterval(fetchAndDisplayStreamStatus, STATUS_UPDATE_INTERVAL); // 스트림 상태 주기적 업데이트 (필요시)
 }); // DOMContentLoaded 끝

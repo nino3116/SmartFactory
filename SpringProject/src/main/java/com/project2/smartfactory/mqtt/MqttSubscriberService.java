@@ -1,7 +1,19 @@
 // src/main/java/com/project2/smartfactory/mqtt/MqttSubscriberService.java
 package com.project2.smartfactory.mqtt;
 
-import java.nio.charset.StandardCharsets;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode; // JsonNode 임포트 추가
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.project2.smartfactory.control_panel.ControlLog;
+import com.project2.smartfactory.control_panel.ControlLogRepository;
+import com.project2.smartfactory.defect.DefectDetectionDetailsDto; // 새로 추가된 DTO 임포트
+import com.project2.smartfactory.notification.NotificationService;
+import com.project2.smartfactory.notification.Notification; // NotificationType Enum을 사용하기 위해 다시 임포트
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -15,18 +27,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JsonNode; // JsonNode 임포트 추가
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.project2.smartfactory.control_panel.ControlLog;
-import com.project2.smartfactory.control_panel.ControlLogRepository;
-import com.project2.smartfactory.defect.DefectDetectionDetailsDto; // 새로 추가된 DTO 임포트
-import com.project2.smartfactory.notification.Notification; // NotificationType Enum을 사용하기 위해 다시 임포트
-import com.project2.smartfactory.notification.NotificationService;
-
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 
 @Service // Spring Bean으로 등록
@@ -80,14 +82,12 @@ public class MqttSubscriberService implements MqttCallback {
      * User Request 처리
      */
 
-    String userRequest(String to, String command){
+    public void userRequest(String to, String command){
         if(to.equals("System")){
             if(command.equals("on")){
                 userRequestSystem[0] = true;
-                return "START";
             }else if(command.equals("off")){
                 userRequestSystem[1] = true;
-                return "STOP";
             }
         }else if(to.equals("Script")){
             if(command.equals("on")){
@@ -96,7 +96,6 @@ public class MqttSubscriberService implements MqttCallback {
                 userRequestScript[1] = true;
             }
         }
-        return "";
     }
 
     /**
@@ -173,7 +172,7 @@ public class MqttSubscriberService implements MqttCallback {
         if (mqttClient != null && mqttClient.isConnected()) {
             return currentScriptStatus;
         } else {
-            return "MQTT Disconnected / Script"; // 연결 끊김 상태도 함께 표시
+            return "MQTT Disconnected / " + currentScriptStatus; // 연결 끊김 상태도 함께 표시
         }
     }
 
@@ -182,7 +181,7 @@ public class MqttSubscriberService implements MqttCallback {
         if (mqttClient != null && mqttClient.isConnected()) {
             return currentSystemStatus;
         } else {
-            return "MQTT Disconnected / System"; // 연결 끊김 상태도 함께 표시
+            return "MQTT Disconnected / " + currentSystemStatus; // 연결 끊김 상태도 함께 표시
         }
     }
 
