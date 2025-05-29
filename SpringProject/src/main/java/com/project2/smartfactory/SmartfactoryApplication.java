@@ -12,4 +12,8 @@ public class SmartfactoryApplication {
 		SpringApplication.run(SmartfactoryApplication.class, args);
 	}
 
+	// @Bean
+  // public RestTemplate restTemplate() {
+  //   return new RestTemplate();
+  // }
 }

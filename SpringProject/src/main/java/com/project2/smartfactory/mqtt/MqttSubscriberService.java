@@ -1,8 +1,15 @@
+// src/main/java/com/project2/smartfactory/mqtt/MqttSubscriberService.java
 package com.project2.smartfactory.mqtt;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode; // JsonNode 임포트 추가
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.project2.smartfactory.defect.DefectInfo;
-import com.project2.smartfactory.defect.DetectionLogService; // DetectionLogService 임포트 (필요에 따라 유지 또는 제거)
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.project2.smartfactory.control_panel.ControlLog;
+import com.project2.smartfactory.control_panel.ControlLogRepository;
+import com.project2.smartfactory.defect.DefectDetectionDetailsDto; // 새로 추가된 DTO 임포트
+import com.project2.smartfactory.notification.NotificationService;
+import com.project2.smartfactory.notification.Notification; // NotificationType Enum을 사용하기 위해 다시 임포트
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -15,16 +22,14 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
 
 @Service // Spring Bean으로 등록
 @RequiredArgsConstructor
@@ -39,7 +44,7 @@ public class MqttSubscriberService implements MqttCallback {
     @Value("${mqtt.client.id.subscriber}") // 통합된 클라이언트 ID (고유해야 함)
     private String clientId;
 
-    @Value("${mqtt.topic.status}") // 불량 감지 상태 토픽
+    @Value("${mqtt.topic.status}") // 불량 감지 상태 토픽 (현재 사용되지 않음)
     private String defectStatusTopic;
 
     @Value("${mqtt.topic.details}") // 불량 감지 상세 정보 토픽
@@ -48,69 +53,110 @@ public class MqttSubscriberService implements MqttCallback {
     @Value("${mqtt.topic.script.status}") // Python 스크립트 상태 토픽
     private String scriptStatusTopic;
 
+    @Value("${mqtt.topic.system.status}")   // 컨베이어벨트 동작 시스템 상태 토픽
+    private String systemStatusTopic;
+
+    @Value("${mqtt.topic.detect.result}") // factory/detect_result 토픽
+    private String detectResultTopic;
+
     private MqttClient mqttClient;
     private ObjectMapper objectMapper = new ObjectMapper(); // JSON 파싱을 위한 객체
 
     // 스크립트의 현재 상태를 저장할 변수 (기본값 설정)
-    private String currentScriptStatus = "Unknown";
+    private String currentScriptStatus = "Default";
+    private String currentSystemStatus = "Default";
+    private boolean[] userRequestScript = {false, false};
+    private boolean[] userRequestSystem = {false, false};
+    private int[] userRequestSystemCnt = {0, 0};
 
-    // 재연결 시도 관련 상수
-    private static final int MAX_RECONNECT_ATTEMPTS = 5; // 최대 재연결 시도 횟수
-    private static final long RECONNECT_DELAY_SECONDS = 5; // 재연결 시도 간 지연 시간 (초)
+
+    private final NotificationService notificationService; // NotificationService 주입
+
+    private final ControlLogRepository controlLogRepository;
 
 
-    @PostConstruct // Spring 애플리케이션 시작 시 실행
-    public void init() {
-        connectAndSubscribe();
-    }
 
     /**
-     * MQTT 브로커에 연결하고 모든 필요한 토픽을 구독하는 메서드.
-     * 재연결 로직에서 호출될 수 있도록 별도 메서드로 분리.
+     * User Request 처리
      */
-    private void connectAndSubscribe() {
-        try {
-            // mqttClient가 null이거나 연결되어 있지 않은 경우에만 새로 연결 시도
-            if (mqttClient == null || !mqttClient.isConnected()) {
-                MemoryPersistence persistence = new MemoryPersistence();
-                mqttClient = new MqttClient(brokerUrl, clientId, persistence);
-                mqttClient.setCallback(this); // 메시지 수신 시 호출될 콜백 설정
+
+    public void userRequest(String to, String command){
+        if(to.equals("System")){
+            if(command.equals("on")){
+                userRequestSystem[0] = true;
+            }else if(command.equals("off")){
+                userRequestSystem[1] = true;
             }
-
-            MqttConnectOptions connectOptions = new MqttConnectOptions();
-            connectOptions.setCleanSession(true); // 클라이언트 연결 해제 시 구독 정보 삭제
-            connectOptions.setAutomaticReconnect(false); // 수동 재연결 로직을 위해 자동 재연결 비활성화
-
-            logger.info("Connecting to MQTT Broker: {}", brokerUrl);
-            mqttClient.connect(connectOptions);
-            logger.info("Connected to MQTT Broker");
-
-            // 모든 토픽을 한 번에 구독
-            String[] topics = {defectStatusTopic, defectDetailsTopic, scriptStatusTopic};
-            int[] qos = {1, 1, 1}; // 각 토픽에 대한 QoS 레벨 (예: 1)
-            mqttClient.subscribe(topics, qos);
-
-            logger.info("Subscribed to topics: {}, {}, {}", defectStatusTopic, defectDetailsTopic, scriptStatusTopic);
-
-        } catch (MqttException e) {
-            logger.error("MQTT 연결 또는 구독 중 오류 발생: {}", e.getMessage(), e);
-            // 오류 발생 시 클라이언트 객체를 null로 설정하여 재연결 시도 시 새로운 클라이언트 생성 유도
-            mqttClient = null;
-        } catch (Exception e) {
-            logger.error("MQTT 초기화 중 예상치 못한 오류 발생: {}", e.getMessage(), e);
-            mqttClient = null;
+        }else if(to.equals("Script")){
+            if(command.equals("on")){
+                userRequestScript[0] = true;
+            }else if(command.equals("off")){
+                userRequestScript[1] = true;
+            }
         }
     }
 
-    @PreDestroy // Spring 애플리케이션 종료 시 실행
-    public void disconnect() {
+    /**
+     * 빈 초기화 시 호출되어 MQTT 클라이언트를 설정하고 브로커에 연결합니다.
+     * 토픽을 구독하고 초기 연결 성공/실패 알림을 생성합니다.
+     */
+    @PostConstruct
+    public void init() {
+        // ObjectMapper에 JavaTimeModule을 등록하여 LocalDateTime 파싱을 지원합니다.
+        objectMapper.registerModule(new JavaTimeModule());
+        // 만약 DefectInfo 객체도 LocalDateTime을 사용한다면, DefectInfo를 파싱하는 ObjectMapper에도 동일하게 적용해야 합니다.
+        // 현재는 DefectInfo에 LocalDateTime 필드가 없는 것으로 보이지만, 추후 추가될 경우를 대비하여 명시합니다.
         try {
-            if (mqttClient != null && mqttClient.isConnected()) {
-                mqttClient.disconnect();
-                logger.info("Disconnected from MQTT Broker");
+            mqttClient = new MqttClient(brokerUrl, clientId, new MemoryPersistence());
+            mqttClient.setCallback(this); // 콜백 설정
+
+            MqttConnectOptions connectOptions = new MqttConnectOptions();
+            connectOptions.setCleanSession(true); // 세션 클린 (false로 하면 끊겼다 다시 연결 시 이전 메시지 수신 가능)
+            connectOptions.setAutomaticReconnect(true); // 자동 재연결 활성화
+            connectOptions.setMaxReconnectDelay(5000); // 최대 재연결 지연 시간 5초
+
+            logger.info("Trying to Connect MQTT Broker: {}", brokerUrl);
+            mqttClient.connect(connectOptions);
+            logger.info("MQTT Broker Connected. Client ID: {}", clientId);
+
+            // 새로운 토픽들 구독
+            mqttClient.subscribe(scriptStatusTopic, 1); // 감지 모듈 상태 토픽 구독
+            mqttClient.subscribe(systemStatusTopic, 1); // 컨베이어 벨트 상태 토픽 구독
+            mqttClient.subscribe(defectDetailsTopic, 1); // 불량 감지 상세 정보 토픽 구독
+            mqttClient.subscribe(detectResultTopic, 1); // factory/detect_result 토픽 구독 추가
+            logger.info("Connected to MQTT broker and subscribed to topics: [{}, {}, {}, {}]", scriptStatusTopic, systemStatusTopic, defectDetailsTopic, detectResultTopic);
+
+            // MQTT 연결 성공 알림 (필요하다면 주석 해제)
+            // notificationService.saveNotification(Notification.NotificationType.MQTT_CLIENT, "MQTT 연결", "MQTT 브로커에 성공적으로 연결되었습니다.");
+
+        } catch (MqttException me) {
+            logger.error("MQTT Connection Error: {}", me.getMessage(), me);
+            // MQTT 연결 실패 알림
+            notificationService.saveNotification(Notification.NotificationType.ERROR, "MQTT 연결 실패", "MQTT 브로커 연결에 실패했습니다: " + me.getMessage());
+        } catch (Exception e) {
+            logger.error("MQTT Subscriber Initialization Error: {}", e.getMessage(), e);
+            // MQTT 초기화 오류 알림
+            notificationService.saveNotification(Notification.NotificationType.ERROR, "MQTT 초기화 오류", "MQTT Subscriber 초기화 중 오류 발생: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 빈 소멸 시 호출되어 MQTT 클라이언트 연결을 해제합니다.
+     * 연결 해제 알림을 생성합니다.
+     */
+    @PreDestroy
+    public void disconnect() {
+        if (mqttClient != null && mqttClient.isConnected()) {
+            try {
+                mqttClient.disconnect(5000); // 5초 대기 후 연결 해제
+                logger.info("MQTT Disconnected (Subscriber)");
+                // MQTT 연결 해제 알림 (필요하다면 주석 해제)
+                notificationService.saveNotification(Notification.NotificationType.MQTT_CLIENT, "MQTT 연결 해제", "MQTT 브로커 연결이 해제되었습니다.");
+            } catch (MqttException me) {
+                logger.error("MQTT Error while disconnecting: {}", me.getMessage(), me);
+                // MQTT 연결 해제 오류 알림
+                notificationService.saveNotification(Notification.NotificationType.ERROR, "MQTT 연결 해제 오류", "MQTT 브로커 연결 해제 중 오류 발생: " + me.getMessage());
             }
-        } catch (MqttException e) {
-            logger.error("MQTT 브로커 연결 해제 중 오류 발생: {}", e.getMessage(), e);
         }
     }
 
@@ -127,87 +173,244 @@ public class MqttSubscriberService implements MqttCallback {
         }
     }
 
+    public String getCurrentSystemStatus() {
+        // MQTT 클라이언트의 연결 상태에 따라 메시지를 보강
+        if (mqttClient != null && mqttClient.isConnected()) {
+            return currentSystemStatus;
+        } else {
+            return "MQTT Disconnected / " + currentSystemStatus; // 연결 끊김 상태도 함께 표시
+        }
+    }
+
     // --- MqttCallback 인터페이스 메소드 구현 ---
 
+    /**
+     * MQTT 연결이 끊겼을 때 호출되는 콜백 메서드.
+     * 연결 끊김 알림을 생성합니다.
+     * @param cause 연결이 끊긴 원인
+     */
     @Override
     public void connectionLost(Throwable cause) {
-        // MQTT 연결이 끊어졌을 때 호출됩니다. 재연결 로직을 여기에 구현합니다.
-        logger.error("MQTT Connection lost: {}", cause.getMessage(), cause);
-
-        int attempt = 0;
-        // 클라이언트가 연결되어 있지 않고, 최대 재연결 시도 횟수 미만일 때 재연결 시도
-        while (mqttClient != null && !mqttClient.isConnected() && attempt < MAX_RECONNECT_ATTEMPTS) {
-            attempt++;
-            logger.info("Attempting to reconnect to MQTT Broker (Attempt {}/{})", attempt, MAX_RECONNECT_ATTEMPTS);
-            try {
-                // 연결 재시도
-                connectAndSubscribe();
-                if (mqttClient.isConnected()) {
-                    logger.info("Successfully reconnected to MQTT Broker on attempt {}", attempt);
-                    return; // 재연결 성공 시 루프 종료
-                }
-            } catch (Exception e) {
-                logger.error("Reconnection attempt {} failed: {}", attempt, e.getMessage());
-            }
-
-            try {
-                // 재연결 시도 간 지연
-                TimeUnit.SECONDS.sleep(RECONNECT_DELAY_SECONDS);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt(); // 인터럽트 상태 복원
-                logger.warn("Reconnection delay interrupted.", ie);
-                break; // 인터럽트 발생 시 재연결 시도 중단
-            }
-        }
-
-        if (mqttClient != null && !mqttClient.isConnected()) {
-            logger.error("Failed to reconnect to MQTT Broker after {} attempts. Further manual intervention may be required.", MAX_RECONNECT_ATTEMPTS);
-            currentScriptStatus = "Connection Lost: Reconnect Failed"; // 연결 실패 상태 업데이트
-            // TODO: 재연결 실패 시 추가적인 알림 (예: 관리자에게 이메일, 시스템 경고) 로직 구현
-        }
+        logger.error("MQTT Connection lost: {}. Paho will attempt to reconnect automatically.", cause.getMessage(), cause);
+        // MQTT 연결 끊김 알림
+        notificationService.saveNotification(Notification.NotificationType.WARNING, "MQTT 연결 끊김", "MQTT 브로커 연결이 끊어졌습니다: " + cause.getMessage());
     }
 
+    /**
+     * 구독한 토픽에서 메시지가 도착했을 때 호출되는 콜백 메서드.
+     * 메시지 내용을 파싱하고, 내용에 따라 적절한 알림을 생성합니다.
+     * @param topic 메시지가 발행된 토픽
+     * @param message 수신된 MQTT 메시지 객체
+     * @throws Exception 메시지 처리 중 발생할 수 있는 예외
+     */
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        // 구독한 토픽으로 메시지가 도착했을 때 호출됩니다.
-        String payload = new String(message.getPayload());
-        logger.debug("Message Arrived - Topic: {}, Payload: {}", topic, payload);
+        String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
+        logger.debug("Message Arrived. Topic: {}, Message: {}", topic, payload);
+        
 
-        // 토픽에 따라 메시지 처리 로직 분기
+        String controlType = "";
+        String controlData = "";
+        String controlResult = "";
+        String controlMemo = "";
+        boolean log_flag = false;
+
         if (topic.equals(scriptStatusTopic)) {
             // Python 스크립트 상태 메시지 처리
-            currentScriptStatus = payload;
-            logger.info("Script Status: {}", currentScriptStatus);
-        } else if (topic.equals(defectStatusTopic)) {
-            // 불량 감지 상태 메시지 처리 (예: UI 업데이트, 로그 기록 등)
-            logger.info("Defect Status: {}", payload);
-        } else if (topic.equals(defectDetailsTopic)) {
-            // 불량 상세 정보 메시지 처리 (JSON 파싱)
+            payload = payload.replace("Apple Defect Script ","");
+
+            if(userRequestScript[0] == true){
+                controlType="User Request";
+                controlData="Script On";
+                userRequestScript[0] = false;
+                log_flag=true;
+                if(payload.contains("Already Running")){
+                    if(currentScriptStatus.equals("Default")){
+                        controlMemo = "작동 중이었으나 표기 오류";
+                    }else{
+                        controlMemo = "같은 상태로 요청";
+                    }
+                }
+            }else if(userRequestScript[1] == true){
+                controlType="User Request";
+                controlData="Script Off";
+                if(payload.contains("Not Running")){
+                    controlMemo = "같은 상태로 요청";
+                }
+                userRequestScript[1] = false;
+                log_flag=true;
+            }else{
+                controlType = "Script Check";
+                if(!currentScriptStatus.equals("Default") && !payload.equals(currentScriptStatus)){
+                    if(payload.contains("Already") && (currentScriptStatus.contains("Started") || currentScriptStatus.contains("Running"))){
+                        log_flag = false;
+                    }else{
+                        controlData = "Change Detected";
+                    }
+                }else if(payload.equals("Unknown") && currentScriptStatus.equals("Unknown")){
+                    controlData = "Error Detected";
+                    controlResult = payload;
+                    controlMemo="상태 확인 불가";
+                }
+            }
+            if(log_flag){
+                ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentScriptStatus+"→"+payload:controlResult), controlMemo);
+                controlLogRepository.save(controlLog);
+            }
+            // 감지 모듈 상태 토픽 처리 (apple_defect/controller_status)
+            currentScriptStatus = payload; // 스크립트 상태 업데이트
+            if (payload.contains("Already") && payload.contains("Script")) {
+                notificationService.saveNotification(Notification.NotificationType.DEFECT_MODULE, "불량 감지 모듈", "불량 감지 모듈이 이미 실행중입니다.");
+            } else if (payload.contains("Stop") && payload.contains("Force")) {
+                notificationService.saveNotification(Notification.NotificationType.DEFECT_MODULE, "불량 감지 모듈", "불량 감지 모듈이 강제중지되었습니다.");
+            } else if (!payload.contains("Script Started") && !payload.contains("Script Stopped")){
+                logger.warn("Unknown defect module status message: {}", payload);
+                notificationService.saveNotification(Notification.NotificationType.WARNING, "불량 감지 모듈", "알 수 없는 불량 감지 모듈 상태 메시지: " + payload);
+            }
+        } else if (topic.equals(systemStatusTopic)) {
+            // 시스템 상태 메시지 처리
+            Map<String, String> obj = objectMapper.readValue(payload, new TypeReference<Map<String, String>>() {});
+            payload = obj.get("status");
+
+            if(userRequestSystem[0] == true){
+                controlType="User Request";
+                controlData="System On";
+                if(currentSystemStatus.equals("running")){
+                    if(userRequestSystemCnt[0]>=2){
+                        controlMemo = "같은 상태로 요청";
+                        userRequestSystemCnt[0] = 0;
+                    }else{
+                        log_flag = false;
+                        userRequestSystemCnt[0]++;
+                    }
+                }
+                userRequestSystem[0] = false;
+                log_flag=true;
+            }else if(userRequestSystem[1] == true){
+                controlType="User Request";
+                controlData="System Off";
+                if(currentSystemStatus.equals("stopped")){
+                    if(userRequestSystemCnt[1]>=2){
+                        controlMemo = "같은 상태로 요청";
+                        userRequestSystemCnt[1] = 0;
+                    }else{
+                        log_flag = false;
+                        userRequestSystemCnt[1]++;
+                    }
+                }
+                userRequestSystem[1] = false;
+                log_flag=true;
+            }else{
+                controlType="System Check";
+                if(!currentSystemStatus.equals("Default") && !payload.equals(currentSystemStatus)){
+                    controlData="Change Detected";
+                    log_flag=true;
+                }else if(payload.equals("Unknown") && !currentSystemStatus.equals("Unknown")){
+                    controlData="Error Detected";
+                    controlResult=payload;
+                    controlMemo="상태 확인 불가";
+                    log_flag=true;
+                }
+            }
+            if(log_flag){
+                ControlLog controlLog = new ControlLog(controlType, controlData, (controlResult.equals("")?currentSystemStatus+"→"+payload:controlResult), controlMemo);
+                controlLogRepository.save(controlLog);
+            }
+            currentSystemStatus = payload;
+            logger.info("System Status: {}", currentSystemStatus);
+          
+            // 컨베이어 벨트 상태 토픽 처리 (control_panel/system_status)
+            if (payload.contains("running") && payload.contains("already")) {
+                notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 벨트가 이미 가동 중입니다.");
+            } else if (payload.contains("error")) {
+                notificationService.saveNotification(Notification.NotificationType.CONVEYOR_BELT, "컨베이어 벨트", "컨베이어 작동중 오류가 발생했습니다. \n " + payload);
+            } else if (!payload.contains("running") && !payload.contains("stopped")){
+                logger.warn("Unknown conveyor belt status message: {}", payload);
+                notificationService.saveNotification(Notification.NotificationType.WARNING, "컨베이어 벨트", "알 수 없는 컨베이어 벨트 상태 메시지: " + payload);
+            }
+        } else if (topic.equals(detectResultTopic)) { // factory/detect_result 토픽 처리
             try {
-                // JSON 문자열을 List<DefectInfo> 객체로 파싱합니다.
-                // 이 데이터는 DefectController의 /api/defect 엔드포인트로 HTTP POST 요청을 통해 이미 DB에 저장됩니다.
-                // 따라서 MqttSubscriberService에서는 별도의 DB 저장 로직이 필요하지 않습니다.
-                List<DefectInfo> defectDetails = Arrays.asList(objectMapper.readValue(payload, DefectInfo[].class));
+                JsonNode jsonNode = objectMapper.readTree(payload);
+                String status = jsonNode.has("status") ? jsonNode.get("status").asText() : "UNKNOWN";
+                String timestamp = jsonNode.has("timestamp") ? jsonNode.get("timestamp").asText() : "UNKNOWN";
+                int defectCount = jsonNode.has("defectCount") ? jsonNode.get("defectCount").asInt() : 0;
 
-                logger.info("Defect Details Received via MQTT. This data is expected to be saved via HTTP POST endpoint.");
-                logger.info("Received {} defect details for logging/monitoring purposes.", defectDetails.size());
+                logger.info("Defect Detection Message Arrived: Status={}, DefectCount={}, Timestamp={}", status, defectCount, timestamp);
 
-                // 필요하다면, 여기서 수신된 상세 정보를 다른 비즈니스 로직에 전달하거나
-                // 웹소켓을 통해 프론트엔드로 실시간 업데이트를 보내는 등의 추가 처리를 할 수 있습니다.
-                // 예: messagingTemplate.convertAndSend("/topic/defect-updates", defectDetails);
+                if ("Defective".equalsIgnoreCase(status)) {
+                    String notificationMessage = String.format(
+                        "불량 제품이 감지되었습니다. 불량 개수: %d개, 감지 시간: %s",
+                        defectCount,
+                        timestamp
+                    );
+                    notificationService.saveNotification(Notification.NotificationType.DEFECT_DETECTED, "불량 감지 결과", notificationMessage);
+                } else if ("Substandard".equalsIgnoreCase(status)) {
+                    String notificationMessage = String.format(
+                        "비상품 제품이 감지되었습니다. 감지 시간: %s",
+                        defectCount,
+                        timestamp
+                    );
+                    notificationService.saveNotification(Notification.NotificationType.SUCCESS, "정상 감지 결과", notificationMessage);
+                } else if (!"Normal".equalsIgnoreCase(status)) {
+                    logger.warn("Unknown defect detection status: {}", status);
+                    notificationService.saveNotification(Notification.NotificationType.WARNING, "알 수 없는 감지 결과", "알 수 없는 감지 결과 상태: " + status);
+                }
 
             } catch (Exception e) {
-                logger.error("불량 상세 정보 JSON 파싱 중 오류 발생: {}", e.getMessage(), e);
+                logger.error("Error while parsing defect detecion JSON data: {}", e.getMessage(), e);
+                notificationService.saveNotification(Notification.NotificationType.ERROR, "JSON 파싱 오류", "불량 감지 결과 JSON 파싱 중 오류 발생: " + e.getMessage());
+            }
+        } else if (topic.equals(defectDetailsTopic)) { // defect_detection/details 토픽 처리
+            try {
+                // 전체 페이로드를 DefectDetectionDetailsDto 객체로 파싱
+                DefectDetectionDetailsDto detailsDto = objectMapper.readValue(payload, DefectDetectionDetailsDto.class);
+
+                logger.info("Defect detail message arrived (DTO parsing): Status={}, DefectCount={}, DefectSummary={}",
+                            detailsDto.getStatus(), detailsDto.getDefectCount(), detailsDto.getDefectSummary());
+
+                // defect_detection/details 토픽의 페이로드에 defects 리스트가 없는 경우를 고려하여
+                // defectSummary와 defectCount를 활용한 알림 생성
+                String notificationTitle = "불량 상세 정보";
+                String notificationMessage = String.format(
+                    "상태: %s, 감지 불량 개수: %d개, 요약: %s",
+                    detailsDto.getStatus(),
+                    detailsDto.getDefectCount(),
+                    detailsDto.getDefectSummary() != null && !detailsDto.getDefectSummary().isEmpty() ? detailsDto.getDefectSummary() : "상세 불량 정보 없음"
+                );
+
+                // 알림 메시지가 너무 길어지지 않도록 길이 제한 (예: 500자)
+                if (notificationMessage.length() > 500) {
+                    notificationMessage = notificationMessage.substring(0, 497) + "...";
+                }
+
+                notificationService.saveNotification(Notification.NotificationType.DEFECT_DETECTED, notificationTitle, notificationMessage);
+
+                // 만약 향후 defects 리스트가 다시 추가될 경우를 대비한 로깅 (현재 페이로드에는 없음)
+                // if (detailsDto.getDefects() != null && !detailsDto.getDefects().isEmpty()) {
+                //     logger.debug("Defects 리스트에 상세 불량 정보가 포함되어 있습니다. (이 알림은 현재 페이로드 구조와 다름)");
+                //     for (DefectInfo defect : detailsDto.getDefects()) {
+                //         logger.debug(" - 상세 불량: {} (원인: {})", defect.getClazz(), defect.getDetailedReason());
+                //     }
+                // }
+
+            } catch (Exception e) {
+                logger.error("Error while parsing defect detail JSON data: {}", e.getMessage(), e);
+                notificationService.saveNotification(Notification.NotificationType.ERROR, "JSON 파싱 오류", "불량 상세 정보 JSON 파싱 중 오류 발생: " + e.getMessage());
             }
         } else {
-            logger.warn("Unknown topic received: {}", topic);
+            logger.warn("Message arrived from unknown topic : Topic={}, Message={}", topic, payload);
+            notificationService.saveNotification(Notification.NotificationType.WARNING, "알 수 없는 토픽", "알 수 없는 토픽에서 메시지 수신: " + topic);
         }
     }
 
+    /**
+     * 발행한 메시지가 브로커에 전달 완료되었을 때 호출되는 콜백 메서드 (QoS > 0인 경우).
+     * 구독자 역할에서는 주로 발행자에서 사용됩니다.
+     * @param token 메시지 전달 토큰
+     */
     @Override
     public void deliveryComplete(IMqttDeliveryToken token) {
-        // 발행한 메시지가 브로커에 전달 완료되었을 때 호출됩니다 (QoS > 0인 경우).
-        // 이 서비스는 주로 구독자 역할을 하므로, 이 메서드는 일반적으로 비어있습니다.
-        // logger.debug("Delivery complete for message: {}", token.getMessageId());
+        logger.debug("메시지 전달 완료: {}", token.getMessageId());
     }
+
 }

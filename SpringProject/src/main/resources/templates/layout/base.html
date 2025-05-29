@@ -3,32 +3,30 @@
   lang="ko"
   xmlns:th="http://www.thymeleaf.org"
   xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-  xmlns:sec="https://www.thymeleaf.org/extras/spring-security"
->
+  xmlns:sec="https://www.thymeleaf.org/extras/spring-security">
   <head>
     <meta charset="UTF-8" />
     <title
-      th:text="${title} == null ? 'Smart Factory' : ${title} + '- Smart Factory'"
-    >
+      th:text="${title} == null ? 'Smart Factory' : ${title} + '- Smart Factory'">
       Smart Factory
     </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" th:href="@{/css/output.css}" />
+    <link rel="stylesheet" th:href="@{/css/notification.css}" />
     <th:block layout:fragment="css"> </th:block>
     <th:block layout:head></th:block>
   </head>
   <body class="flex h-screen bg-gray-100">
     <div
       th:replace="~{fragments/sidebar :: sidebar}"
-      class="w-64 bg-green-700 text-white flex flex-col"
-    ></div>
+      class="w-64 bg-green-700 text-white flex flex-col"></div>
 
     <div class="flex-1 flex flex-col overflow-hidden">
       <button
         id="sidebar-toggle"
         data-drawer-target="sidebar-drawer"
         data-drawer-show="sidebar-drawer"
-        aria-controls="sidebar-drawer"
+        aria-controls="drawer-navigation"
         type="button"
         class="fixed top-10 left-0 z-30 p-1 bg-green-700 text-white rounded hover:bg-yellow-500 transition"
         style="margin-left: 8px"
@@ -40,15 +38,13 @@
           width="24"
           height="24"
           fill="none"
-          viewBox="0 0 24 24"
-        >
+          viewBox="0 0 24 24">
           <path
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
-            d="M18 6H6m12 4H6m12 4H6m12 4H6"
-          />
+            d="M18 6H6m12 4H6m12 4H6m12 4H6" />
         </svg>
       </button>
       
@@ -61,45 +57,7 @@
       </main>
     </div>
 
-    <script th:inline="javascript">
-      document.addEventListener("DOMContentLoaded", function () {
-        //  알림 버튼 처리
-        const notificationButton = document.getElementById(
-          "notification-button"
-        );
-        const notificationContainer = document.getElementById(
-          "notification-container"
-        );
-
-        if (notificationButton && notificationContainer) {
-          notificationButton.addEventListener("click", function () {
-            notificationContainer.classList.toggle("hidden");
-          });
-        }
-        const closeBtn = document.getElementById("notification-close");
-        if (closeBtn && notificationContainer) {
-          closeBtn.addEventListener("click", function () {
-            notificationContainer.classList.add("hidden");
-          });
-        }
-
-        //  햄버거 버튼 동작 처리
-        const sidebarToggleBtn = document.getElementById("sidebar-toggle");
-
-        // Flowbite drawer 이벤트 처리
-        document.addEventListener("drawer:show", (event) => {
-          if (event.target.id === "sidebar-drawer") {
-            sidebarToggleBtn.classList.add("hidden");
-          }
-        });
-
-        document.addEventListener("drawer:hide", (event) => {
-          if (event.target.id === "sidebar-drawer") {
-            sidebarToggleBtn.classList.remove("hidden");
-          }
-        });
-      });
-    </script>
+    <script th:src="@{/js/main.js}"></script>
     <script layout:fragment="script"></script>
     <script th:src="@{/js/flowbite.min.js}"></script>
   </body>
