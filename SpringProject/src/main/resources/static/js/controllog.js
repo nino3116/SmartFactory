@@ -6,13 +6,14 @@ document.addEventListener("DOMContentLoaded", () => {
 	const SCRIPT_CONTROL_START_URL = `${SPRING_BOOT_BASE_URL}/api/control/start`; // 스크립트 시작 API 엔드포인트
 	const SCRIPT_CONTROL_STOP_URL = `${SPRING_BOOT_BASE_URL}/api/control/stop`; // 스크립트 중지 API 엔드포인트
 	const SCRIPT_STATUS_API_URL = `${SPRING_BOOT_BASE_URL}/api/status/script`; // 스크립트 상태 조회 API 엔드포인트
+	const SYSTEM_STATUS_API_URL = `${SPRING_BOOT_BASE_URL}/api/status/system`; // 시스템 상태 조회 API 엔드포인트 (추가)
 	const STREAM_STATUS_API_URL = `${SPRING_BOOT_BASE_URL}/status/image_stream`; // 이미지 스트림 상태 조회 API 엔드포인트
 
 	// 스트림 이미지 URL (필요에 따라 수정)
 	const PRIMARY_STREAM_URL = "http://localhost:8080";
 	const FALLBACK_STREAM_URL = "http://192.168.0.124:8000/stream.mjpg";
 
-	const STATUS_UPDATE_INTERVAL = 5000; // 스크립트 상태는 자주 확인해도 부담 적음
+	const STATUS_UPDATE_INTERVAL = 5000; // 스크립트/시스템 상태는 자주 확인해도 부담 적음
 	const LOGS_UPDATE_INTERVAL = 5000;
 
 	const controlLogTableBody = document.querySelector(
@@ -20,19 +21,17 @@ document.addEventListener("DOMContentLoaded", () => {
 	);
 
 	// === 상태 표시 엘리먼트와 버튼 그룹 ===
-	const systemStatus = document.getElementById("system-status");
-	const checkSystemStatus = document.getElementById("check-system-status");
-	const checkScriptStatus = document.getElementById("check-script-status");
-	const checkStreamStatus = document.getElementById("stream-status-message");
-	const scriptStatusSpan = document.getElementById("script-status");
+	const systemStatus = document.getElementById("system-status"); // 시스템 상태 표시 span
+	const checkSystemStatus = document.getElementById("check-system-status"); // 시스템 상태 확인 span
+	const scriptStatusSpan = document.getElementById("script-status"); // 스크립트 상태 표시 span
+	const checkScriptStatus = document.getElementById("check-script-status"); // 스크립트 상태 확인 span
+	const checkStreamStatus = document.getElementById("stream-status-message"); // 스트림 상태 메시지 span
+
 	const startScriptBtn = document.getElementById("start-script-btn");
 	const stopScriptBtn = document.getElementById("stop-script-btn");
 
-	// const sensorStatus = document.getElementById("sensor-status");
-	// const buzzerStatus = document.getElementById("buzzer-status");
-
-	const startBtn = document.getElementById("btn-start");
-	const stopBtn = document.getElementById("btn-stop");
+	const startBtn = document.getElementById("btn-start"); // 시스템 시작 버튼
+	const stopBtn = document.getElementById("btn-stop"); // 시스템 중지 버튼
 
 	const toggleButtons = document.querySelectorAll(".toggle-button");
 
@@ -124,52 +123,144 @@ document.addEventListener("DOMContentLoaded", () => {
 		);
 	}
 
-	// === 시스템 시작/중지 버튼 제어 ===
-	function updateSystemStatus(text) {
-		systemStatus.textContent = text;
+	// === 시스템 상태 업데이트 함수 (UI 표시) ===
+	// updateScriptStatus와 유사하게 수정
+	function updateSystemStatus(statusText, stateClass) {
+		if (systemStatus && checkSystemStatus) {
+			systemStatus.textContent = statusText;
+			checkSystemStatus.textContent = statusText;
+
+			// 기존 상태 클래스 제거
+			systemStatus.classList.remove(
+				"status-loading",
+				"status-success",
+				"status-error",
+			);
+			checkSystemStatus.classList.remove(
+				"status-loading",
+				"status-success",
+				"status-error",
+			);
+
+			// 새 상태 클래스 추가 (stateClass 값에 따라)
+			if (stateClass === "loading") {
+				systemStatus.classList.add("status-loading");
+				checkSystemStatus.classList.add("status-loading");
+			} else if (stateClass === "success") {
+				systemStatus.classList.add("status-success");
+				checkSystemStatus.classList.add("status-success");
+			} else if (stateClass === "error") {
+				systemStatus.classList.add("status-error");
+				checkSystemStatus.classList.add("status-error");
+			} else {
+				// 기본 상태 (stateClass가 없을 경우)
+				systemStatus.classList.add("status-loading"); // 기본적으로 로딩 상태로 표시
+				checkSystemStatus.classList.add("status-loading");
+			}
+		} else {
+			console.error("Error: 시스템 상태 표시 요소를 찾을 수 없습니다.");
+		}
 	}
 
+	// === 시스템 상태를 가져와서 표시하는 함수 (Fetch API 사용) ===
+	// fetchAndDisplayScriptStatus와 유사하게 수정
+	async function fetchAndDisplaySystemStatus() {
+		if (!systemStatus || !checkSystemStatus) return;
+
+		updateSystemStatus("상태 확인 중...", "loading"); // 상태 확인 시작 시 로딩 표시
+
+		try {
+			const response = await fetch(SYSTEM_STATUS_API_URL);
+			if (!response.ok) {
+				updateSystemStatus(`상태 오류: ${response.status}`, "error");
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			const status = await response.text(); // 상태는 단순 문자열로 예상 (running, stopped 등)
+
+			if (status.includes("<!")) {
+				window.location.reload(true);
+			}
+
+			// 서버 응답 문자열에 따라 상태 클래스 결정
+			let stateClass = "loading"; // 기본 상태
+			if (status.includes("stopped") || status.includes("Disconnected")) {
+				stateClass = "error";
+				setInactiveButton(stopBtn, startBtn); // 중지 상태면 stop 버튼 활성화
+			} else if (status.includes("running")) {
+				stateClass = "success";
+				setActiveButton(startBtn, stopBtn); // 실행 중이면 start 버튼 활성화
+			} else if (status.includes("Error") || status.includes("UNKNOWN")) {
+				stateClass = "error";
+			} else if (
+				status.includes("Default") ||
+				status.includes("Initializing")
+			) {
+				stateClass = "loading"; // 초기 상태는 로딩으로
+			}
+
+			updateSystemStatus(status, stateClass); // 가져온 상태와 클래스로 업데이트
+		} catch (error) {
+			console.error("시스템 상태를 가져오는 중 오류 발생:", error);
+			updateSystemStatus(`상태 오류: ${escapeHTML(error.message)}`, "error"); // 오류 발생 시 오류 상태 표시
+		}
+	}
+
+	// === 시스템 시작/중지 버튼 제어 ===
 	startBtn.addEventListener("click", async () => {
-		await updateSystemStatus("시스템 시작 요청 중...");
-		await $.get("/api/control/system/start", function (data) {
-			console.log(`${data}`);
-		});
-		await sleep(300).then(fetchAndDisplaySystemStatus());
-		await fetchAndDisplayControlLogs();
+		updateSystemStatus("시스템 시작 요청 중...", "loading"); // 요청 시작 시 로딩 표시
+		try {
+			const response = await fetch(
+				`${SPRING_BOOT_BASE_URL}/api/control/system/start`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+				},
+			);
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			console.log("시스템 시작 명령 전송 성공");
+			setTimeout(fetchAndDisplaySystemStatus, 1000); // 1초 후 상태 다시 가져오기
+		} catch (error) {
+			console.error("시스템 시작 명령 전송 중 오류 발생:", error);
+			updateSystemStatus(
+				`시작 요청 실패: ${escapeHTML(error.message)}`,
+				"error",
+			);
+		}
 	});
 
 	stopBtn.addEventListener("click", async () => {
-		await updateSystemStatus("시스템 중지 요청 중...");
-		await $.get("/api/control/system/stop", function (data) {
-			console.log(`${data}`);
-		});
-		await sleep(300).then(fetchAndDisplaySystemStatus());
-		await fetchAndDisplayControlLogs();
-	});
-
-	// === 센서/부저 제어 버튼 제어 ===
-	toggleButtons.forEach((btn) => {
-		btn.addEventListener("click", () => {
-			const target = btn.dataset.target; // sensor or buzzer
-			const action = btn.dataset.action; // on or off
-			const statusEl = document.getElementById(`${target}-status`);
-			const btnOn = document.getElementById(`btn-${target}-on`);
-			const btnOff = document.getElementById(`btn-${target}-off`);
-
-			const isOn = action === "on";
-			updateStatus(statusEl, isOn);
-
-			if (isOn) {
-				setActiveButton(btnOn, btnOff);
-			} else {
-				setInactiveButton(btnOff, btnOn);
+		updateSystemStatus("시스템 중지 요청 중...", "loading"); // 요청 시작 시 로딩 표시
+		try {
+			const response = await fetch(
+				`${SPRING_BOOT_BASE_URL}/api/control/system/stop`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+				},
+			);
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
 			}
-		});
+			console.log("시스템 중지 명령 전송 성공");
+			setTimeout(fetchAndDisplaySystemStatus, 1000); // 1초 후 상태 다시 가져오기
+		} catch (error) {
+			console.error("시스템 중지 명령 전송 중 오류 발생:", error);
+			updateSystemStatus(
+				`중지 요청 실패: ${escapeHTML(error.message)}`,
+				"error",
+			);
+		}
 	});
 
 	// 스크립트 상태 업데이트 함수 (UI 표시)
 	function updateScriptStatus(statusText, stateClass) {
-		if (scriptStatusSpan) {
+		if (scriptStatusSpan && checkScriptStatus) {
 			scriptStatusSpan.textContent = statusText;
 			checkScriptStatus.textContent = statusText;
 			// 기존 상태 클래스 제거
@@ -224,7 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// 스크립트 상태를 가져와서 표시하는 함수 (Fetch API 사용)
 	async function fetchAndDisplayScriptStatus() {
-		if (!scriptStatusSpan) return;
+		if (!scriptStatusSpan || !checkScriptStatus) return;
 
 		updateScriptStatus("상태 확인 중...", "loading"); // 상태 확인 시작 시 로딩 표시
 
@@ -241,7 +332,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			}
 
 			// 서버 응답 문자열에 따라 상태 클래스 결정 (예시)
-			let stateClass = "info"; // 기본 상태 (필요하다면 CSS 클래스 추가)
+			let stateClass = "loading"; // 기본 상태
 			if (
 				status.includes("중지됨") ||
 				status.includes("Stopped") ||
@@ -258,8 +349,13 @@ document.addEventListener("DOMContentLoaded", () => {
 				stateClass = "error";
 			} else if (status.includes("로딩") || status.includes("Loading")) {
 				stateClass = "loading";
+			} else if (
+				status.includes("Default") ||
+				status.includes("Initializing")
+			) {
+				stateClass = "loading"; // 초기 상태는 로딩으로
 			} else {
-				stateClass = "loading";
+				stateClass = "loading"; // 알 수 없는 상태도 로딩으로
 			}
 
 			updateScriptStatus(status, stateClass); // 가져온 상태와 클래스로 업데이트
@@ -289,7 +385,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			setTimeout(fetchAndDisplayScriptStatus, 1000); // 1초 후 상태 다시 가져오기
 		} catch (error) {
 			console.error("스크립트 시작 명령 전송 중 오류 발생:", error);
-			displayMessage(`스크립트 시작 명령 전송 실패: ${error.message}`, "error");
+			// displayMessage(`스크립트 시작 명령 전송 실패: ${error.message}`, "error"); // 이 함수는 정의되지 않았습니다.
 			updateScriptStatus(
 				`시작 요청 실패: ${escapeHTML(error.message)}`,
 				"error",
@@ -317,7 +413,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			setTimeout(fetchAndDisplayScriptStatus, 1000); // 1초 후 상태 다시 가져오기
 		} catch (error) {
 			console.error("스크립트 중지 명령 전송 중 오류 발생:", error);
-			displayMessage(`스크립트 중지 명령 전송 실패: ${error.message}`, "error");
+			// displayMessage(`스크립트 중지 명령 전송 실패: ${error.message}`, "error"); // 이 함수는 정의되지 않았습니다.
 			updateScriptStatus(
 				`중지 요청 실패: ${escapeHTML(error.message)}`,
 				"error",
@@ -339,20 +435,8 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	// === 초기 상태 설정 ===
-	// updateStatus(systemStatus, false);
-	setInactiveButton(stopBtn, startBtn);
-
-	// updateStatus(sensorStatus, false);
-	// setInactiveButton(
-	//   document.getElementById("btn-sensor-off"),
-	//   document.getElementById("btn-sensor-on")
-	// );
-
-	// updateStatus(buzzerStatus, false);
-	// setInactiveButton(
-	//   document.getElementById("btn-buzzer-off"),
-	//   document.getElementById("btn-buzzer-on")
-	// );
+	// updateStatus(systemStatus, false); // 이제 updateSystemStatus가 처리
+	setInactiveButton(stopBtn, startBtn); // 시스템 중지 버튼 기본 활성화
 
 	// --- 유틸리티 함수 ---
 
@@ -401,7 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			// 가져온 로그 데이터를 전역 변수에 저장 (모달에서 사용)
 			// 원본 순서 그대로 저장
-			controlLogsData = logs;
+			// controlLogsData = logs; // 이 변수가 어디에 정의되어 있는지 확인 필요
 
 			controlLogTableBody.innerHTML = ""; // 이전 내용 지우기
 
