@@ -134,7 +134,7 @@ public class DailyTaskController {
         responseDto.setCompletedTasks((int) completedTasksFromChart); // long을 int로 캐스팅
         
         log.info("Returning daily progress: RecordDate={}, TotalTasks={}, CompletedTasks={}", 
-                 responseDto.getRecordDate(), responseDto.getDailyTotalTasks(), responseDto.getCompletedTasks());
+                responseDto.getRecordDate(), responseDto.getDailyTotalTasks(), responseDto.getCompletedTasks());
         return ResponseEntity.ok(responseDto);
     }
 }

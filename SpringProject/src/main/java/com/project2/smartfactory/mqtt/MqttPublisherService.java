@@ -6,10 +6,13 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+
+
 
 @Service
 public class MqttPublisherService {
@@ -92,7 +95,9 @@ public class MqttPublisherService {
      * @param qos QoS 레벨 (0, 1, 2)
      * @param retained 메시지 유지 여부
      */
+    @Async // MQTT메세지 비동기 처리를 위한 어노테이션
     public void publishMessage(String topic, String payload, int qos, boolean retained) {
+        
         if (mqttClient == null || !mqttClient.isConnected()) {
             System.err.println("MQTT 클라이언트가 연결되지 않았습니다. 메시지를 발행할 수 없습니다.");
             // 필요에 따라 예외를 던지거나 다른 방식으로 오류 처리
@@ -102,8 +107,8 @@ public class MqttPublisherService {
         try {
             // 메시지 생성
             MqttMessage message = new MqttMessage(payload.getBytes());
-            message.setRetained(retained);
             message.setQos(qos);
+            message.setRetained(retained);
 
             // 메시지 발행
             mqttClient.publish(topic, message);

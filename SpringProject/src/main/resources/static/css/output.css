@@ -1523,6 +1523,18 @@ input:checked + .toggle-bg {
   stroke: var(--color-gray-700) !important;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .visible {
   visibility: visible;
 }
@@ -1567,6 +1579,10 @@ input:checked + .toggle-bg {
   bottom: 0px;
 }
 
+.bottom-2 {
+  bottom: 0.5rem;
+}
+
 .bottom-\[60px\] {
   bottom: 60px;
 }
@@ -1577,6 +1593,10 @@ input:checked + .toggle-bg {
 
 .right-0 {
   right: 0px;
+}
+
+.right-2 {
+  right: 0.5rem;
 }
 
 .right-6 {
@@ -1646,10 +1666,6 @@ input:checked + .toggle-bg {
 
 .mb-8 {
   margin-bottom: 2rem;
-}
-
-.me-2 {
-  margin-inline-end: 0.5rem;
 }
 
 .mr-2 {
@@ -1852,6 +1868,16 @@ input:checked + .toggle-bg {
 
 .transform-none {
   transform: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
 .cursor-default {
@@ -2071,6 +2097,11 @@ input:checked + .toggle-bg {
   border-color: transparent;
 }
 
+.bg-black {
+  --tw-bg-opacity: 1;
+  background-color: rgb(0 0 0 / var(--tw-bg-opacity));
+}
+
 .bg-blue-100 {
   --tw-bg-opacity: 1;
   background-color: rgb(219 234 254 / var(--tw-bg-opacity));
@@ -2169,6 +2200,14 @@ input:checked + .toggle-bg {
   background-color: rgb(234 179 8 / var(--tw-bg-opacity));
 }
 
+.bg-opacity-50 {
+  --tw-bg-opacity: 0.5;
+}
+
+.fill-blue-600 {
+  fill: #2563eb;
+}
+
 .object-cover {
   -o-object-fit: cover;
      object-fit: cover;
@@ -2205,11 +2244,6 @@ input:checked + .toggle-bg {
 .px-2 {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
-}
-
-.px-3 {
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
 }
 
 .px-4 {
@@ -2438,6 +2472,11 @@ input:checked + .toggle-bg {
   color: rgb(234 179 8 / var(--tw-text-opacity));
 }
 
+.text-gray-200 {
+  --tw-text-opacity: 1;
+  color: rgb(229 231 235 / var(--tw-text-opacity));
+}
+
 .opacity-0 {
   opacity: 0;
 }
@@ -2612,6 +2651,10 @@ input:checked + .toggle-bg {
 .hover\:bg-yellow-500:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(234 179 8 / var(--tw-bg-opacity));
+}
+
+.hover\:bg-opacity-70:hover {
+  --tw-bg-opacity: 0.7;
 }
 
 .hover\:text-blue-600:hover {
@@ -2795,6 +2838,11 @@ input:checked + .toggle-bg {
 :is(.dark .dark\:text-white) {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity));
+}
+
+:is(.dark .dark\:text-gray-600) {
+  --tw-text-opacity: 1;
+  color: rgb(75 85 99 / var(--tw-text-opacity));
 }
 
 :is(.dark .dark\:hover\:bg-blue-700:hover) {
