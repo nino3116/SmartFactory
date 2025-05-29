@@ -56,19 +56,29 @@ document.addEventListener("DOMContentLoaded", function () {
 		switch (type) {
 			case "INFO":
 				iconClass = "bg-blue-100 text-blue-500";
-				svgPath = `<path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>`; // 정보 아이콘
+				svgPath = `<path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+            />;`; // 정보 아이콘
 				break;
 			case "WARNING":
 				iconClass = "bg-yellow-100 text-yellow-500";
-				svgPath = `<path d="M12 9v4m0 4h.01M10.363 3.591l-8.106 13.5A1.99 1.99 0 003.953 21h16.094a1.99 1.99 0 001.696-3.909l-8.106-13.5a1.99 1.99 0 00-3.392 0z"></path>`; // 경고 아이콘
+				svgPath = `<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path>`; // 경고 아이콘
 				break;
 			case "ERROR":
 				iconClass = "bg-red-100 text-red-500";
-				svgPath = `<path d="M12 9v4m0 4h.01M10.363 3.591l-8.106 13.5A1.99 1.99 0 003.953 21h16.094a1.99 1.99 0 001.696-3.909l-8.106-13.5a1.99 1.99 0 00-3.392 0z"></path>`; // 오류 아이콘 (경고와 동일)
+				svgPath = `<path d="M12 9v4"></path><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"></path><path d="M12 16h.01"></path>`; // 오류 아이콘 (경고와 동일)
 				break;
 			case "SUCCESS":
 				iconClass = "bg-green-100 text-green-500";
-				svgPath = `<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>`; // 성공 아이콘 (체크마크)
+				svgPath = `<path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />`; // 성공 아이콘 (체크마크)
 				break;
 			case "CONVEYOR_BELT":
 				iconClass = "bg-purple-100 text-purple-500";
