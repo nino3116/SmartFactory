@@ -102,7 +102,7 @@ public class NotificationController {
      * @return 성공 응답 또는 오류 응답
      */
     @PostMapping("/hide/{id}")
-    public ResponseEntity<Void> hideNotification(@PathVariable Long id) {
+    public ResponseEntity<Void> hideNotification(@PathVariable("id") Long id) {
         logger.info("API Request received for hiding: ID={}", id);
         notificationService.hideNotification(id);
         return ResponseEntity.ok().build(); // HTTP 200 OK 응답
