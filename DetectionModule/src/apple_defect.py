@@ -276,7 +276,7 @@ def analyze_defects(
                 }
             )
 
-        # 'Bruise', 'rotten', 'stem'는 항상 '불량'으로 판별
+        # 'Bruise', 'rotten'는 항상 '불량'으로 판별
         always_defective_ids = [
             id for id in [bruise_class_id, rotten_class_id, stem_class_id] if id != -1
         ]
@@ -288,10 +288,6 @@ def analyze_defects(
                     detailed_reason = "Bruise"
                 elif instance["class_id"] == rotten_class_id:
                     detailed_reason = "Rotten"
-                elif instance["class_id"] == stem_class_id:
-                    detailed_reason = (
-                        "Stem"  # Stem classified as defective? Confirm if needed
-                    )
 
                 detected_defects.append(
                     {
@@ -608,7 +604,6 @@ def publish_mqtt_message(client, topic, message):
 
 
 # 감지 결과를 API 서버로 전송하는 함수 (스레드에서 실행될 함수)
-# 이 함수는 이제 DetectionResultDto 구조에 맞는 단일 딕셔너리를 받습니다.
 def _send_detection_result_to_api_threaded(
     api_url, detection_result_data
 ):  # 함수 이름 및 인자 변경
