@@ -1,11 +1,13 @@
 // src/main/java/com/project2/smartfactory/defect/DefectDetectionDetailsDto.java
 package com.project2.smartfactory.defect;
 
-import java.time.LocalDateTime; // detectionTime을 위해 추가
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime; // detectionTime을 위해 추가
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * 'defect_detection/details' 토픽에서 수신되는 JSON 메시지의 전체 구조를 나타내는 DTO.

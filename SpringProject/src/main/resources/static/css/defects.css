@@ -8,14 +8,6 @@
   border-radius: 0.25rem; /* Tailwind rounded 스타일 */
 }
 
-/* 제어 로그 컨테이너 스타일: 스크롤 가능한 영역 */
-.control-log-scroll-container {
-  max-height: 71vh; /* 스크롤이 시작되는 최대 높이 */
-  overflow-y: auto; /* 세로 스크롤 활성화 */
-  border: 1px solid #e2e8f0; /* Tailwind gray-200 색상 */
-  border-radius: 0.25rem; /* Tailwind rounded 스타일 */
-}
-
 /* 테이블 헤더 고정 (선택 사항) */
 .detection-log-scroll-container table thead th {
   position: sticky; /* 스크롤 시 헤더 고정 */
