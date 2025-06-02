@@ -103,7 +103,7 @@ public class DefectController {
 
     /**
      * 데이터베이스에 저장된 모든 감지 로그를 최신 순으로 JSON 형태로 제공합니다.
-     * dashboard.html의 감지 결과 로그 테이블에서 이 엔드포인트를 호출합니다.
+     * defects.html의 감지 결과 로그 테이블에서 이 엔드포인트를 호출합니다.
      * @return 감지 로그 리스트
      */
     @GetMapping("/detection-logs") // /api/detection-logs 경로로 GET 요청 처리

@@ -829,7 +829,7 @@ async function fetchAndDisplayLatestDefects() {
           <td class="py-2 px-4 border-b text-center">
             ${
 							imageUrl
-								? `<img src="${imageUrl}" alt="Defect Snapshot" class="h-16 w-16 object-cover rounded-md mx-auto" onerror="this.onerror=null;this.src='https://placehold.co/64x64/E0E0E0/FFFFFF?text=No+Image';">`
+								? `<img src="${imageUrl}" alt="Defect Snapshot" class="h-16 w-16 object-cover rounded-md mx-auto defect-image" onerror="this.onerror=null;this.src='https://placehold.co/64x64/E0E0E0/FFFFFF?text=No+Image';">`
 								: "이미지 없음"
 						}
           </td>
