@@ -35,8 +35,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MqttSubscriberService implements MqttCallback {
 
-    private final MqttPublisherService mqttPublisherService;
-
     private static final Logger logger = LoggerFactory.getLogger(MqttSubscriberService.class);
 
     // application.properties 또는 application.yml 파일에서 설정 값을 주입받습니다.
@@ -226,9 +224,6 @@ public class MqttSubscriberService implements MqttCallback {
                 String msgContent = jsonNode.has("message") ? jsonNode.get("message").asText() : ""; // "message" 필드 추출
                 // String timestamp = jsonNode.has("timestamp") ? jsonNode.get("timestamp").asText() : ""; // "timestamp" 필드 (필요시 사용)
 
-                // 실제 payload 변수는 더 이상 사용되지 않지만, 기존 로직과의 일관성을 위해 status 값을 할당
-                // 이 payload는 ControlLog 저장에 사용되므로, JSON 전체를 저장하는 것이 더 유용할 수 있습니다.
-                // 여기서는 status 값만 할당하여 기존 ControlLog 로직을 최소한으로 변경합니다.
                 payload = status; 
 
                 // 사용자 요청 처리 로직은 그대로 유지 (status와 msgContent 활용)

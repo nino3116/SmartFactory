@@ -91,7 +91,6 @@ public class ControlLogController {
   @GetMapping("/logs") // /ctrl/logs 경로로 GET 요청 처리
   public ResponseEntity<List<ControlLog>> getAllControlLogs() {
     System.out.println("--- API 요청 수신 (감지 로그 요청) ---");
-    // DefectService를 통해 모든 감지 로그를 가져와 반환합니다.
     List<ControlLog> logs = this.controlLogRepository.findAllByOrderByControlTimeDesc();
     System.out.println("제어 로그 " + (logs != null ? logs.size() : 0) + "건 조회 완료.");
     System.out.println("----------------------------------");
