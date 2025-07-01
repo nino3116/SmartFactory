@@ -6,7 +6,9 @@ import sys  # sys.executable을 사용하여 현재 파이썬 인터프리터 �
 import json  # JSON 처리를 위해 추가
 
 # --- 설정 변수 ---
-MQTT_BROKER_HOST = "192.168.0.124"  # MQTT 브로커 주소
+# MQTT_BROKER_HOST = "192.168.0.124"  # MQTT 브로커 주소
+# MQTT_BROKER_HOST = "broker.hivemq.com"  # MQTT 브로커 주소
+MQTT_BROKER_HOST = "192.168.10.252"  # MQTT 브로커 주소
 MQTT_BROKER_PORT = 1883  # MQTT 브로커 포트
 MQTT_TOPIC_COMMAND = "apple_defect/command"  # 명령을 받을 토픽 (예: "START", "STOP")
 MQTT_TOPIC_STATUS = "apple_defect/controller_status"  # 컨트롤러 상태를 알릴 토픽
