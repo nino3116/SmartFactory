@@ -1,18 +1,24 @@
 <header
   th:fragment="header"
-  class="flex items-center justify-between bg-white border-b border-gray-200 p-8">
+  class="flex items-center justify-between bg-white border-b border-gray-200 p-8"
+>
   <div>
     <h1
       class="text-3xl p-1 font-semibold text-gray-800"
       th:text="${title}"
-      style="margin-left: 15px"></h1>
+      style="margin-left: 15px"
+    ></h1>
   </div>
 
-  <div>
+  <div class="flex items-center space-x-4">
+    <span class="text-sm text-gray-700">남은 세션 시간 :</span>
+    <span id="session-timer" class="font-bold text-lg text-gray-950"></span>
+
     <button
       id="notification-button"
       type="button"
-      class="bg-green-600 hover:bg-yellow-500 rounded-2xl w-8 h-8 text-gray-100 focus:outline-none">
+      class="bg-green-600 hover:bg-yellow-500 rounded-2xl w-8 h-8 text-gray-100 focus:outline-none"
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="24"
@@ -23,14 +29,16 @@
         stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
-        class="lucide lucide-bell mx-auto">
+        class="lucide lucide-bell mx-auto"
+      >
         <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
         <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
       </svg>
       <span id="notification-badge" class="sr-only"></span>
       <div
         id="notification-count-badge"
-        class="absolute inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-2 -right-2 dark:border-gray-900 hidden">
+        class="absolute inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-2 -right-2 dark:border-gray-900 hidden"
+      >
         0
       </div>
     </button>

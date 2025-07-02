@@ -26,6 +26,7 @@ public class SecurityConfig {
                 .requestMatchers("/control/**").permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/admin/login")).permitAll() // 로그인 페이지 허용
                 .requestMatchers(new AntPathRequestMatcher("/admin/logout")).permitAll() // 로그아웃 허용
+                .requestMatchers(new AntPathRequestMatcher("/extendSession")).authenticated() // 세션 연장 허용
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
