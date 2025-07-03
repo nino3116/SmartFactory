@@ -4,6 +4,7 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
   "editor.tabSize": 2,
+  "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx2G -Xms100m -Xlog:disable"
   // "files.associations": {
   //       "*.html": "html", // 기본 HTML 연결 (혹시 다른 연결이 있다면 유지)
   //   },
