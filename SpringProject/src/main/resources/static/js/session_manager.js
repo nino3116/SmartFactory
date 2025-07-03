@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // 서버에 설정된 세션 타임아웃 시간 (밀리초) - Spring Boot 설정과 일치시켜야 함
     // Spring Boot의 기본 세션 타임아웃 30분 (1800초)
-    const SESSION_TIMEOUT_SECONDS = 5 * 60; // 30분
+    const SESSION_TIMEOUT_SECONDS = 2 * 60; // 30분
     const WARNING_TIME_SECONDS = 60; // 만료 1분 전 경고
 
     let sessionRemainingTime = SESSION_TIMEOUT_SECONDS;
