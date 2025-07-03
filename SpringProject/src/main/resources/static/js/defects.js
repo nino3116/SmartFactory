@@ -10,8 +10,8 @@ document.addEventListener("DOMContentLoaded", () => {
 	const SCRIPT_STATUS_API_URL = `${SPRING_BOOT_BASE_URL}/api/status/script`; // 스크립트 상태 조회 API 엔드포인트
 
 	// 스트림 이미지 URL (필요에 따라 수정)
-	const PRIMARY_STREAM_URL = "http://192.168.0.122:8080";
-	const FALLBACK_STREAM_URL = "http://192.168.0.124:8000/stream.mjpg";
+	const PRIMARY_STREAM_URL = "http://localhost:8080";
+	const FALLBACK_STREAM_URL = "http://192.168.10.246:8000/stream.mjpg";
 
 	// 데이터 업데이트 주기 (밀리초) - S3 요청 줄이려면 이 값을 늘리세요.
 	const DEFECTS_UPDATE_INTERVAL = 30000; // 예: 30초
@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	// --- 스크립트 상태 관련 함수 ---
 
 	// 스크립트 상태 업데이트 함수 (UI 표시)
-	function updateScriptStatus(statusText, stateClass) {
+	async function updateScriptStatus(statusText, stateClass) {
 		if (scriptStatusSpan) {
 			scriptStatusSpan.textContent = statusText;
 			// 기존 상태 클래스 제거
@@ -128,6 +128,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// 스크립트 시작 명령을 보내는 함수 (Fetch API 사용)
 	async function startScript() {
+		// 버튼 비활성화 및 텍스트 변경
+		if (startScriptBtn) {
+			startScriptBtn.disabled = true;
+			startScriptBtn.textContent = "시작 중..."; // 텍스트 변경
+		}
+		if (stopScriptBtn) stopScriptBtn.disabled = true;
+
 		updateScriptStatus("스크립트 시작 요청 중...", "loading"); // 요청 시작 시 로딩 표시
 		try {
 			const response = await fetch(SCRIPT_CONTROL_START_URL, {
@@ -151,11 +158,25 @@ document.addEventListener("DOMContentLoaded", () => {
 				`시작 요청 실패: ${escapeHTML(error.message)}`,
 				"error",
 			); // 오류 발생 시 오류 상태 표시
+		} finally {
+			// 요청 완료 후 버튼 다시 활성화 및 텍스트 복원
+			if (startScriptBtn) {
+				startScriptBtn.disabled = false;
+				startScriptBtn.textContent = "스크립트 시작"; // 원래 텍스트로 복원
+			}
+			if (stopScriptBtn) stopScriptBtn.disabled = false;
 		}
 	}
 
 	// 스크립트 중지 명령을 보내는 함수 (Fetch API 사용)
 	async function stopScript() {
+		// 버튼 비활성화 및 텍스트 변경
+		if (startScriptBtn) startScriptBtn.disabled = true;
+		if (stopScriptBtn) {
+			stopScriptBtn.disabled = true;
+			stopScriptBtn.textContent = "중지 중..."; // 텍스트 변경
+		}
+
 		updateScriptStatus("스크립트 중지 요청 중...", "loading"); // 요청 시작 시 로딩 표시
 		try {
 			const response = await fetch(SCRIPT_CONTROL_STOP_URL, {
@@ -179,6 +200,13 @@ document.addEventListener("DOMContentLoaded", () => {
 				`중지 요청 실패: ${escapeHTML(error.message)}`,
 				"error",
 			); // 오류 발생 시 오류 상태 표시
+		} finally {
+			// 요청 완료 후 버튼 다시 활성화 및 텍스트 복원
+			if (startScriptBtn) startScriptBtn.disabled = false;
+			if (stopScriptBtn) {
+				stopScriptBtn.disabled = false;
+				stopScriptBtn.textContent = "스크립트 중지"; // 원래 텍스트로 복원
+			}
 		}
 	}
 
@@ -507,7 +535,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	// --- MJPEG 스트림 로딩 함수 ---
 
 	// MJPEG 스트림 이미지 로딩 처리
-	async function setupMjpegStream() {
+	function setupMjpegStream() { // async 키워드 제거
 		if (!mjpegStreamImg || !streamStatusMessage) {
 			console.error(
 				"Error: 스트림 이미지 또는 상태 메시지 요소를 찾을 수 없습니다.",
@@ -544,15 +572,15 @@ document.addEventListener("DOMContentLoaded", () => {
 					"첫 번째 스트림 실패. 두 번째 스트림 시도:",
 					FALLBACK_STREAM_URL,
 				);
-				mjpegStreamImg.src = FALLBACK_STREAM_URL; // 대체 URL로 변경
 				streamStatusMessage.textContent =
 					"첫 번째 스트림 연결 실패. 대체 스트림 시도 중...";
 				streamStatusMessage.className = "stream-status status-loading"; // 로딩 상태 스타일 유지
 				fallbackAttempted = true; // 대체 시도 플래그 설정
 
-				// 대체 URL 로드 성공/실패에 대한 새로운 이벤트 리스너는 필요 없습니다.
-				// 동일한 handleStreamLoad/handleStreamError 함수가 호출될 것입니다.
-				// 단, 오류 발생 시 fallbackAttempted 플래그를 체크하여 무한 루프를 방지합니다.
+				// 대체 URL 시도 전에 약간의 지연 추가
+				setTimeout(() => {
+					mjpegStreamImg.src = FALLBACK_STREAM_URL; // 대체 URL로 변경
+				}, 500); // 0.5초 지연
 			} else {
 				// 이미 대체 URL을 시도했는데 또 오류가 발생했거나,
 				// 첫 번째 URL 시도 중 플래그 설정 전에 다시 오류가 발생한 경우 (거의 발생하지 않음)
@@ -588,13 +616,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// 스크립트 제어 버튼 이벤트 리스너 추가
 	if (startScriptBtn) {
-		startScriptBtn.addEventListener("click", startScript);
+		startScriptBtn.addEventListener("click", () => {
+			console.log("Start Script button clicked!"); // 클릭 이벤트 확인용 로그
+			startScript();
+		});
 	} else {
 		console.error("Error: 'start-script-btn' 요소를 찾을 수 없습니다.");
 	}
 
 	if (stopScriptBtn) {
-		stopScriptBtn.addEventListener("click", stopScript);
+		stopScriptBtn.addEventListener("click", () => {
+			console.log("Stop Script button clicked!"); // 클릭 이벤트 확인용 로그
+			stopScript();
+		});
 	} else {
 		console.error("Error: 'stop-script-btn' 요소를 찾을 수 없습니다.");
 	}

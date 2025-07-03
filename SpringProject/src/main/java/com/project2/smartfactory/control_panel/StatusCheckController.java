@@ -17,7 +17,7 @@ public class StatusCheckController {
   public ResponseEntity<String> ImageStreamStatus (){
     String[] targetURL = new String[2];
     targetURL[0] = "http://localhost:8080";
-    targetURL[1] = "http://192.168.0.124:8000/stream.mjpg";
+    targetURL[1] = "http://192.168.10.246:8000/stream.mjpg";
 
     for(int i=0; i<targetURL.length;i++){
       try{
