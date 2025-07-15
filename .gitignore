@@ -3,3 +3,5 @@ apple/
 node_modules/
 
 *.png
+
+SpringProject/logs/*.log
