@@ -28,7 +28,8 @@ MODEL_PATH = "wsl_seg_best.pt"
 
 # 2. 라즈베리 파이 카메라 서버의 영상 스트림 주소 (URL)
 # 로컬 웹캠을 사용하려면 0으로 설정하세요.
-VIDEO_STREAM_URL = "http://192.168.0.124:8000/stream.mjpg"
+VIDEO_STREAM_URL = "http://192.168.10.246:8000/stream.mjpg"
+# VIDEO_STREAM_URL = 0
 
 # 3. 탐지 임계값 (Confidence Threshold) - 모델이 객체를 얼마나 확신할 때 감지할지 결정
 CONF_THRESHOLD = 0.4  # 필요에 따라 조정하세요 (예: 0.3, 0.7 등)
@@ -37,7 +38,7 @@ CONF_THRESHOLD = 0.4  # 필요에 따라 조정하세요 (예: 0.3, 0.7 등)
 IOU_THRESHOLD = 0.4  # 필요에 따라 조정하세요 (예: 0.4, 0.6 등)
 
 # 5. 결과 시각화 창 표시 여부
-SHOW_DETECTION_WINDOW = False
+SHOW_DETECTION_WINDOW = True
 
 # 6. OpenCV 텍스트 그리기 설정 (영문)
 OPENCV_FONT = cv.FONT_HERSHEY_SIMPLEX  # 사용할 폰트 종류
@@ -75,7 +76,8 @@ S3_DEFECTS_SUBPATH = "defects/"
 
 # --- MQTT 설정 변수 ---
 MQTT_BROKER_HOST = (
-    "192.168.0.124"  # MQTT 브로커 주소 (라즈베리 파이 또는 다른 서버 주소)
+    "192.168.10.252"  # MQTT 브로커 주소 (라즈베리 파이 또는 다른 서버 주소)
+    # "broker.hivemq.com"  # MQTT 브로커 주소 (라즈베리 파이 또는 다른 서버 주소)
 )
 MQTT_BROKER_PORT = 1883  # MQTT 브로커 포트 (일반적으로 1883)
 MQTT_TOPIC_STATUS = "defect_detection/status"  # 불량 감지 상태를 보낼 토픽 (Normal, Defect Detected) - 사용자 설정 반영 (이름 변경)
@@ -118,7 +120,13 @@ def load_yolo_model(model_path):
     print(f"모델 로드 중: {model_path}")
     try:
         # 모델 로드 시 GPU 사용 가능 여부 확인 및 설정
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif torch.mps.is_available():
+            device = "mps"    
+        else:
+            device = "cpu"
         print(f"사용 장치: {device}")
         model = YOLO(model_path).to(device)  # 모델을 지정된 장치로 이동
         print("모델 로드 완료.")
@@ -315,6 +323,7 @@ def analyze_defects(
                 dent_class_id,
                 scratch_class_id,
                 unriped_class_id,
+                stem_class_id,
             ]
             if id != -1
         ]
@@ -369,6 +378,11 @@ def analyze_defects(
                     detailed_reason = "Scratch"
                 elif defect_instance["class_id"] == unriped_class_id:
                     detailed_reason = "Unriped"
+                elif defect_instance["class_id"] == rotten_class_id:
+                    detailed_reason = "Rotten"
+                elif defect_instance["class_id"] == stem_class_id:
+                    detailed_reason = "Stem"
+
 
                 classification = "Normal"  # Default classification
                 if area_percentage_on_total_apple >= area_threshold_defective_percent:

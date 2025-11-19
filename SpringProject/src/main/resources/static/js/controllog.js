@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// 스트림 이미지 URL (필요에 따라 수정)
 	const PRIMARY_STREAM_URL = "http://localhost:8080";
-	const FALLBACK_STREAM_URL = "http://192.168.0.124:8000/stream.mjpg";
+	const FALLBACK_STREAM_URL = "http://192.168.10.246:8000/stream.mjpg";
 
 	const STATUS_UPDATE_INTERVAL = 5000; // 스크립트/시스템 상태는 자주 확인해도 부담 적음
 	const LOGS_UPDATE_INTERVAL = 5000;
