@@ -19,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 public class UsersService implements UserDetailsService {
 
-    private final UsersRepository usersRepository;
+    private final UsersMapper usersMapper;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.admin.default-password}")
@@ -30,18 +30,18 @@ public class UsersService implements UserDetailsService {
 
     @PostConstruct
     public void initializeAdminAccountFromConfig() {
-        if (initializeAdmin && usersRepository.count() == 0) {
+        if (initializeAdmin && usersMapper.count() == 0) {
             Users adminUser = new Users();
             adminUser.setUsername("admin");
             adminUser.setAdminPasswordHash(passwordEncoder.encode(defaultAdminPassword));
             adminUser.setCreateDate(LocalDateTime.now());
-            usersRepository.save(adminUser);
+            usersMapper.save(adminUser);
             System.out.println("설정 파일로부터 초기 관리자 계정이 생성되었습니다.");
         }
     }
     // 비밀번호 변경 시 내부적으로 관리자 조회에 계속 사용
     public Users getAdminUser(Integer id) {
-        Optional<Users> adminUser = this.usersRepository.findById(id);
+        Optional<Users> adminUser = this.usersMapper.findById(id);
         if (adminUser.isPresent()) {
             return adminUser.get();
         } else {
@@ -57,12 +57,12 @@ public class UsersService implements UserDetailsService {
         adminUser.setAdminPasswordHash(passwordEncoder.encode(newPassword));
         adminUser.setUpdateDate(LocalDateTime.now());
 
-        this.usersRepository.save(adminUser); // 덮어쓰기 + 수정일 갱신
+        this.usersMapper.update(adminUser); // 덮어쓰기 + 수정일 갱신
     }
 
     
     public Users getUserByUsername(String username) {
-    return usersRepository.findByUsername(username)
+    return usersMapper.findByUsername(username)
         .orElseThrow(() -> new UsernameNotFoundException("관리자를 찾을 수 없습니다: " + username));
     }
     // 비밀번호 변경시 입력된 현재 비밀번호와 비교
@@ -72,7 +72,7 @@ public class UsersService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Users adminUser = usersRepository.findByUsername(username)
+        Users adminUser = usersMapper.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("관리자 계정(" + username + ")을 찾을 수 없습니다."));
 
         return org.springframework.security.core.userdetails.User.builder()
